@@ -11,7 +11,7 @@ load_dotenv()
 # ── Shared app (PKCE) — set this so end users never need a Spotify dev account
 # Get your Client ID from developer.spotify.com, paste it here, request
 # Extended Quota Mode, and nobody else ever has to touch the Spotify dashboard.
-VIBESORT_CLIENT_ID = os.getenv("VIBESORT_CLIENT_ID", "")
+VIBESORT_CLIENT_ID = os.getenv("VIBESORT_CLIENT_ID", "c9e2d0ff7cbb49b0a59ca6c3b1c150bf")
 
 # ── User's own credentials (fallback / power users) ───────────────────────────
 SPOTIFY_CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID", "")
