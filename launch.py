@@ -72,7 +72,7 @@ def ensure_streamlit_config():
 # ── Step 3: Launch ────────────────────────────────────────────────────────────
 
 def launch():
-    print(f"Starting Vibesort → {APP_URL}\n")
+    print(f"Starting Vibesort @ {APP_URL}\n")
     env = os.environ.copy()
     env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
     try:
