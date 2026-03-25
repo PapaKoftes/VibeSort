@@ -36,7 +36,11 @@ profiles: dict = vibesort.get("profiles", {})
 with st.sidebar:
     st.markdown("### Vibes")
     st.metric("Moods found", len(mood_results))
-    staged_count = len(st.session_state.get("staged_ids", []))
+    try:
+        from staging import staging as _staging_mod
+        staged_count = _staging_mod.get_staged_count()
+    except Exception:
+        staged_count = len(st.session_state.get("staged_ids", []))
     st.metric("Staged", staged_count)
 
     st.divider()
@@ -118,10 +122,11 @@ def _add_to_staging(mood_name, uris, suggested_name, description, expand_recs):
             "track_uris":      list(uris),
             "rec_uris":        [],
             "playlist_type":   "mood",
+            "source_type":     "mood",
+            "source_label":    mood_name,
             "genre_breakdown": genre_breakdown,
             "cohesion":        cohesion,
             "expand_with_recs": expand_recs,
-            "metadata":        {"source_mood": mood_name},
         }
         playlist_id = staging.save(data)
         # Track staged IDs in session state

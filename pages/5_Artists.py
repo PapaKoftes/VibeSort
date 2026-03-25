@@ -95,10 +95,11 @@ def _add_artist_to_staging(artist_name, uris):
             "track_uris":      list(uris),
             "rec_uris":        [],
             "playlist_type":   "artist",
+            "source_type":     "artist",
+            "source_label":    artist_name,
             "genre_breakdown": genre_bd_pct,
             "cohesion":        0.85,
             "expand_with_recs": False,
-            "metadata":        {"source_artist": artist_name},
         }
         pid = staging.save(data)
         if "staged_ids" not in st.session_state:

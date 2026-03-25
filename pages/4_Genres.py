@@ -124,10 +124,11 @@ def _add_to_staging(genre_name, uris, playlist_type="genre"):
             "track_uris":      list(uris),
             "rec_uris":        [],
             "playlist_type":   playlist_type,
+            "source_type":     playlist_type,
+            "source_label":    genre_name,
             "genre_breakdown": genre_bd_pct,
             "cohesion":        cohesion,
             "expand_with_recs": True,
-            "metadata":        {"source_label": genre_name},
         }
         pid = staging.save(data)
         if "staged_ids" not in st.session_state:
