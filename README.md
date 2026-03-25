@@ -42,41 +42,6 @@ The playlist mining step is the key: it searches public playlists named things l
 
 ## Setup
 
-### 1. Get free Spotify credentials (~5 min)
-
-1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-2. Create an app (any name, any description)
-3. Under **Settings → Redirect URIs**, add exactly:
-   ```
-   https://papakoftes.github.io/VibeSort/callback.html
-   ```
-4. Copy your **Client ID** and **Client Secret**
-
-### 2. Install
-
-**Windows:** double-click `setup.bat`
-
-**Mac / Linux:**
-```bash
-bash setup.sh
-```
-
-**Manual:**
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-```
-
-### 3. Add credentials
-
-Open `.env` and fill in:
-```
-SPOTIFY_CLIENT_ID=your_id_here
-SPOTIFY_CLIENT_SECRET=your_secret_here
-```
-
-### 4. Run
-
 **Windows** — double-click `run.bat`
 
 **Mac / Linux:**
@@ -89,7 +54,21 @@ bash run.sh
 python launch.py
 ```
 
-That's it. No certificates, no HTTPS setup, no browser warnings. Click **Connect to Spotify**, authorize, and you're in.
+That's it. No Spotify developer account needed. No credentials to fill in. First run installs dependencies automatically, then the browser opens. Click **Connect to Spotify**, authorize, done.
+
+> **Note:** The app is currently in Spotify Development Mode (25-user limit). If you can't connect, [open an issue](https://github.com/PapaKoftes/VibeSort/issues) to be added to the allowlist.
+
+---
+
+### Advanced: use your own Spotify app
+
+If you want to run Vibesort with your own Spotify developer credentials, add them to `.env`:
+```
+VIBESORT_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_SECRET=your_client_secret
+```
+And register `https://papakoftes.github.io/VibeSort/callback.html` as your app's redirect URI.
 
 ---
 

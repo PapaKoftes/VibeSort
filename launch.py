@@ -39,9 +39,8 @@ def ensure_env():
             shutil.copy(src, ENV)
         else:
             with open(ENV, "w") as f:
-                f.write("SPOTIFY_CLIENT_ID=\nSPOTIFY_CLIENT_SECRET=\n")
-        print("Created .env — open it and add your Spotify Client ID and Secret.")
-        print("Then run this again.\n")
+                f.write("# Vibesort settings\n")
+        # Don't stop — shared client ID is baked into config.py, app works immediately
 
 
 # ── Step 2: Streamlit config (suppress email prompt, dark theme) ──────────────
