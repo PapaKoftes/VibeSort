@@ -6,4 +6,7 @@ if [ ! -f .env ]; then
   echo "Created .env — fill in your Spotify credentials before running."
 fi
 mkdir -p outputs staging/playlists data
-echo "Done. Run: streamlit run app.py"
+echo ""
+echo "Done. To run Vibesort:"
+echo "  python3 launch.py"
+echo ""

@@ -46,7 +46,7 @@ The playlist mining step is the key: it searches public playlists named things l
 
 1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
 2. Create an app (any name, any description)
-3. Under **Settings → Redirect URIs**, add: `http://localhost:8501`
+3. Under **Settings → Redirect URIs**, add: `https://localhost:8501`
 4. Copy your **Client ID** and **Client Secret**
 
 ### 2. Install
@@ -75,10 +75,12 @@ SPOTIFY_CLIENT_SECRET=your_secret_here
 ### 4. Run
 
 ```bash
-streamlit run app.py
+python launch.py
 ```
 
-A browser window opens. Click **Connect to Spotify**, authorize once, and you're in.
+That's it. On first launch, Vibesort automatically generates an SSL certificate and configures HTTPS — nothing else to do. A browser window opens. Click **Connect to Spotify**, authorize once, and you're in.
+
+> **Browser warning on first open:** Your browser may show "connection not private" because the certificate is self-signed. Click **Advanced → Proceed to localhost**. This is expected and safe — the cert only works on your own machine.
 
 ---
 
