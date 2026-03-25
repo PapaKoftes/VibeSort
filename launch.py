@@ -24,8 +24,22 @@ CERT = os.path.join(ROOT, "cert.pem")
 KEY  = os.path.join(ROOT, "key.pem")
 ENV  = os.path.join(ROOT, ".env")
 ENV_EXAMPLE = os.path.join(ROOT, ".env.example")
+REQUIREMENTS = os.path.join(ROOT, "requirements.txt")
 
 REDIRECT_HTTPS = "https://localhost:8501"
+
+
+# ── Step 0: Ensure dependencies are installed ─────────────────────────────────
+
+def ensure_dependencies():
+    try:
+        import streamlit  # noqa: F401
+    except ImportError:
+        print("Installing dependencies (first run — takes ~1 min)...")
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-r", REQUIREMENTS],
+        )
+        print("Dependencies installed.")
 
 
 # ── Step 1: Ensure .env exists ────────────────────────────────────────────────
@@ -77,14 +91,15 @@ def ensure_certs():
         x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
     ])
 
+    now = datetime.datetime.now(datetime.timezone.utc)
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)
         .issuer_name(issuer)
         .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=3650))
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=3650))
         .add_extension(
             x509.SubjectAlternativeName([
                 x509.DNSName("localhost"),
@@ -147,6 +162,42 @@ def ensure_https_redirect():
         pass  # already correct
 
 
+# ── Step 3b: Write Streamlit config (suppress email prompt + set theme) ───────
+
+def ensure_streamlit_config():
+    """
+    Pre-create Streamlit's config and credentials files so it never
+    prompts for an email address or usage stats on first run.
+    Writes to both the project dir and the user home dir.
+    """
+    home_streamlit = os.path.join(os.path.expanduser("~"), ".streamlit")
+    project_streamlit = os.path.join(ROOT, ".streamlit")
+
+    config_content = (
+        "[browser]\n"
+        "gatherUsageStats = false\n"
+        "\n"
+        "[server]\n"
+        "headless = false\n"
+        "\n"
+        "[theme]\n"
+        'base = "dark"\n'
+    )
+    # credentials.toml with empty email — this is what silences the prompt
+    credentials_content = '[general]\nemail = ""\n'
+
+    for config_dir in (home_streamlit, project_streamlit):
+        os.makedirs(config_dir, exist_ok=True)
+        config_path = os.path.join(config_dir, "config.toml")
+        creds_path  = os.path.join(config_dir, "credentials.toml")
+        if not os.path.exists(config_path):
+            with open(config_path, "w", encoding="utf-8") as f:
+                f.write(config_content)
+        if not os.path.exists(creds_path):
+            with open(creds_path, "w", encoding="utf-8") as f:
+                f.write(credentials_content)
+
+
 # ── Step 4: Launch Streamlit ──────────────────────────────────────────────────
 
 def launch():
@@ -159,11 +210,14 @@ def launch():
         os.path.join(ROOT, "app.py"),
         "--server.sslCertFile", CERT,
         "--server.sslKeyFile", KEY,
-        "--server.headless", "false",
+        "--browser.gatherUsageStats", "false",
     ]
 
+    env = os.environ.copy()
+    env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+
     try:
-        subprocess.run(cmd, cwd=ROOT)
+        subprocess.run(cmd, cwd=ROOT, env=env, stdin=subprocess.DEVNULL)
     except KeyboardInterrupt:
         print("\nVibesort stopped.")
 
@@ -171,7 +225,9 @@ def launch():
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    ensure_dependencies()
     ensure_env()
     ensure_certs()
     ensure_https_redirect()
+    ensure_streamlit_config()
     launch()
