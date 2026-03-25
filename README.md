@@ -74,13 +74,19 @@ SPOTIFY_CLIENT_SECRET=your_secret_here
 
 ### 4. Run
 
+**Windows** — double-click `run.bat`
+
+**Mac / Linux:**
+```bash
+bash run.sh
+```
+
+**Or directly:**
 ```bash
 python launch.py
 ```
 
-That's it. On first launch, Vibesort automatically generates an SSL certificate and configures HTTPS — nothing else to do. A browser window opens. Click **Connect to Spotify**, authorize once, and you're in.
-
-> **Browser warning on first open:** Your browser may show "connection not private" because the certificate is self-signed. Click **Advanced → Proceed to localhost**. This is expected and safe — the cert only works on your own machine.
+That's it. On first launch, Vibesort automatically installs dependencies, generates a trusted SSL certificate, registers it with your OS, and opens the app — no browser security warnings, no manual steps.
 
 ---
 
