@@ -8,7 +8,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Required ──────────────────────────────────────────────────────────────────
+# ── Shared app (PKCE) — set this so end users never need a Spotify dev account
+# Get your Client ID from developer.spotify.com, paste it here, request
+# Extended Quota Mode, and nobody else ever has to touch the Spotify dashboard.
+VIBESORT_CLIENT_ID = os.getenv("VIBESORT_CLIENT_ID", "")
+
+# ── User's own credentials (fallback / power users) ───────────────────────────
 SPOTIFY_CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET", "")
 SPOTIFY_REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI", "https://papakoftes.github.io/VibeSort/callback.html")

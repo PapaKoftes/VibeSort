@@ -2,10 +2,9 @@
 core/theme.py — Vibesort design system.
 
 Call inject() at the top of every Streamlit page.
-Applies the dark gothic terminal aesthetic:
-  - JetBrains Mono body, Cinzel headings
-  - Near-black crimson/violet palette
-  - Subtle scanline overlay + breathing title glow
+
+Strategy: apply colors, fonts, glows only.
+Never touch layout, spacing, sizing, or Streamlit's structural chrome.
 """
 
 import streamlit as st
@@ -25,201 +24,190 @@ _CSS = """
   --code-bg:   #130013;
   --border:    #320044;
   --glow:      #8b000066;
-  --asp:       #8b0000;
-  --asp-glow:  #8b000044;
 }
 
-/* ── Base ────────────────────────────────────────────────────────────────── */
-html, body, [data-testid="stAppViewContainer"],
-[data-testid="stApp"] {
+/* ── Backgrounds ─────────────────────────────────────────────────────────── */
+.stApp, [data-testid="stAppViewContainer"] {
   background-color: var(--bg) !important;
-  color: var(--text) !important;
-  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
 }
-
-[data-testid="stSidebar"] {
+[data-testid="stSidebar"] > div:first-child {
   background-color: var(--bg2) !important;
-  border-right: 1px solid var(--border) !important;
 }
-
 [data-testid="stHeader"] {
   background-color: var(--bg) !important;
   border-bottom: 1px solid var(--border) !important;
 }
-
-/* ── Typography ──────────────────────────────────────────────────────────── */
-h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-  font-family: 'Cinzel', Georgia, serif !important;
-  color: var(--accent) !important;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 12px var(--glow);
-  animation: title-breathe 4s ease-in-out infinite;
+[data-testid="stToolbar"] {
+  background-color: var(--bg) !important;
+}
+[data-testid="stDecoration"] {
+  background-image: none !important;
+  background-color: var(--crimson) !important;
+  height: 2px !important;
 }
 
-@keyframes title-breathe {
-  0%, 100% { text-shadow: 0 0 6px var(--glow); }
-  50%       { text-shadow: 0 0 32px var(--accent)55; }
-}
-
-p, li, span, label, .stMarkdown p,
-[data-testid="stMetricValue"],
-[data-testid="stMetricLabel"] {
-  font-family: 'JetBrains Mono', monospace !important;
+/* ── Global text + font ──────────────────────────────────────────────────── */
+html, body, p, span, div, li, td, th, label,
+.stMarkdown, [data-testid="stText"],
+[data-testid="stMarkdownContainer"] {
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
   color: var(--text) !important;
 }
 
-.stCaption, small, [data-testid="stCaptionContainer"] {
+/* ── Headings — Cinzel + accent glow ─────────────────────────────────────── */
+h1, h2, h3, h4,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: var(--accent) !important;
+  letter-spacing: 0.05em !important;
+}
+/* Breathing only on page-level h1 */
+h1, .stMarkdown h1 {
+  text-shadow: 0 0 12px var(--glow);
+  animation: title-breathe 4s ease-in-out infinite;
+}
+@keyframes title-breathe {
+  0%, 100% { text-shadow: 0 0 6px var(--glow); }
+  50%       { text-shadow: 0 0 28px #c0006a44; }
+}
+h2, h3, .stMarkdown h2, .stMarkdown h3 {
+  color: var(--text) !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+/* ── Caption / dim text ──────────────────────────────────────────────────── */
+.stCaption, [data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
   color: var(--text-dim) !important;
   font-family: 'JetBrains Mono', monospace !important;
 }
 
+/* ── Metric values ───────────────────────────────────────────────────────── */
+[data-testid="stMetricValue"] {
+  color: var(--accent) !important;
+  font-family: 'Cinzel', serif !important;
+}
+[data-testid="stMetricLabel"] {
+  color: var(--text-dim) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+[data-testid="stMetricDelta"] {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
-[data-testid="stButton"] > button {
+[data-testid="stBaseButton-secondary"] > button,
+[data-testid="stBaseButton-secondary"] {
   background: transparent !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.82rem !important;
-  letter-spacing: 0.04em;
-  transition: all 0.2s ease !important;
-  border-radius: 3px !important;
+  letter-spacing: 0.03em !important;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s !important;
 }
-
-[data-testid="stButton"] > button:hover {
+[data-testid="stBaseButton-secondary"]:hover > button,
+[data-testid="stBaseButton-secondary"] > button:hover {
   border-color: var(--accent) !important;
   color: var(--accent) !important;
-  box-shadow: 0 0 10px var(--asp-glow) !important;
-  background: #1a000f !important;
+  box-shadow: 0 0 8px var(--glow) !important;
 }
-
-[data-testid="stButton"] > button[kind="primary"] {
-  background: var(--crimson) !important;
-  border-color: var(--accent) !important;
-  color: #fff !important;
-  box-shadow: 0 0 14px var(--glow) !important;
-}
-
-[data-testid="stButton"] > button[kind="primary"]:hover {
-  background: var(--accent) !important;
-  box-shadow: 0 0 24px var(--accent)88 !important;
-}
-
-/* ── Link buttons ────────────────────────────────────────────────────────── */
-[data-testid="stLinkButton"] > a {
+[data-testid="stBaseButton-primary"] > button,
+[data-testid="stBaseButton-primary"] {
   background: var(--crimson) !important;
   border: 1px solid var(--accent) !important;
   color: #fff !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.85rem !important;
-  letter-spacing: 0.05em;
-  box-shadow: 0 0 14px var(--glow) !important;
-  border-radius: 3px !important;
-  transition: all 0.2s ease !important;
+  letter-spacing: 0.03em !important;
+  box-shadow: 0 0 10px var(--glow) !important;
+  transition: all 0.15s !important;
+}
+[data-testid="stBaseButton-primary"]:hover > button,
+[data-testid="stBaseButton-primary"] > button:hover {
+  background: var(--accent) !important;
+  box-shadow: 0 0 20px #c0006a55 !important;
 }
 
-[data-testid="stLinkButton"] > a:hover {
+/* ── Link button ─────────────────────────────────────────────────────────── */
+[data-testid="stLinkButton"] a {
+  background: var(--crimson) !important;
+  border: 1px solid var(--accent) !important;
+  color: #fff !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  box-shadow: 0 0 10px var(--glow) !important;
+  transition: all 0.15s !important;
+}
+[data-testid="stLinkButton"] a:hover {
   background: var(--accent) !important;
-  box-shadow: 0 0 28px var(--accent)88 !important;
+  box-shadow: 0 0 22px #c0006a66 !important;
 }
 
 /* ── Inputs ──────────────────────────────────────────────────────────────── */
 [data-testid="stTextInput"] input,
 [data-testid="stTextArea"] textarea,
-[data-testid="stSelectbox"] > div > div {
+[data-testid="stNumberInput"] input {
   background: var(--code-bg) !important;
-  border: 1px solid var(--border) !important;
+  border-color: var(--border) !important;
   color: var(--text) !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.82rem !important;
-  border-radius: 3px !important;
 }
-
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 8px var(--asp-glow) !important;
-  outline: none !important;
-}
-
-/* ── Containers / cards ──────────────────────────────────────────────────── */
-[data-testid="stContainer"] {
-  border-color: var(--border) !important;
-}
-
-[data-testid="stContainer"][border="true"],
-div[data-testid="stVerticalBlock"] > div[style*="border"] {
-  background: var(--bg2) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 4px !important;
-  box-shadow: 0 0 8px var(--asp-glow) !important;
-}
-
-/* ── Metrics ─────────────────────────────────────────────────────────────── */
-[data-testid="stMetric"] {
-  background: var(--bg2) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 4px !important;
-  padding: 12px !important;
-}
-
-[data-testid="stMetricValue"] {
-  color: var(--accent) !important;
-  font-family: 'Cinzel', serif !important;
-}
-
-/* ── Progress bars ───────────────────────────────────────────────────────── */
-[data-testid="stProgress"] > div > div {
-  background: var(--bg2) !important;
-}
-
-[data-testid="stProgress"] > div > div > div {
-  background: linear-gradient(90deg, var(--crimson), var(--accent)) !important;
-}
-
-/* ── Dividers ────────────────────────────────────────────────────────────── */
-hr {
-  border-color: var(--border) !important;
-  border-width: 1px 0 0 0 !important;
   box-shadow: 0 0 6px var(--glow) !important;
 }
 
+/* ── Selectbox / dropdown ────────────────────────────────────────────────── */
+[data-testid="stSelectbox"] label,
+[data-testid="stSelectbox"] span {
+  color: var(--text-dim) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
-[data-testid="stTabs"] [data-testid="stTab"] {
+[data-testid="stTabs"] button {
   font-family: 'JetBrains Mono', monospace !important;
   color: var(--text-dim) !important;
-  font-size: 0.8rem !important;
-  letter-spacing: 0.04em;
 }
-
-[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] {
+[data-testid="stTabs"] button[aria-selected="true"] {
   color: var(--accent) !important;
-  border-bottom: 2px solid var(--accent) !important;
+  border-bottom-color: var(--accent) !important;
 }
 
-/* ── Alerts / status ─────────────────────────────────────────────────────── */
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+hr {
+  border-color: var(--border) !important;
+}
+
+/* ── Code blocks ─────────────────────────────────────────────────────────── */
+code, pre, [data-testid="stCode"] {
+  background: var(--code-bg) !important;
+  color: var(--accent) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── Progress bar ────────────────────────────────────────────────────────── */
+[role="progressbar"] > div {
+  background: linear-gradient(90deg, var(--crimson), var(--accent)) !important;
+}
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
 [data-testid="stAlert"] {
   background: var(--bg2) !important;
-  border-left: 3px solid var(--accent) !important;
+  border-left-color: var(--accent) !important;
+}
+[data-testid="stAlert"] p {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.82rem !important;
 }
 
-/* ── Selectbox ───────────────────────────────────────────────────────────── */
-[data-testid="stSelectbox"] label {
-  color: var(--text-dim) !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.78rem !important;
-}
-
-/* ── Toggle ──────────────────────────────────────────────────────────────── */
-[data-testid="stToggle"] label {
-  color: var(--text) !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.82rem !important;
-}
+/* ── Success/info/warning/error banners ──────────────────────────────────── */
+[data-testid="stAlertSuccess"]  { border-left-color: #2d6a2d !important; }
+[data-testid="stAlertInfo"]     { border-left-color: var(--violet) !important; }
+[data-testid="stAlertWarning"]  { border-left-color: #8b6000 !important; }
+[data-testid="stAlertError"]    { border-left-color: var(--crimson) !important; }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--violet); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
@@ -231,32 +219,40 @@ body::after {
   inset: 0;
   background: repeating-linear-gradient(
     0deg,
-    transparent,
+    transparent 0px,
     transparent 2px,
-    rgba(0,0,0,0.06) 2px,
-    rgba(0,0,0,0.06) 4px
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
   );
   pointer-events: none;
-  z-index: 9999;
+  z-index: 9998;
 }
 
-/* ── Sidebar nav links ───────────────────────────────────────────────────── */
-[data-testid="stSidebarNavLink"] {
+/* ── Sidebar nav ─────────────────────────────────────────────────────────── */
+[data-testid="stSidebarNav"] a {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.8rem !important;
   color: var(--text-dim) !important;
-  border-radius: 3px !important;
 }
-
-[data-testid="stSidebarNavLink"][aria-current="page"],
-[data-testid="stSidebarNavLink"]:hover {
-  background: var(--bg) !important;
+[data-testid="stSidebarNav"] a:hover,
+[data-testid="stSidebarNav"] a[aria-current="page"] {
   color: var(--accent) !important;
   border-left: 2px solid var(--accent) !important;
+  background: transparent !important;
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────────────── */
+[data-testid="stToggle"] p {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: var(--text) !important;
+}
+
+/* ── Dataframe / table ───────────────────────────────────────────────────── */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--border) !important;
 }
 """
 
 
 def inject():
-    """Inject Vibesort design system CSS. Call once at the top of each page."""
+    """Inject Vibesort design system. Call once at the top of each page."""
     st.markdown(f"<style>{_CSS}</style>", unsafe_allow_html=True)
