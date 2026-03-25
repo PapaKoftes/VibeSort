@@ -1,0 +1,28 @@
+# Credentials — never commit
+.env
+.vibesort_cache
+
+# Playlist mining cache (personal signal data)
+outputs/.mining_cache.json
+
+# Spotify data export (personal data)
+data/StreamingHistory*.json
+
+# Generated reports
+outputs/*.txt
+
+# Staging shelf — personal playlist data, never commit
+staging/playlists/*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db

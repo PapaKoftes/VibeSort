@@ -1,0 +1,284 @@
+{
+  "moods": {
+    "Late Night Drive": {
+      "description": "Dark, drifting, midnight energy",
+      "seed_phrases": ["late night drive", "night drive", "driving at night", "midnight drive"],
+      "audio_target": { "energy": 0.45, "valence": 0.28, "danceability": 0.50, "acousticness": 0.20, "instrumentalness": 0.15, "tempo_norm": 0.50 },
+      "expected_tags": ["night", "drive", "dark", "midnight", "late", "cruise"],
+      "preferred_macro_genres": ["Hip-Hop / Rap", "R&B / Soul", "Electronic / Dance", "Indie / Alternative"]
+    },
+    "Hollow": {
+      "description": "Slow, heavy, and honest — the kind of sad that sits in your chest",
+      "seed_phrases": ["sad songs", "heartbreak playlist", "crying songs", "sad vibes", "feel sad"],
+      "audio_target": { "energy": 0.25, "valence": 0.15, "danceability": 0.33, "acousticness": 0.45, "instrumentalness": 0.10, "tempo_norm": 0.38 },
+      "expected_tags": ["sad", "heartbreak", "cry", "alone", "pain", "melancholy"],
+      "preferred_macro_genres": ["Indie / Alternative", "R&B / Soul", "Pop", "Folk / Acoustic"]
+    },
+    "Overflow": {
+      "description": "Peak euphoria — everything hits at once and it feels earned",
+      "seed_phrases": ["euphoric music", "peak vibes", "festival banger", "summer euphoria", "pure joy"],
+      "audio_target": { "energy": 0.85, "valence": 0.88, "danceability": 0.82, "acousticness": 0.08, "instrumentalness": 0.05, "tempo_norm": 0.70 },
+      "expected_tags": ["euphoric", "peak", "festival", "joy", "ecstatic", "summer"],
+      "preferred_macro_genres": ["Electronic / Dance", "Pop", "Hip-Hop / Rap"]
+    },
+    "Adrenaline": {
+      "description": "Maximum output — no brakes, no ceiling",
+      "seed_phrases": ["gym playlist", "workout music", "hype music", "aggressive energy", "power music"],
+      "audio_target": { "energy": 0.91, "valence": 0.55, "danceability": 0.65, "acousticness": 0.04, "instrumentalness": 0.10, "tempo_norm": 0.78 },
+      "expected_tags": ["gym", "workout", "hype", "power", "aggressive", "energy"],
+      "preferred_macro_genres": ["Metal / Hardcore", "Hip-Hop / Rap", "Electronic / Dance", "Rock"]
+    },
+    "Dark Matter": {
+      "description": "Dense, heavy, deliberately dark — not angry, just deep in it",
+      "seed_phrases": ["dark music", "villain arc", "dark vibes", "menacing music", "dark energy"],
+      "audio_target": { "energy": 0.72, "valence": 0.18, "danceability": 0.45, "acousticness": 0.10, "instrumentalness": 0.20, "tempo_norm": 0.55 },
+      "expected_tags": ["dark", "villain", "menacing", "heavy", "gritty", "noir"],
+      "preferred_macro_genres": ["Hip-Hop / Rap", "Metal / Hardcore", "Electronic / Dance", "Indie / Alternative"]
+    },
+    "Storm Front": {
+      "description": "Channeled rage — the controlled fury that makes you move",
+      "seed_phrases": ["rage music", "angry playlist", "metal workout", "fury songs", "anger release"],
+      "audio_target": { "energy": 0.95, "valence": 0.22, "danceability": 0.45, "acousticness": 0.03, "instrumentalness": 0.15, "tempo_norm": 0.82 },
+      "expected_tags": ["rage", "angry", "fury", "aggressive", "metal", "hardcore"],
+      "preferred_macro_genres": ["Metal / Hardcore", "Rock", "Electronic / Dance"]
+    },
+    "Golden Hour": {
+      "description": "Warm and easy — that window of light where everything feels right",
+      "seed_phrases": ["golden hour music", "feel good playlist", "good vibes", "happy songs", "sunshine music"],
+      "audio_target": { "energy": 0.55, "valence": 0.72, "danceability": 0.60, "acousticness": 0.35, "instrumentalness": 0.08, "tempo_norm": 0.52 },
+      "expected_tags": ["golden", "sunny", "warm", "happy", "feel good", "positive"],
+      "preferred_macro_genres": ["Pop", "Indie / Alternative", "Folk / Acoustic", "R&B / Soul"]
+    },
+    "Weightless": {
+      "description": "Floating — dreamy and untethered, body light, head somewhere else",
+      "seed_phrases": ["dreamy music", "ethereal playlist", "floating music", "ambient dream", "hazy vibes"],
+      "audio_target": { "energy": 0.28, "valence": 0.52, "danceability": 0.38, "acousticness": 0.55, "instrumentalness": 0.48, "tempo_norm": 0.38 },
+      "expected_tags": ["dreamy", "ethereal", "hazy", "float", "ambient", "soft"],
+      "preferred_macro_genres": ["Ambient / Experimental", "Indie / Alternative", "Electronic / Dance", "Folk / Acoustic"]
+    },
+    "Dissolve": {
+      "description": "Sensory overload in the best way — music you feel in your body",
+      "seed_phrases": ["psychedelic music", "trip music", "sensory playlist", "mind expanding music", "immersive sounds"],
+      "audio_target": { "energy": 0.50, "valence": 0.50, "danceability": 0.48, "acousticness": 0.38, "instrumentalness": 0.45, "tempo_norm": 0.48 },
+      "expected_tags": ["psychedelic", "trippy", "immersive", "sensory", "layers", "textured"],
+      "preferred_macro_genres": ["Ambient / Experimental", "Rock", "Electronic / Dance", "Indie / Alternative"]
+    },
+    "Pre-Game": {
+      "description": "Getting ready, energy building — by track 3 you're already hyped",
+      "seed_phrases": ["pregame playlist", "getting ready music", "hype playlist", "party starter", "turn up music"],
+      "audio_target": { "energy": 0.82, "valence": 0.68, "danceability": 0.82, "acousticness": 0.08, "instrumentalness": 0.05, "tempo_norm": 0.70 },
+      "expected_tags": ["pregame", "hype", "party", "turn up", "ready", "banger"],
+      "preferred_macro_genres": ["Hip-Hop / Rap", "Pop", "Electronic / Dance", "R&B / Soul"]
+    },
+    "Afterparty": {
+      "description": "Still going at 3am but slower — the crowd is smaller and everyone knows it",
+      "seed_phrases": ["afterparty playlist", "after hours music", "late night party", "winding down", "2am club"],
+      "audio_target": { "energy": 0.58, "valence": 0.55, "danceability": 0.72, "acousticness": 0.15, "instrumentalness": 0.12, "tempo_norm": 0.55 },
+      "expected_tags": ["afterparty", "after hours", "late night", "slow grind", "2am", "dark club"],
+      "preferred_macro_genres": ["R&B / Soul", "Hip-Hop / Rap", "Electronic / Dance"]
+    },
+    "Overthinking": {
+      "description": "3am and your brain won't stop — introspective and a little too honest",
+      "seed_phrases": ["overthinking playlist", "3am thoughts", "introspective music", "midnight thoughts", "late night feels"],
+      "audio_target": { "energy": 0.30, "valence": 0.25, "danceability": 0.38, "acousticness": 0.38, "instrumentalness": 0.18, "tempo_norm": 0.42 },
+      "expected_tags": ["overthink", "3am", "introspective", "thoughts", "alone", "night"],
+      "preferred_macro_genres": ["Indie / Alternative", "R&B / Soul", "Hip-Hop / Rap", "Folk / Acoustic"]
+    },
+    "Nostalgia": {
+      "description": "Songs that feel like a memory even when you first heard them",
+      "seed_phrases": ["nostalgia playlist", "throwback hits", "memories music", "nostalgic songs", "reminisce"],
+      "audio_target": { "energy": 0.50, "valence": 0.58, "danceability": 0.55, "acousticness": 0.42, "instrumentalness": 0.08, "tempo_norm": 0.50 },
+      "expected_tags": ["nostalgia", "throwback", "memories", "reminisce", "old school", "classic"],
+      "preferred_macro_genres": ["Pop", "R&B / Soul", "Hip-Hop / Rap", "Rock", "Indie / Alternative"]
+    },
+    "Liminal": {
+      "description": "The in-between — empty hallways, 4am airports, spaces that feel too quiet",
+      "seed_phrases": ["liminal music", "empty spaces playlist", "eerie ambient", "unsettling calm", "void music"],
+      "audio_target": { "energy": 0.22, "valence": 0.30, "danceability": 0.28, "acousticness": 0.52, "instrumentalness": 0.62, "tempo_norm": 0.35 },
+      "expected_tags": ["liminal", "eerie", "empty", "void", "ambient", "unsettling"],
+      "preferred_macro_genres": ["Ambient / Experimental", "Electronic / Dance", "Indie / Alternative"]
+    },
+    "Deep Focus": {
+      "description": "Locks you in — instrumental, minimal, no lyrics to distract you",
+      "seed_phrases": ["focus music", "study playlist", "deep work music", "concentration music", "lo-fi study"],
+      "audio_target": { "energy": 0.35, "valence": 0.48, "danceability": 0.32, "acousticness": 0.42, "instrumentalness": 0.65, "tempo_norm": 0.45 },
+      "expected_tags": ["focus", "study", "concentrate", "lofi", "work", "productive"],
+      "preferred_macro_genres": ["Ambient / Experimental", "Electronic / Dance", "Classical / Orchestral", "Jazz / Blues"]
+    },
+    "Catharsis": {
+      "description": "Emotional release — songs that hold the feeling you can't name",
+      "seed_phrases": ["cathartic music", "emotional release playlist", "intense feelings", "deep feels", "emotionally heavy"],
+      "audio_target": { "energy": 0.62, "valence": 0.32, "danceability": 0.45, "acousticness": 0.32, "instrumentalness": 0.12, "tempo_norm": 0.52 },
+      "expected_tags": ["cathartic", "intense", "emotional", "release", "heavy", "feels"],
+      "preferred_macro_genres": ["Indie / Alternative", "Rock", "R&B / Soul", "Metal / Hardcore"]
+    },
+    "Acoustic Corner": {
+      "description": "Stripped back — just the song, nothing extra",
+      "seed_phrases": ["acoustic playlist", "acoustic songs", "unplugged music", "folk acoustic", "stripped songs"],
+      "audio_target": { "energy": 0.35, "valence": 0.55, "danceability": 0.40, "acousticness": 0.88, "instrumentalness": 0.08, "tempo_norm": 0.42 },
+      "expected_tags": ["acoustic", "unplugged", "folk", "raw", "stripped", "guitar"],
+      "preferred_macro_genres": ["Folk / Acoustic", "Indie / Alternative", "Pop", "Country"]
+    },
+    "Sundown": {
+      "description": "End of day ease — calm but not sad, quiet but not empty",
+      "seed_phrases": ["sunday playlist", "chill evening", "sunset music", "wind down", "relaxing evening"],
+      "audio_target": { "energy": 0.38, "valence": 0.62, "danceability": 0.45, "acousticness": 0.48, "instrumentalness": 0.18, "tempo_norm": 0.42 },
+      "expected_tags": ["chill", "sunday", "sunset", "relax", "evening", "ease"],
+      "preferred_macro_genres": ["Indie / Alternative", "R&B / Soul", "Folk / Acoustic", "Pop"]
+    },
+    "Villain Arc": {
+      "description": "Calculated, cold, and dominant — this is your theme music",
+      "seed_phrases": ["villain arc playlist", "villain music", "dark confident", "menacing energy", "power moves"],
+      "audio_target": { "energy": 0.78, "valence": 0.22, "danceability": 0.55, "acousticness": 0.08, "instrumentalness": 0.18, "tempo_norm": 0.60 },
+      "expected_tags": ["villain", "dark", "power", "menacing", "cold", "calculated"],
+      "preferred_macro_genres": ["Hip-Hop / Rap", "Electronic / Techno", "Phonk", "Metal"]
+    },
+    "Euphoric Rave": {
+      "description": "Four-on-the-floor, lights off, peak hour",
+      "seed_phrases": ["rave playlist", "techno rave", "peak hour techno", "festival techno", "warehouse rave"],
+      "audio_target": { "energy": 0.92, "valence": 0.65, "danceability": 0.85, "acousticness": 0.02, "instrumentalness": 0.70, "tempo_norm": 0.80 },
+      "expected_tags": ["rave", "techno", "festival", "peak", "warehouse", "club"],
+      "preferred_macro_genres": ["Electronic / Techno", "Electronic / House", "Electronic / Trance"]
+    },
+    "Morning Ritual": {
+      "description": "Slow start — coffee, light, and something good happening",
+      "seed_phrases": ["morning playlist", "wake up music", "morning coffee", "good morning songs", "sunrise music"],
+      "audio_target": { "energy": 0.45, "valence": 0.68, "danceability": 0.50, "acousticness": 0.55, "instrumentalness": 0.20, "tempo_norm": 0.45 },
+      "expected_tags": ["morning", "wake", "coffee", "sunrise", "fresh", "easy"],
+      "preferred_macro_genres": ["Folk / Americana", "Pop", "Indie / Alternative", "Jazz / Blues"]
+    },
+    "Signal Lost": {
+      "description": "Somewhere between sleep and awake — hazey and unreal",
+      "seed_phrases": ["hazey music", "sleep music", "drifting off", "sleepy playlist", "late night haze"],
+      "audio_target": { "energy": 0.20, "valence": 0.42, "danceability": 0.30, "acousticness": 0.60, "instrumentalness": 0.55, "tempo_norm": 0.30 },
+      "expected_tags": ["haze", "sleep", "drift", "soft", "late", "dim"],
+      "preferred_macro_genres": ["Ambient / Experimental", "Lo-Fi", "Shoegaze / Dream Pop", "Electronic / Ambient"]
+    },
+    "Flex Tape": {
+      "description": "Loud, arrogant, and proud of it",
+      "seed_phrases": ["flex playlist", "drip music", "balling playlist", "swagger music", "flex rap"],
+      "audio_target": { "energy": 0.82, "valence": 0.60, "danceability": 0.75, "acousticness": 0.05, "instrumentalness": 0.05, "tempo_norm": 0.65 },
+      "expected_tags": ["flex", "drip", "swag", "baller", "money", "drip"],
+      "preferred_macro_genres": ["Southern Rap", "West Coast Rap", "East Coast Rap", "Phonk"]
+    },
+    "Raw Emotion": {
+      "description": "Unfiltered — no polish, just feeling",
+      "seed_phrases": ["emotional music", "raw feels", "intense emotions", "crying playlist", "deep feelings"],
+      "audio_target": { "energy": 0.55, "valence": 0.28, "danceability": 0.40, "acousticness": 0.42, "instrumentalness": 0.10, "tempo_norm": 0.48 },
+      "expected_tags": ["emotional", "raw", "intense", "feels", "deep", "vulnerable"],
+      "preferred_macro_genres": ["Emo / Post-Hardcore", "Indie / Alternative", "R&B / Soul", "Folk / Americana"]
+    },
+    "Frequency": {
+      "description": "The kind of electronic music you feel in your ribcage",
+      "seed_phrases": ["bass music playlist", "heavy bass", "sub bass music", "bass drop", "deep bass"],
+      "audio_target": { "energy": 0.78, "valence": 0.45, "danceability": 0.72, "acousticness": 0.04, "instrumentalness": 0.55, "tempo_norm": 0.68 },
+      "expected_tags": ["bass", "heavy", "sub", "frequency", "deep", "drop"],
+      "preferred_macro_genres": ["Electronic / Bass & Dubstep", "Electronic / Drum & Bass", "Electronic / House"]
+    },
+    "Tunnel Vision": {
+      "description": "Locked in — nothing else exists right now",
+      "seed_phrases": ["focus rap", "study rap", "concentration music rap", "locked in playlist", "zone out"],
+      "audio_target": { "energy": 0.55, "valence": 0.40, "danceability": 0.55, "acousticness": 0.20, "instrumentalness": 0.22, "tempo_norm": 0.55 },
+      "expected_tags": ["focus", "locked", "zone", "grind", "tunnel", "concentrate"],
+      "preferred_macro_genres": ["East Coast Rap", "Lo-Fi", "Hip-Hop / Rap", "Electronic / Ambient"]
+    },
+    "Feel Good Friday": {
+      "description": "Weekend energy — lighthearted and ready",
+      "seed_phrases": ["feel good music", "friday playlist", "weekend vibes", "party starter", "happy banger"],
+      "audio_target": { "energy": 0.75, "valence": 0.80, "danceability": 0.78, "acousticness": 0.10, "instrumentalness": 0.05, "tempo_norm": 0.65 },
+      "expected_tags": ["friday", "weekend", "happy", "party", "banger", "summer"],
+      "preferred_macro_genres": ["Pop", "R&B / Soul", "Hip-Hop / Rap", "Electronic / House"]
+    },
+    "Smoke & Mirrors": {
+      "description": "Slow, hazy, lowkey — lit in the best way",
+      "seed_phrases": ["smoke playlist", "chill stoner", "blunt music", "weed playlist", "hazy rap"],
+      "audio_target": { "energy": 0.42, "valence": 0.45, "danceability": 0.55, "acousticness": 0.30, "instrumentalness": 0.25, "tempo_norm": 0.45 },
+      "expected_tags": ["smoke", "haze", "slow", "chill", "lowkey", "blunt"],
+      "preferred_macro_genres": ["West Coast Rap", "Southern Rap", "Lo-Fi", "R&B / Soul"]
+    },
+    "Pressure Drop": {
+      "description": "Every track hits harder than the last",
+      "seed_phrases": ["hard hitting rap", "heavy hitters", "bangers playlist", "hard rap", "pressure music"],
+      "audio_target": { "energy": 0.88, "valence": 0.42, "danceability": 0.68, "acousticness": 0.04, "instrumentalness": 0.08, "tempo_norm": 0.72 },
+      "expected_tags": ["hard", "heavy", "pressure", "banger", "gritty", "intense"],
+      "preferred_macro_genres": ["Southern Rap", "East Coast Rap", "Midwest Rap", "Phonk"]
+    },
+    "Soft Hours": {
+      "description": "When everything needs to be gentle",
+      "seed_phrases": ["soft music", "gentle songs", "tender playlist", "soft r&b", "gentle pop"],
+      "audio_target": { "energy": 0.28, "valence": 0.60, "danceability": 0.38, "acousticness": 0.62, "instrumentalness": 0.15, "tempo_norm": 0.38 },
+      "expected_tags": ["soft", "gentle", "tender", "quiet", "warm", "sweet"],
+      "preferred_macro_genres": ["R&B / Soul", "Pop", "Folk / Americana", "Indie / Alternative"]
+    },
+    "Midnight Clarity": {
+      "description": "4am realizations — when everything becomes obvious",
+      "seed_phrases": ["4am playlist", "midnight thoughts", "clarity music", "introspective night", "self reflection"],
+      "audio_target": { "energy": 0.32, "valence": 0.38, "danceability": 0.35, "acousticness": 0.45, "instrumentalness": 0.28, "tempo_norm": 0.40 },
+      "expected_tags": ["midnight", "clarity", "reflection", "honest", "alone", "real"],
+      "preferred_macro_genres": ["R&B / Soul", "Indie / Alternative", "East Coast Rap", "Folk / Americana"]
+    },
+    "Hard Reset": {
+      "description": "Controlled destruction — the catharsis of volume",
+      "seed_phrases": ["metal playlist", "heavy metal workout", "scream playlist", "rage metal", "breakdown music"],
+      "audio_target": { "energy": 0.96, "valence": 0.20, "danceability": 0.40, "acousticness": 0.02, "instrumentalness": 0.25, "tempo_norm": 0.85 },
+      "expected_tags": ["metal", "heavy", "scream", "breakdown", "rage", "release"],
+      "preferred_macro_genres": ["Metal", "Punk / Hardcore", "Emo / Post-Hardcore", "Rock"]
+    },
+    "Tropicana": {
+      "description": "Heat, rhythm, and movement",
+      "seed_phrases": ["latin playlist", "reggaeton playlist", "tropical music", "latin hits", "latin vibes"],
+      "audio_target": { "energy": 0.72, "valence": 0.72, "danceability": 0.82, "acousticness": 0.18, "instrumentalness": 0.05, "tempo_norm": 0.65 },
+      "expected_tags": ["tropical", "latin", "dance", "heat", "summer", "rhythm"],
+      "preferred_macro_genres": ["Latin / Reggaeton", "Caribbean / Reggae", "Brazilian / Funk Carioca", "Afrobeats / Amapiano"]
+    },
+    "Phonk Season": {
+      "description": "Aggressive, drifting, and dark — the phonk spectrum",
+      "seed_phrases": ["phonk playlist", "dark phonk", "drift phonk", "aggressive phonk", "phonk music"],
+      "audio_target": { "energy": 0.80, "valence": 0.25, "danceability": 0.65, "acousticness": 0.05, "instrumentalness": 0.30, "tempo_norm": 0.62 },
+      "expected_tags": ["phonk", "dark", "drift", "aggressive", "memphis", "gritty"],
+      "preferred_macro_genres": ["Phonk", "Brazilian Phonk", "Southern Rap"]
+    },
+    "Signal": {
+      "description": "Clean, precise electronic — built for movement",
+      "seed_phrases": ["techno playlist", "minimal techno", "club music", "techno banger", "hard techno"],
+      "audio_target": { "energy": 0.88, "valence": 0.48, "danceability": 0.80, "acousticness": 0.02, "instrumentalness": 0.75, "tempo_norm": 0.82 },
+      "expected_tags": ["techno", "minimal", "club", "dark", "dance", "industrial"],
+      "preferred_macro_genres": ["Electronic / Techno", "Electronic / House", "Post-Punk / Darkwave"]
+    },
+    "Gravity": {
+      "description": "Heavy and slow — music that pulls you down in a good way",
+      "seed_phrases": ["doom music", "sludge metal", "heavy slow music", "stoner music", "slow heavy"],
+      "audio_target": { "energy": 0.55, "valence": 0.25, "danceability": 0.35, "acousticness": 0.22, "instrumentalness": 0.40, "tempo_norm": 0.35 },
+      "expected_tags": ["heavy", "slow", "doom", "stoner", "sludge", "dark"],
+      "preferred_macro_genres": ["Metal", "Rock", "Ambient / Experimental"]
+    },
+    "Nerve": {
+      "description": "Anxious energy converted into forward motion",
+      "seed_phrases": ["anxiety playlist", "nervous energy music", "tense music", "anxious beats", "restless music"],
+      "audio_target": { "energy": 0.68, "valence": 0.25, "danceability": 0.55, "acousticness": 0.15, "instrumentalness": 0.20, "tempo_norm": 0.68 },
+      "expected_tags": ["anxiety", "tension", "nervous", "restless", "tense", "edge"],
+      "preferred_macro_genres": ["Indie / Alternative", "Electronic / Bass & Dubstep", "Post-Punk / Darkwave", "Hip-Hop / Rap"]
+    },
+    "Rewire": {
+      "description": "Post-peak — mind still moving, body slowing down",
+      "seed_phrases": ["comedown playlist", "post rave", "chilling after party", "decompression music", "come down"],
+      "audio_target": { "energy": 0.35, "valence": 0.55, "danceability": 0.45, "acousticness": 0.35, "instrumentalness": 0.35, "tempo_norm": 0.40 },
+      "expected_tags": ["comedown", "post", "decompress", "chill", "recovery", "ease"],
+      "preferred_macro_genres": ["Electronic / Ambient", "Lo-Fi", "Shoegaze / Dream Pop", "Synthwave / Retrowave"]
+    },
+    "Ultraviolet": {
+      "description": "Club R&B — sensual, expensive, and late",
+      "seed_phrases": ["club r&b", "slow jam", "sensual music", "late night r&b", "sexy r&b"],
+      "audio_target": { "energy": 0.58, "valence": 0.52, "danceability": 0.72, "acousticness": 0.15, "instrumentalness": 0.10, "tempo_norm": 0.52 },
+      "expected_tags": ["sensual", "club", "night", "slow", "groove", "late"],
+      "preferred_macro_genres": ["Dark R&B", "R&B / Soul", "Hip-Hop / Rap"]
+    },
+    "Open Road": {
+      "description": "Windows down, no destination, just motion",
+      "seed_phrases": ["road trip playlist", "driving music", "highway music", "car playlist", "open road"],
+      "audio_target": { "energy": 0.62, "valence": 0.65, "danceability": 0.58, "acousticness": 0.30, "instrumentalness": 0.12, "tempo_norm": 0.58 },
+      "expected_tags": ["drive", "road", "highway", "car", "travel", "freedom"],
+      "preferred_macro_genres": ["Rock", "Indie / Alternative", "Country", "Classic Rock", "Pop"]
+    }
+  }
+}
