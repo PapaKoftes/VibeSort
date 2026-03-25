@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vibesort — Connecting...</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Cinzel:wght@700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0008;
+      color: #d4c5e2;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; flex-direction: column; gap: 24px;
+    }
+    h1 {
+      font-family: 'Cinzel', serif;
+      color: #c0006a;
+      font-size: 2rem;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 18px #8b000066;
+      animation: pulse 4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { text-shadow: 0 0 6px #8b000066; }
+      50%       { text-shadow: 0 0 54px #c0006a99; }
+    }
+    p { color: #7a6a8a; font-size: 0.9rem; }
+    a { color: #c0006a; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Vibesort</h1>
+  <p id="status">Connecting to your library...</p>
+  <p id="fallback" style="display:none">
+    Not redirecting? <a id="link" href="#">Click here</a>
+  </p>
+
+  <script>
+    var LOCAL = "http://localhost:8501";
+    var target = LOCAL + window.location.search;
+
+    // Try redirect immediately
+    window.location.replace(target);
+
+    // Fallback link after 2s
+    setTimeout(function() {
+      document.getElementById("status").textContent = "Redirecting to Vibesort...";
+      document.getElementById("fallback").style.display = "block";
+      document.getElementById("link").href = target;
+    }, 2000);
+  </script>
+</body>
+</html>
