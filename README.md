@@ -46,7 +46,10 @@ The playlist mining step is the key: it searches public playlists named things l
 
 1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
 2. Create an app (any name, any description)
-3. Under **Settings → Redirect URIs**, add: `https://localhost:8501`
+3. Under **Settings → Redirect URIs**, add exactly:
+   ```
+   https://papakoftes.github.io/VibeSort/callback.html
+   ```
 4. Copy your **Client ID** and **Client Secret**
 
 ### 2. Install
@@ -86,7 +89,7 @@ bash run.sh
 python launch.py
 ```
 
-That's it. On first launch, Vibesort automatically installs dependencies, generates a trusted SSL certificate, registers it with your OS, and opens the app — no browser security warnings, no manual steps.
+That's it. No certificates, no HTTPS setup, no browser warnings. Click **Connect to Spotify**, authorize, and you're in.
 
 ---
 

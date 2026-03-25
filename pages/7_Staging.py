@@ -14,6 +14,8 @@ st.set_page_config(
     page_icon="🎧",
     layout="wide",
 )
+from core.theme import inject
+inject()
 
 if not st.session_state.get("spotify_token"):
     st.warning("Please connect to Spotify first.")

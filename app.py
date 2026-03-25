@@ -3,6 +3,8 @@ app.py — Vibesort main entry point.
 Run with: python launch.py
 """
 import streamlit as st
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 st.set_page_config(
     page_title="Vibesort",
@@ -23,6 +25,9 @@ st.set_page_config(
         ),
     },
 )
+
+from core.theme import inject
+inject()
 
 # Redirect to connect if not authenticated
 if "spotify_token" not in st.session_state:

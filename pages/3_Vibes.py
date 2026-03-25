@@ -13,6 +13,8 @@ st.set_page_config(
     page_icon="🎧",
     layout="wide",
 )
+from core.theme import inject
+inject()
 
 # Guard: require auth
 if not st.session_state.get("spotify_token"):
