@@ -9,7 +9,7 @@ Spotify's API only shows your top 50 tracks. Your complete history requires a da
 3. Select **"Extended streaming history"**
 4. Click **Request data** — Spotify emails you a link in up to 30 days
 5. Unzip and copy all `StreamingHistory_music_*.json` files into this `data/` folder
-6. Run `python run.py` — Vibesort picks them up automatically
+6. Launch Vibesort (`run.bat`, `run.sh`, or `python launch.py`) and run **Scan Library** — export files in `data/` are picked up automatically (same pattern as [`core/history_parser.py`](../core/history_parser.py))
 
 ## What you unlock
 

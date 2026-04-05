@@ -19,6 +19,9 @@ key.pem
 outputs/*
 !outputs/.gitkeep
 
+# Local portable release zips (built by scripts/make_portable_zip.ps1)
+dist/
+
 # Windows embeddable Python bundle (see docs/PACKAGING.md)
 vendor/
 

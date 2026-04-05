@@ -11,7 +11,8 @@ Vibesort scans your liked songs, top tracks, and saved playlists — then groups
 Step-by-step install for Windows, Mac, and Linux (no Git required): **[SETUP.md](SETUP.md)**.
 
 Repository layout and legacy scripts: **[docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md)**.  
-Optional Windows bundle (embedded Python, no system install): **[docs/PACKAGING.md](docs/PACKAGING.md)**.
+**Share with friends (no Python on their PC):** build a portable zip — **[docs/PACKAGING.md](docs/PACKAGING.md)**  
+(`pwsh` or `powershell -File scripts\build_portable.ps1` → send `dist\Vibesort-Windows-portable.zip`)
 
 - **Windows:** double-click `run.bat`
 - **Mac / Linux:** `bash run.sh`
@@ -39,7 +40,7 @@ The playlist mining step is the key: it searches public playlists named things l
 
 ## Features
 
-- **40 mood presets** — Late Night Drive, Villain Arc, Phonk Season, Dissolve, Rewire, and more
+- **87 mood presets** — Late Night Drive, Villain Arc, Phonk Season, Dissolve, Rewire, and many more (see `data/packs.json`)
 - **42-genre hierarchy** — East Coast Rap, West Coast Rap, Southern Rap, Houston Rap, Midwest Rap, UK Rap, French Rap, Brazilian Phonk, Funk Carioca, and many more — mapped with 500+ rules
 - **Three naming engines** — Middle-out (smart hybrid, default), Top-down (preset labels), Bottom-up (named from actual content)
 - **Staging shelf** — build up a list of playlists, rename them, preview tracklists, then batch-deploy to Spotify in one click
@@ -50,7 +51,9 @@ The playlist mining step is the key: it searches public playlists named things l
 - **Language playlists** — group songs by detected language
 - **Blend** — multi-user blend (supports 3+ people, genre-aware, multiple angles — better than Spotify's Blend)
 - **Last.fm integration** — optional, adds full play history and listening stats
+- **Taste Map** — explore library clusters in the UI
 - **Taste report** — obscurity score, audio fingerprint, genre breakdown, top vibes
+- **Settings** — API keys and optional enrichers (Discogs, lyrics, etc.)
 - **Full Spotify data export** — drop your `StreamingHistory_music_*.json` files into `data/` for complete history
 
 ---
@@ -98,50 +101,9 @@ Deploy All to Spotify  (one click)
 
 ---
 
-## Mood presets (40 total)
+## Mood presets (87 total)
 
-| Mood | Description |
-|---|---|
-| Acoustic Corner | Stripped back — just the song |
-| Adrenaline | Maximum output — no brakes, no ceiling |
-| Afterparty | Still going at 3am but slower |
-| Catharsis | Emotional release — holds the feeling you can't name |
-| Dark Matter | Dense, heavy, deliberately dark |
-| Deep Focus | Instrumental, minimal, locked in |
-| Dissolve | Sensory overload — music you feel in your body |
-| Euphoric Rave | Four-on-the-floor, lights off, peak hour |
-| Feel Good Friday | Weekend energy — lighthearted and ready |
-| Flex Tape | Loud, arrogant, and proud of it |
-| Frequency | The kind of electronic music you feel in your ribcage |
-| Golden Hour | Warm and easy — everything feels right |
-| Gravity | Heavy and slow — pulls you down in a good way |
-| Hard Reset | Controlled destruction — the catharsis of volume |
-| Hollow | Slow, heavy, and honest — the kind of sad that sits in your chest |
-| Late Night Drive | Dark, drifting, midnight energy |
-| Liminal | Empty hallways, 4am airports, spaces that feel too quiet |
-| Midnight Clarity | 4am realizations — when everything becomes obvious |
-| Morning Ritual | Slow start — coffee, light, something good happening |
-| Nerve | Anxious energy converted into forward motion |
-| Nostalgia | Songs that feel like a memory |
-| Open Road | Windows down, no destination, just motion |
-| Overflow | Peak euphoria — everything hits at once |
-| Overthinking | 3am and your brain won't stop |
-| Phonk Season | Aggressive, drifting, dark — the full phonk spectrum |
-| Pre-Game | Energy building — by track 3 you're already hyped |
-| Pressure Drop | Every track hits harder than the last |
-| Raw Emotion | Unfiltered — no polish, just feeling |
-| Rewire | Post-peak — mind still moving, body slowing down |
-| Signal | Clean, precise electronic — built for movement |
-| Signal Lost | Somewhere between sleep and awake |
-| Smoke & Mirrors | Slow, hazy, lowkey — lit in the best way |
-| Soft Hours | When everything needs to be gentle |
-| Storm Front | Channeled rage — controlled fury |
-| Sundown | End of day ease — calm but not sad |
-| Tropicana | Heat, rhythm, and movement |
-| Tunnel Vision | Locked in — nothing else exists right now |
-| Ultraviolet | Club R&B — sensual, expensive, and late |
-| Villain Arc | Calculated, cold, dominant — this is your theme music |
-| Weightless | Floating — dreamy and untethered |
+All vibe names, descriptions, and scoring hints live in [`data/packs.json`](data/packs.json) under `moods`. After you **Scan Library**, open **Vibes** in the app to browse and stage playlists.
 
 ---
 
@@ -174,47 +136,24 @@ Get a free API key at [last.fm/api](https://www.last.fm/api).
 
 ```
 Vibesort/
-├── app.py                      Streamlit entry point
-├── config.py                   All settings (loaded from .env)
-├── run.py                      CLI fallback (original)
+├── app.py                      Streamlit home + sidebar navigation
+├── config.py                   Settings (from .env)
+├── launch.py                   Dependency check, then Streamlit
+├── run.bat / run.sh            User entrypoints
+├── run.py                      CLI / interactive menu (optional)
 ├── requirements.txt
 ├── .env.example
-├── setup.bat / setup.sh        One-click install
+├── scripts/                    Portable Windows build (see docs/PACKAGING.md)
 │
-├── pages/
-│   ├── 1_Connect.py            Spotify OAuth login
-│   ├── 2_Scan.py               Library scan with progress
-│   ├── 3_Vibes.py              Mood playlists browser
-│   ├── 4_Genres.py             Genre / era / language playlists
-│   ├── 5_Artists.py            Artist spotlight playlists
-│   ├── 6_Blend.py              Multi-user blend
-│   ├── 7_Staging.py            Staging shelf + deploy
-│   └── 8_Stats.py              Taste report & stats
-│
-├── core/
-│   ├── ingest.py               Collect library from Spotify
-│   ├── enrich.py               Audio features + artist genres
-│   ├── genre.py                42-genre mapping, era/artist breakdowns
-│   ├── playlist_mining.py      Mine public playlists for human vibe labels ← core signal
-│   ├── profile.py              Unified track profiles
-│   ├── mood_graph.py           Mood definitions + fuzzy matching
-│   ├── namer.py                Top-down / bottom-up / middle-out naming
-│   ├── scorer.py               Multi-signal scoring engine ← core
-│   ├── cohesion.py             Cohesion filter + scoring
-│   ├── recommend.py            Spotify recommendations
-│   ├── builder.py              Create playlists in Spotify
-│   ├── deploy.py               Batch deploy from staging shelf
-│   ├── lastfm.py               Last.fm integration
-│   ├── blend.py                Multi-user playlist blending
-│   ├── language.py             Language detection for grouping
-│   └── history_parser.py       Parse Spotify data export JSONs
-│
-├── staging/
-│   └── staging.py              Persistent playlist staging shelf
+├── pages/                      Streamlit multipage UI (Connect, Scan, Vibes, …)
+├── core/                       Ingest, scan_pipeline, enrich, scoring, deploy,
+│                               integrations (Spotify, Last.fm, Discogs, lyrics, …)
+├── staging/                    Staging shelf + deploy helpers
+├── tests/                      Pytest
 │
 └── data/
-    ├── packs.json              40 mood preset definitions
-    ├── macro_genres.json       500+ genre normalization rules
+    ├── packs.json              Mood preset definitions (87 moods)
+    ├── macro_genres.json       Genre normalization rules
     └── HOW_TO_GET_FULL_HISTORY.md
 ```
 
@@ -246,7 +185,7 @@ Vibesort/
 
 PRs welcome. Good places to start:
 
-- New mood packs in `data/packs.json` — follow the existing structure
+- New mood packs in `data/packs.json` (`moods`) — follow the existing structure
 - Better genre rules in `data/macro_genres.json` — more specific rules go higher up
 - Improved playlist naming in `core/namer.py`
 - UI improvements in `pages/`

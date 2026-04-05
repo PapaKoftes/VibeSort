@@ -1,34 +1,52 @@
-# Windows bundle (no system Python)
+# Portable Windows build (zero install for friends)
 
-Goal: ship a folder where `run.bat` uses a **bundled** Python under `vendor/python/` so end users do not install Python.
+Friends **do not** install Python. You build a zip **once** on your PC, upload it (Drive, Discord, etc.), they unzip and double-click **`run.bat`**.
 
-## Layout after build
+`vendor/` is **gitignored** — the portable zip is **not** on GitHub; you create it locally and share the file.
 
+## One command (maintainer)
+
+From the repo root, in **PowerShell** (PowerShell 7: `pwsh`, or Windows PowerShell: `powershell`):
+
+```powershell
+pwsh -File scripts\build_portable.ps1
+# or: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_portable.ps1
 ```
-Vibesort/
-  run.bat          # prefers vendor\python\python.exe when present
-  launch.py
-  vendor/
-    python/        # Windows embeddable CPython + site-packages
+
+This runs:
+
+1. **`build_windows_bundle.ps1`** — downloads [Windows embeddable Python](https://www.python.org/downloads/windows/), enables `import site`, bootstraps pip, installs `requirements.txt` into `vendor/python/`.
+2. **`make_portable_zip.ps1`** — writes **`dist\Vibesort-Windows-portable.zip`** (excludes `.git`, `outputs`, `.env`, caches).
+
+Send **`dist\Vibesort-Windows-portable.zip`** only.
+
+## Friend instructions
+
+Included in the zip: **`START_HERE_PORTABLE.txt`**.
+
+Short version: unzip → **`run.bat`** → browser → Connect Spotify.
+
+## Separate steps
+
+```powershell
+pwsh -File scripts\build_windows_bundle.ps1
+pwsh -File scripts\make_portable_zip.ps1
 ```
 
-Approximate size: **300–600 MB** (Streamlit, scikit-learn, dependencies).
+Optional: pick another embeddable version if the download URL 404s:
 
-## Maintainer steps (outline)
+```powershell
+pwsh -File scripts\build_windows_bundle.ps1 -PythonVersion 3.11.9
+```
 
-1. Download **Windows embeddable** Python 3.10+ from [python.org](https://www.python.org/downloads/windows/).
-2. Extract into `vendor/python/`.
-3. Uncomment `import site` in `vendor/python/python310._pth` (filename matches version).
-4. Run `vendor\python\python.exe -m pip install --upgrade pip` (bootstrap pip per embeddable docs).
-5. `vendor\python\python.exe -m pip install -r requirements.txt`.
-6. Zip the repo **without** `outputs/`, `.env`, or user caches.
+## Size
 
-`run.bat` automatically invokes `vendor\python\python.exe` when that file exists.
+Roughly **300–600 MB** zipped (Streamlit + scikit-learn + dependencies).
 
-## Script
+## MSVC runtime
 
-See [`scripts/build_windows_bundle.ps1`](../scripts/build_windows_bundle.ps1) for an automated download/bootstrap (requires PowerShell and network). Review paths and Python version before running.
+If `scikit-learn` fails to load at runtime, install [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) (common on fresh Windows).
 
 ## PyInstaller `.exe`
 
-Possible later, but Streamlit + one-file EXE is fragile (browser launch, temp dirs). Prefer the embeddable folder approach first.
+Possible later, but Streamlit + one-file EXE is fragile (browser launch, temp dirs). The embeddable-folder approach is the supported path.

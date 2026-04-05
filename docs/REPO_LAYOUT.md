@@ -2,11 +2,15 @@
 
 ## How to run (canonical)
 
-- **Windows:** [`run.bat`](../run.bat) — checks for `python`, then runs [`launch.py`](../launch.py).
+- **Windows:** [`run.bat`](../run.bat) — prefers embedded [`vendor/python/`](../vendor/) when present (portable zip), else system `python`, then runs [`launch.py`](../launch.py).
 - **Mac / Linux:** [`run.sh`](../run.sh) — requires `python3`, then runs `launch.py`.
 - **Direct:** `python launch.py` from the repo root (Python 3.10+).
 
 [`launch.py`](../launch.py) ensures dependencies, `.env`, Streamlit config, then starts Streamlit on [`app.py`](../app.py).
+
+## Portable Windows zip (maintainer)
+
+[`scripts/`](../scripts/) — [`build_portable.ps1`](../scripts/build_portable.ps1) bundles embeddable Python into `vendor/python/` and produces **`dist/Vibesort-Windows-portable.zip`**. See [`docs/PACKAGING.md`](PACKAGING.md). `vendor/` and `dist/` are gitignored; the zip is not committed.
 
 ## Optional / legacy entrypoints
 
@@ -32,4 +36,4 @@ These exist for historical or power-user workflows; the paths above are what REA
 
 ## What stays out of git
 
-See [`.gitignore`](../.gitignore): `outputs/` (caches, events, models), `.env`, tokens, personal history JSON, staging playlist data.
+See [`.gitignore`](../.gitignore): `outputs/` (caches, events, models), `.env`, tokens, personal history JSON, staging playlist data, `vendor/` (embedded Python for portable builds), `dist/` (release zips).

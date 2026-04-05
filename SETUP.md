@@ -2,6 +2,10 @@
 
 You do **not** need Git or a Spotify developer account for the default setup.
 
+## Portable zip (Windows, no Python)
+
+If someone sent you **`Vibesort-Windows-portable.zip`**: unzip the folder anywhere, then double-click **`run.bat`**. The first launch may take a minute while dependencies finish unpacking. Skip **Install Python** below.
+
 ## 1. Install Python
 
 1. Open [python.org/downloads](https://www.python.org/downloads/).
@@ -40,6 +44,6 @@ Edit the `.env` file in the Vibesort folder (created on first run) to add free A
 | Browser does not open | Go to `http://localhost:8501` manually. |
 | Spotify login fails | The shared app may be in Development Mode; see the README note or use your own app ID in `.env`. |
 
-Maintainers: optional **Windows bundle** (embedded Python, no PATH install) is described in [docs/PACKAGING.md](docs/PACKAGING.md).
+Maintainers: to ship a **portable zip** for friends (no Python install), run `pwsh -File scripts\build_portable.ps1` (or `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_portable.ps1`) and share `dist\Vibesort-Windows-portable.zip` — see [docs/PACKAGING.md](docs/PACKAGING.md).
 
 For more detail, see [README.md](README.md).

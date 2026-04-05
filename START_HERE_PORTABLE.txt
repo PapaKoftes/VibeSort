@@ -1,0 +1,20 @@
+================================================================================
+  VIBESORT — Windows portable (no Python install)
+================================================================================
+
+1. Double-click  run.bat
+   • First launch may take ~30 seconds while Streamlit starts.
+   • Your browser should open to http://localhost:8501
+
+2. Click "Connect" and sign in with Spotify (browser flow).
+
+3. Optional: copy .env.example to .env and add Last.fm / Genius keys for
+   richer tags — not required to try the app.
+
+Troubleshooting
+• If Windows SmartScreen warns, choose "Run anyway" (unsigned local app).
+• If the page won't load, check that nothing else is using ports 8501–8519.
+• This folder includes a private copy of Python under vendor\python\ — do not
+  delete that folder.
+
+================================================================================
