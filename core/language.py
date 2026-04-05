@@ -7,33 +7,81 @@ but useful for separating e.g. Spanish/Portuguese/French/Korean music.
 """
 
 from __future__ import annotations
+import functools
 
 
+# ISO 639-1 (+ common langdetect variants) → English name
 LANGUAGE_DISPLAY: dict[str, str] = {
-    "pt":      "Portuguese",
-    "es":      "Spanish",
-    "fr":      "French",
-    "de":      "German",
-    "ko":      "Korean",
-    "ja":      "Japanese",
-    "ar":      "Arabic",
-    "en":      "English",
-    "it":      "Italian",
-    "ru":      "Russian",
-    "tr":      "Turkish",
-    "nl":      "Dutch",
-    "pl":      "Polish",
-    "sv":      "Swedish",
-    "zh-cn":   "Chinese (Simplified)",
-    "zh-tw":   "Chinese (Traditional)",
-    "hi":      "Hindi",
+    "en": "English",
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "sv": "Swedish",
+    "no": "Norwegian",
+    "da": "Danish",
+    "fi": "Finnish",
+    "is": "Icelandic",
+    "ga": "Irish",
+    "cy": "Welsh",
+    "pl": "Polish",
+    "cs": "Czech",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "hr": "Croatian",
+    "sr": "Serbian",
+    "bs": "Bosnian",
+    "ro": "Romanian",
+    "hu": "Hungarian",
+    "bg": "Bulgarian",
+    "el": "Greek",
+    "tr": "Turkish",
+    "ru": "Russian",
+    "uk": "Ukrainian",
+    "et": "Estonian",
+    "lv": "Latvian",
+    "lt": "Lithuanian",
+    "sq": "Albanian",
+    "mk": "Macedonian",
+    "ar": "Arabic",
+    "he": "Hebrew",
+    "fa": "Persian",
+    "ur": "Urdu",
+    "hi": "Hindi",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "th": "Thai",
+    "vi": "Vietnamese",
+    "id": "Indonesian",
+    "ms": "Malay",
+    "tl": "Tagalog",
+    "fil": "Filipino",
+    "sw": "Swahili",
+    "af": "Afrikaans",
+    "so": "Somali",
+    "ca": "Catalan",
+    "eu": "Basque",
+    "gl": "Galician",
+    "jw": "Javanese",
+    "ko": "Korean",
+    "ja": "Japanese",
+    "zh": "Chinese",
+    "zh-cn": "Chinese (Simplified)",
+    "zh-tw": "Chinese (Traditional)",
     "unknown": "Unknown",
 }
 
 
+@functools.lru_cache(maxsize=8192)
 def detect_language(text: str) -> str:
     """
     Detect the language of a text string using langdetect.
+
+    Results are cached (LRU, 8192 entries) so repeated calls for the same
+    title+artist text are instant. langdetect is seeded for determinism.
 
     Args:
         text: Any string (track name, artist name, etc.)
@@ -46,6 +94,8 @@ def detect_language(text: str) -> str:
         return "unknown"
     try:
         from langdetect import detect, LangDetectException
+        from langdetect import DetectorFactory
+        DetectorFactory.seed = 0  # deterministic results
         try:
             return detect(text)
         except LangDetectException:
@@ -72,7 +122,14 @@ def track_language(track: dict) -> str:
     name = track.get("name", "")
     artists = track.get("artists", [])
     if isinstance(artists, list):
-        artist_str = " ".join(artists[:2])
+        # artists can be either list[str] or list[dict] (Spotify format)
+        _names = []
+        for a in artists[:2]:
+            if isinstance(a, dict):
+                _names.append(a.get("name", ""))
+            elif isinstance(a, str):
+                _names.append(a)
+        artist_str = " ".join(filter(None, _names))
     else:
         artist_str = str(artists)
 
@@ -124,7 +181,7 @@ def group_by_language(
             other.extend(uris)
 
     if other:
-        result["other"] = other
+        result["other_languages"] = other
 
     return result
 
@@ -134,9 +191,63 @@ def language_display_name(lang_code: str) -> str:
     Return the human-readable name for a language code.
 
     Args:
-        lang_code: ISO 639-1 language code.
+        lang_code: ISO 639-1 language code, or special bucket key.
 
     Returns:
-        Display name string, or the code itself if not in LANGUAGE_DISPLAY.
+        Display name string, or a readable fallback (never raw two-letter caps).
     """
-    return LANGUAGE_DISPLAY.get(lang_code.lower(), lang_code.upper())
+    if lang_code in ("other", "other_languages"):
+        return "Other Languages"
+    raw = (lang_code or "").strip().lower()
+    if not raw or raw == "unknown":
+        return "Unknown"
+
+    # Normalise zh variants
+    norm = raw.replace("_", "-")
+    if norm in ("zh-cn", "zh_cn"):
+        return "Chinese (Simplified)"
+    if norm in ("zh-tw", "zh_tw"):
+        return "Chinese (Traditional)"
+
+    base = norm.split("-")[0].split("_")[0]
+    if len(base) >= 3:
+        return raw.replace("-", " ").title()
+
+    name = LANGUAGE_DISPLAY.get(norm) or LANGUAGE_DISPLAY.get(base)
+    if name:
+        return name
+
+    # Unknown ISO 639-1 code — show "Code (xx)" instead of shouting "XX"
+    return f"Other language ({base})"
+
+
+def group_by_lyrics_language(
+    tracks: list[dict],
+    uri_to_lang: dict[str, str],
+    min_tracks: int = 5,
+) -> dict[str, list[str]]:
+    """
+    Group tracks using lyric-analysis language (from scan), not title heuristics.
+
+    ``uri_to_lang`` maps Spotify URI → ISO 639-1 code (from ``lyrics.analyze_lyrics``).
+    """
+    raw: dict[str, list[str]] = {}
+    for track in tracks:
+        uri = track.get("uri")
+        if not uri:
+            continue
+        lang = (uri_to_lang.get(uri) or "unknown").strip().lower() or "unknown"
+        if lang == "unknown":
+            continue
+        raw.setdefault(lang, []).append(uri)
+
+    result: dict[str, list[str]] = {}
+    other: list[str] = []
+    for lang, uris in raw.items():
+        if len(uris) >= min_tracks:
+            result[lang] = uris
+        else:
+            other.extend(uris)
+    if other:
+        result["other_languages"] = other
+    return result

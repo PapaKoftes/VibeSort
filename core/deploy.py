@@ -12,6 +12,7 @@ from typing import Optional
 import spotipy
 
 import config
+from core.spotify_retry import call_with_429_backoff
 from staging import staging
 
 
@@ -54,9 +55,12 @@ def deploy_one(
     # If expand is on but recs were never fetched, fetch them now
     if expand and not rec_uris and profiles is not None and existing_uris is not None:
         try:
+            _min_total = int(getattr(config, "MIN_PLAYLIST_TOTAL", 25))
+            _short = max(0, _min_total - len(track_uris))
+            _n = max(int(getattr(config, "RECS_PER_PLAYLIST", 22)), _short + 10, 15)
             rec_uris = fetch_recs_for_staged(
                 sp, staged, profiles, existing_uris,
-                n=config.RECS_PER_PLAYLIST,
+                n=min(_n, 100),
             )
         except Exception:
             rec_uris = []
@@ -72,23 +76,25 @@ def deploy_one(
     else:
         all_uris = list(dict.fromkeys(track_uris))
 
-    # Cap to MAX_TRACKS_PER_PLAYLIST
-    max_tracks = config.MAX_TRACKS_PER_PLAYLIST
+    max_tracks = int(getattr(config, "MAX_TRACKS_PER_PLAYLIST", 50))
     all_uris = all_uris[:max_tracks]
 
-    # Create the Spotify playlist
-    playlist = sp.user_playlist_create(
-        user=user_id,
-        name=full_name,
-        public=False,
-        description=description,
+    # Create the Spotify playlist (retry on 429 — burst deploys can rate-limit)
+    playlist = call_with_429_backoff(
+        lambda: sp.user_playlist_create(
+            user=user_id,
+            name=full_name,
+            public=False,
+            description=description,
+        )
     )
     pid = playlist["id"]
     url = playlist["external_urls"]["spotify"]
 
     # Add tracks in batches of 100 (Spotify limit)
     for i in range(0, len(all_uris), 100):
-        sp.playlist_add_items(pid, all_uris[i:i + 100])
+        batch = all_uris[i : i + 100]
+        call_with_429_backoff(lambda b=batch: sp.playlist_add_items(pid, b))
         time.sleep(0.08)
 
     # Mark as deployed
@@ -185,7 +191,7 @@ def fetch_recs_for_staged(
     # Determine mood name for recommendations (only relevant for mood-type playlists)
     mood_name: Optional[str] = source_label if source_type == "mood" else None
 
-    rec_uris = filtered_recommendations(
+    rec_uris, _fallback = filtered_recommendations(
         sp=sp,
         seed_uris=track_uris,
         profiles=profiles,

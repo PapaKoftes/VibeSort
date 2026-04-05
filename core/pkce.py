@@ -23,10 +23,9 @@ import os
 import time
 import requests as _requests
 
-_STATE_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    ".vibesort_pkce_state"
-)
+_ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_STATE_FILE = os.path.join(_ROOT, ".vibesort_pkce_state")
+_TOKEN_FILE = os.path.join(_ROOT, ".vibesort_cache")
 
 TOKEN_URL    = "https://accounts.spotify.com/api/token"
 AUTH_URL     = "https://accounts.spotify.com/authorize"
@@ -75,7 +74,8 @@ def generate_auth_url(client_id: str, redirect_uri: str, scope: str) -> str:
 
 # ── Code exchange ─────────────────────────────────────────────────────────────
 
-def exchange_code(code: str, client_id: str, redirect_uri: str) -> dict:
+def exchange_code(code: str, client_id: str, redirect_uri: str,
+                  returned_state: str = "") -> dict:
     """
     Exchange an authorization code for tokens.
     Loads the verifier saved by generate_auth_url().
@@ -87,7 +87,7 @@ def exchange_code(code: str, client_id: str, redirect_uri: str) -> dict:
         raise RuntimeError("PKCE state file missing — please re-authorize.")
 
     with open(_STATE_FILE, "r", encoding="utf-8") as f:
-        state = json.load(f)
+        saved = json.load(f)
 
     # Clean up state file
     try:
@@ -95,9 +95,13 @@ def exchange_code(code: str, client_id: str, redirect_uri: str) -> dict:
     except OSError:
         pass
 
-    verifier = state.get("verifier")
+    verifier = saved.get("verifier")
     if not verifier:
         raise RuntimeError("PKCE verifier not found in state.")
+
+    # CSRF check: state param Spotify returns must match what we sent
+    if returned_state and saved.get("state") and returned_state != saved["state"]:
+        raise RuntimeError("PKCE state mismatch — possible CSRF. Please re-authorize.")
 
     resp = _requests.post(TOKEN_URL, data={
         "grant_type":    "authorization_code",
@@ -135,6 +139,38 @@ def refresh_access_token(refresh_token: str, client_id: str) -> dict:
     if "refresh_token" not in token:
         token["refresh_token"] = refresh_token  # reuse old one if not rotated
     return token
+
+
+# ── Persistent token cache ────────────────────────────────────────────────────
+
+def save_token(token: dict) -> None:
+    """Persist PKCE token to disk so it survives app restarts."""
+    try:
+        with open(_TOKEN_FILE, "w", encoding="utf-8") as f:
+            json.dump({"pkce": token}, f)
+    except OSError:
+        pass
+
+
+def load_token() -> dict | None:
+    """Load cached PKCE token from disk. Returns None if missing/corrupt."""
+    if not os.path.exists(_TOKEN_FILE):
+        return None
+    try:
+        with open(_TOKEN_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("pkce")
+    except Exception:
+        return None
+
+
+def clear_token() -> None:
+    """Delete cached token (on disconnect)."""
+    try:
+        if os.path.exists(_TOKEN_FILE):
+            os.remove(_TOKEN_FILE)
+    except OSError:
+        pass
 
 
 # ── Build spotipy client from token ──────────────────────────────────────────

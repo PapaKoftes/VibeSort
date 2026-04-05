@@ -1,0 +1,20 @@
+{
+  "profiles": [
+    {
+      "uri": "spotify:track:fixture001",
+      "name": "Fixture Night Drive",
+      "artists": ["Fixture Artist A"],
+      "audio_vector": [0.48, 0.30, 0.55, 0.52, 0.20, 0.10],
+      "macro_genres": ["Electronic / Ambient"],
+      "tags": {"night_drive": 0.9, "late_night": 0.8, "city_lights": 0.6}
+    },
+    {
+      "uri": "spotify:track:fixture002",
+      "name": "Fixture Hollow Song",
+      "artists": ["Fixture Artist B"],
+      "audio_vector": [0.24, 0.16, 0.35, 0.40, 0.52, 0.12],
+      "macro_genres": ["Indie / Alternative"],
+      "tags": {"sad": 0.9, "heartbreak": 0.8, "hollow": 0.9}
+    }
+  ]
+}

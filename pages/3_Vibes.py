@@ -13,7 +13,9 @@ st.set_page_config(
     page_icon="🎧",
     layout="wide",
 )
-from core.theme import inject
+from core.theme import inject, render_scan_quality_strip
+from core.mood_graph import get_mood, mood_display_name
+
 inject()
 
 # Guard: require auth
@@ -31,8 +33,9 @@ if not st.session_state.get("vibesort"):
     st.stop()
 
 vibesort = st.session_state["vibesort"]
-mood_results: dict = vibesort.get("mood_results", {})
-profiles: dict = vibesort.get("profiles", {})
+mood_results: dict     = vibesort.get("mood_results", {})
+profiles: dict         = vibesort.get("profiles", {})
+mood_fit_playlists: dict = vibesort.get("mood_fit_playlists", {})
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -81,13 +84,22 @@ def _generate_name(mood_name, uris):
     audio = _audio_mean(uris)
     try:
         from core.namer import middle_out_name, bottom_up_name, top_down_name
+        _obs_top = {
+            t: float(max(1.0 - (i * 0.08), 0.3))
+            for i, t in enumerate(mood_results.get(mood_name, {}).get("top_tags", [])[:8])
+        }
         if "Middle-out" in naming_mode:
             name, desc = middle_out_name(
                 [profiles[u] for u in uris if u in profiles],
                 mood_name=mood_name,
+                observed_tags=_obs_top,
             )
         elif "Top-down" in naming_mode:
-            name, desc = top_down_name(mood_name, [profiles[u] for u in uris if u in profiles])
+            name, desc = top_down_name(
+                mood_name,
+                [profiles[u] for u in uris if u in profiles],
+                observed_tags=_obs_top,
+            )
         else:
             name, desc = bottom_up_name([profiles[u] for u in uris if u in profiles])
         return name, desc
@@ -145,10 +157,42 @@ def _add_to_staging(mood_name, uris, suggested_name, description, expand_recs):
 # ── Main page ─────────────────────────────────────────────────────────────────
 
 st.title("Your Vibes")
+render_scan_quality_strip(vibesort)
+st.write("")
 
 if not mood_results:
-    st.info("No moods found. Your library may be too small or not yet scanned.")
-    if st.button("Re-scan"):
+    mining_blocked = vibesort.get("mining_blocked", False)
+    has_genres     = any(v for v in vibesort.get("artist_genres", {}).values() if v)
+    has_audio      = bool(vibesort.get("audio_features", {}))
+
+    if not has_genres and not has_audio and mining_blocked:
+        st.warning(
+            "**0 moods found — all three enrichment signals are unavailable:**\n\n"
+            "- 🚫 **Audio features** — deprecated by Spotify (Nov 2024)\n"
+            "- 🚫 **Artist genres** — your artists have no genre data on Spotify, "
+            "and the batch genre endpoint is blocked in Development Mode\n"
+            "- 🚫 **Playlist tags** — `playlist_items` is blocked in Development Mode\n\n"
+            "**To fix this, you have two options:**\n\n"
+            "**Option 1 — Quick (for personal use):** "
+            "Go to [developer.spotify.com](https://developer.spotify.com) → Your App → "
+            "Settings → User Management, and add your own Spotify account email. "
+            "This unlocks playlist access for registered users.\n\n"
+            "**Option 2 — Full production access:** "
+            "Apply for [Extended Quota Mode](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) "
+            "to remove all Development Mode restrictions.",
+        )
+    elif not has_genres and mining_blocked:
+        st.warning(
+            "**0 moods found** — your artists have no genre data on Spotify and playlist "
+            "mining is blocked. Try adding yourself as a test user in your Spotify app's "
+            "User Management settings, then re-scan."
+        )
+    else:
+        st.info(
+            "No moods found. Your library may be too small, "
+            "or the scan may not have enough genre/tag data. Try re-scanning."
+        )
+    if st.button("Re-scan Library"):
         st.switch_page("pages/2_Scan.py")
     st.stop()
 
@@ -186,9 +230,8 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
 
             # Card container
             with st.container(border=True):
-                st.markdown(f"### {mood_name}")
+                st.markdown(f"### {mood_display_name(mood_name)}")
                 try:
-                    from core.mood_graph import get_mood
                     pack = get_mood(mood_name) or {}
                     desc = pack.get("description", "")
                     if desc:
@@ -196,14 +239,22 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                 except Exception:
                     pass
 
-                st.write(f"{count} tracks · {cohesion * 100:.0f}% cohesion")
+                try:
+                    from core.cohesion import cohesion_label as _clabel
+                    _clabel_str = _clabel(cohesion)
+                except Exception:
+                    _clabel_str = f"{cohesion * 100:.0f}%"
+                st.caption(f"{count} tracks · {_clabel_str} ({cohesion * 100:.0f}%)")
                 st.progress(cohesion, text="")
 
                 top = _top_tracks_display(uris, n=3)
                 for t in top:
                     st.markdown(f"- {t}")
 
-                expand_key = f"expand_{mood_name}"
+                top_tags = info.get("top_tags", [])
+                if top_tags:
+                    st.caption("🏷 " + " · ".join(top_tags[:5]))
+
                 is_expanded = st.session_state.get("expanded_vibe") == mood_name
 
                 if st.button(
@@ -219,7 +270,7 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
         if st.session_state.get("expanded_vibe") == mood_name:
             uris = info["uris"]
             st.divider()
-            st.markdown(f"#### {mood_name} — Full Tracklist ({len(uris)} tracks)")
+            st.markdown(f"#### {mood_display_name(mood_name)} — Full Tracklist ({len(uris)} tracks)")
 
             # Show all tracks
             track_rows = []
@@ -233,6 +284,32 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                 tcols = st.columns(3)
                 for tc, row in zip(tcols, chunk):
                     tc.markdown(f"- {row}")
+
+            # ── Public playlists you'd fit into ──────────────────────────────
+            fit_playlists = mood_fit_playlists.get(mood_name, [])
+            if fit_playlists:
+                st.divider()
+                st.markdown("**🌐 Public playlists you'd fit right into**")
+                st.caption(
+                    "Spotify community playlists that share the most songs with your library "
+                    "for this vibe. Great for discovering new music in the same territory."
+                )
+                for pl in fit_playlists[:5]:
+                    pl_name    = pl.get("name", "Untitled")
+                    pl_overlap = pl.get("count", pl.get("overlap_count", 0))
+                    pl_follows = pl.get("followers", 0)
+                    pl_id      = pl.get("id", "")
+                    pl_url     = f"https://open.spotify.com/playlist/{pl_id}" if pl_id else ""
+                    follows_str = (
+                        f"{pl_follows:,} followers · " if pl_follows else ""
+                    )
+                    overlap_str = f"{pl_overlap} songs in common"
+                    if pl_url:
+                        st.markdown(
+                            f"- [{pl_name}]({pl_url}) — {follows_str}{overlap_str}"
+                        )
+                    else:
+                        st.markdown(f"- **{pl_name}** — {follows_str}{overlap_str}")
 
             st.divider()
             st.markdown("**Add to Staging**")

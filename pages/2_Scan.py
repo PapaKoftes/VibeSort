@@ -27,132 +27,95 @@ if not st.session_state.get("spotify_token"):
 def run_scan(sp, user_id: str, force: bool = False):
     """Run the full library scan and store results in st.session_state['vibesort']."""
     import config as cfg
-    from core import ingest, enrich
-    from core import genre as genre_mod
-    from core import playlist_mining
-    from core import profile as profile_mod
-    from core import scorer, cohesion as cohesion_mod
-    from core import history_parser
-    from core.mood_graph import all_moods
+    from core.scan_pipeline import execute_library_scan
+
+    if st.session_state.get("scan_running"):
+        st.warning("⏳ A scan is already running — please wait for it to finish.")
+        return None
+
+    st.session_state["scan_running"] = True
 
     progress_bar = st.progress(0, text="Starting scan...")
     status_box = st.empty()
 
     def step(msg: str, pct: int):
         progress_bar.progress(pct, text=msg)
-        status_box.info(msg)
-
-    try:
-        # Step 1: Ingest
-        step("Collecting liked songs, top tracks, and followed artists...", 5)
-        all_tracks, top_tracks_list, top_artists_list = ingest.collect(sp, cfg)
-        step(f"Collected {len(all_tracks)} unique tracks", 18)
-
-        # Step 2: Enrich
-        step(f"Fetching audio features for {len(all_tracks)} tracks...", 22)
-        artist_genres_map, audio_features_map = enrich.gather(sp, all_tracks)
-        step(
-            f"Fetched audio features ({len(audio_features_map)} tracks) "
-            f"and genre data ({len(artist_genres_map)} artists)",
-            38,
+        status_box.markdown(
+            f"<div style='"
+            f"background:#0e000e;"
+            f"border-left:3px solid #3d0050;"
+            f"padding:10px 16px;"
+            f"border-radius:4px;"
+            f"font-family:JetBrains Mono,monospace;"
+            f"font-size:0.85rem;"
+            f"color:#b89cc8;"
+            f"letter-spacing:0.03em;"
+            f"'>"
+            f"<span style='color:#6a2080'>›</span> {msg}"
+            f"</div>",
+            unsafe_allow_html=True,
         )
 
-        # Step 3: Playlist mining
-        moods = all_moods()
-        user_uris = {t["uri"] for t in all_tracks if t.get("uri")}
-        step("Running playlist mining (first run ~30s, then cached)...", 42)
-        mining = playlist_mining.mine(
+    def _refresh_token():
+        from core.pkce import make_spotify as _pkce_sp, save_token as _pkce_save
+        _token = st.session_state.get("spotify_token", {})
+        _shared_id = (cfg.VIBESORT_CLIENT_ID or "").strip()
+        if _shared_id and isinstance(_token, dict) and "access_token" in _token:
+            sp_new, _refreshed = _pkce_sp(_token, _shared_id)
+            if _refreshed is not _token:
+                st.session_state["spotify_token"] = _refreshed
+                st.session_state["sp"] = sp_new
+                _pkce_save(_refreshed)
+            return st.session_state.get("sp")
+        return None
+
+    try:  # noqa: SIM105  (finally needed for scan_running cleanup)
+        _min_score_override = st.session_state.get("playlist_min_score", None)
+        _strictness = int(st.session_state.get("strictness", 3))
+        _pl_min = int(st.session_state.get("playlist_min_size", 20))
+        _pl_exp = bool(st.session_state.get("playlist_expansion", True))
+        _allow_mvp = bool(st.session_state.get("allow_mvp_fallback", cfg.ALLOW_MVP_FALLBACK))
+
+        result, lyrics_lang = execute_library_scan(
             sp,
-            user_uris,
-            moods,
-            playlists_per_seed=cfg.PLAYLISTS_PER_SEED,
-            force_refresh=force or cfg.MINING_FORCE_REFRESH,
+            user_id,
+            cfg,
+            step,
+            force_refresh=force,
+            refresh_spotify_token=_refresh_token,
+            min_score_override=_min_score_override,
+            strictness=_strictness,
+            playlist_min_size=_pl_min,
+            playlist_expansion=_pl_exp,
+            allow_mvp_fallback=_allow_mvp,
+            mvp_min_playlist_size=cfg.MVP_MIN_PLAYLIST_SIZE,
+            mvp_score_floor=cfg.MVP_SCORE_FLOOR,
+            corpus_mode=st.session_state.get("scan_corpus_mode", "full_library"),
+            lyric_weight=float(st.session_state.get("scan_lyric_weight", 1.16)),
+            max_tracks_cap=int(st.session_state.get("scan_max_tracks", 50)),
         )
-        track_tags = mining.get("track_tags", {})
-        step(f"Playlist mining complete — {len(track_tags)} tags collected", 58)
+        if lyrics_lang:
+            st.session_state["lyrics_lang_map"] = lyrics_lang
 
-        # Step 4: Build profiles
-        step("Building track profiles...", 62)
-        profiles = profile_mod.build_all(
-            all_tracks, artist_genres_map, audio_features_map, track_tags
-        )
-        step(f"Built {len(profiles)} track profiles", 68)
-
-        # Step 5: User taste vectors
-        user_mean = profile_mod.user_audio_mean(profiles)
-
-        # Step 6: Genre/era/artist breakdowns
-        step("Analyzing genre, era, and artist patterns...", 70)
-        genre_map  = genre_mod.library_genre_breakdown(all_tracks, artist_genres_map)
-        era_map    = genre_mod.era_breakdown(all_tracks)
-        artist_map = genre_mod.artist_breakdown(all_tracks, cfg.MIN_SONGS_PER_ARTIST)
-
-        # Step 7: Score moods
-        step(f"Scoring {len(moods)} moods against your library...", 75)
-        mood_results: dict = {}
-        for mood_name in moods:
-            ranked = scorer.rank_tracks(
-                profiles,
-                mood_name,
-                user_mean,
-                min_score=0.22,
-                weights=(cfg.W_AUDIO, cfg.W_TAGS, cfg.W_GENRE),
-            )
-            if not ranked:
-                continue
-            filtered, c_score = cohesion_mod.top_n_by_score(
-                ranked,
-                profiles,
-                n=cfg.MAX_TRACKS_PER_PLAYLIST,
-                cohesion_threshold=cfg.COHESION_THRESHOLD,
-                min_tracks=5,
-            )
-            if len(filtered) >= 5:
-                mood_results[mood_name] = {
-                    "uris":     filtered,
-                    "cohesion": c_score,
-                    "count":    len(filtered),
-                }
-        step(f"Found {len(mood_results)} vibes in your library", 90)
-
-        # Step 8: History (if available)
-        history_entries = history_parser.load("data")
-        history_stats   = history_parser.stats(history_entries) if history_entries else {}
-        history_uris    = history_parser.sorted_uris(history_entries) if history_entries else []
-
-        step("Scan complete.", 100)
         status_box.success(
-            f"Scan complete — {len(all_tracks)} songs · "
-            f"{len(genre_map)} genres · "
-            f"{len(mood_results)} moods · "
-            f"{len(artist_map)} artists"
+            f"Scan complete — {len(result.get('all_tracks', []))} songs · "
+            f"{len(result.get('genre_map', {}))} genres · "
+            f"{len(result.get('mood_results', {}))} moods · "
+            f"{len(result.get('artist_map', {}))} artists"
         )
-
-        return {
-            "sp":               sp,
-            "user_id":          user_id,
-            "all_tracks":       all_tracks,
-            "top_tracks":       top_tracks_list,
-            "top_artists":      top_artists_list,
-            "profiles":         profiles,
-            "user_mean":        user_mean,
-            "artist_genres":    artist_genres_map,
-            "audio_features":   audio_features_map,
-            "track_tags":       track_tags,
-            "genre_map":        genre_map,
-            "era_map":          era_map,
-            "artist_map":       artist_map,
-            "mood_results":     mood_results,
-            "history_stats":    history_stats,
-            "history_uris":     history_uris,
-            "existing_uris":    user_uris,
-        }
+        return result
 
     except Exception as e:
         progress_bar.empty()
         status_box.error(f"Scan failed: {e}")
         st.exception(e)
         return None
+    finally:
+        try:
+            delattr(cfg, "SCAN_LYRIC_WEIGHT")
+        except AttributeError:
+            pass
+        st.session_state.pop("scan_running", None)
 
 
 # ── Page ─────────────────────────────────────────────────────────────────────
@@ -166,17 +129,71 @@ st.title("Library Scan")
 st.caption(f"Scanning library for **{name}**")
 
 vibesort = st.session_state.get("vibesort")
+_mode_labels = {
+    "full_library": "Full library (liked + tops + followed + playlists)",
+    "liked_only": "Liked songs only",
+}
+_selected_label = st.radio(
+    "Scan corpus",
+    options=list(_mode_labels.values()),
+    index=0 if st.session_state.get("scan_corpus_mode", "full_library") == "full_library" else 1,
+)
+_selected_mode = next(k for k, v in _mode_labels.items() if v == _selected_label)
+st.session_state["scan_corpus_mode"] = _selected_mode
+
+with st.expander("Scan options — strictness, sizes, lyric weight", expanded=False):
+    st.session_state["strictness"] = st.slider(
+        "Strictness (higher = tighter playlists)",
+        min_value=1,
+        max_value=5,
+        value=int(st.session_state.get("strictness", 3)),
+        help="Raises cohesion threshold and drop ratio when increased.",
+    )
+    st.session_state["playlist_min_size"] = st.slider(
+        "Minimum tracks we try to keep per mood",
+        min_value=15,
+        max_value=60,
+        value=int(st.session_state.get("playlist_min_size", 25)),
+    )
+    st.session_state["scan_max_tracks"] = st.slider(
+        "Max tracks per mood (library picks)",
+        min_value=25,
+        max_value=80,
+        value=int(st.session_state.get("scan_max_tracks", 50)),
+    )
+    st.session_state["scan_lyric_weight"] = st.slider(
+        "Lyric emphasis for lyric-focused moods",
+        min_value=1.0,
+        max_value=1.45,
+        value=float(st.session_state.get("scan_lyric_weight", 1.16)),
+        step=0.02,
+        help="Boosts tag scores when lyrics-derived lyr_* tags match (Hollow, theme packs, etc.).",
+    )
+    st.session_state["playlist_expansion"] = st.checkbox(
+        "Backfill moods toward minimum size",
+        value=st.session_state.get("playlist_expansion", True),
+    )
+    st.session_state["allow_mvp_fallback"] = st.checkbox(
+        "Allow relaxed pass if a mood is thin",
+        value=st.session_state.get("allow_mvp_fallback", True),
+    )
 
 col_rescan, col_goto = st.columns([2, 5])
 with col_rescan:
     force_rescan = st.button("Re-scan Library", use_container_width=True)
 
-if force_rescan or not vibesort:
-    with st.spinner(""):
-        result = run_scan(sp, user_id, force=force_rescan)
-        if result:
-            st.session_state["vibesort"] = result
-            vibesort = result
+# Auto-start scan on first visit (no vibesort yet), or when user hits Re-scan
+auto_scan = not vibesort and not st.session_state.get("scan_failed")
+
+if force_rescan or auto_scan:
+    result = run_scan(sp, user_id, force=force_rescan)
+    if result:
+        st.session_state.pop("taste_fingerprint", None)
+        st.session_state["vibesort"] = result
+        st.session_state.pop("scan_failed", None)
+        vibesort = result
+    else:
+        st.session_state["scan_failed"] = True
 
 if vibesort:
     st.divider()
@@ -186,9 +203,46 @@ if vibesort:
     col3.metric("Moods", len(vibesort.get("mood_results", {})))
     col4.metric("Artists", len(vibesort.get("artist_map", {})))
 
+    import config as _cfg_info
+    _has_lf_key = bool(getattr(_cfg_info, "LASTFM_API_KEY", "").strip())
+
+    _n_genres    = len(vibesort.get("genre_map", {}))
+    _mining_blk  = vibesort.get("mining_blocked") or vibesort.get("playlist_items_blocked")
+    _scan_flags  = vibesort.get("scan_flags", {})
+    _zero_signal = _n_genres == 0 and _mining_blk and not _has_lf_key
+
+    if _zero_signal:
+        st.error(
+            "**⚠️ Zero signal — moods will be empty or random.**\n\n"
+            "All three data sources are blocked in Spotify's Development Mode:\n"
+            "- Playlist mining: **blocked** (403 on all playlist_items)\n"
+            "- Deezer genres: **0** artists enriched\n"
+            "- Audio features: **deprecated** (unavailable)\n\n"
+            "**Fix this in 30 seconds:** Add a free Last.fm API key to your `.env`:\n"
+            "```\nLASTFM_API_KEY=your_key_here\n```\n"
+            "[Get a free key here](https://www.last.fm/api/account/create) → "
+            "Create account → Create API application → copy the API key. "
+            "Then click **Re-scan Library**."
+        )
+    elif _mining_blk:
+        if _has_lf_key:
+            st.info(
+                "ℹ️ **Playlist mining is blocked in Spotify's Development Mode** — "
+                "mood detection is powered by **Last.fm** genre + mood tags. "
+                "Results should be solid. For full Spotify functionality, apply for "
+                "[Extended Quota Mode](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)."
+            )
+        else:
+            st.warning(
+                "⚠️ **Playlist mining is blocked in Spotify's Development Mode.** "
+                "Genre detection via Deezer is the only active signal — results may be thin. "
+                "For rich mood detection, add a free Last.fm key: "
+                "`LASTFM_API_KEY=<key>` in your `.env` "
+                "([get one here](https://www.last.fm/api/account/create)) and re-scan."
+            )
+
     st.write("")
     if st.button("Go to Vibes", type="primary", use_container_width=True):
         st.switch_page("pages/3_Vibes.py")
-else:
-    if not force_rescan:
-        st.info("Click 'Re-scan Library' to analyze your Spotify library.")
+elif st.session_state.get("scan_failed"):
+    st.warning("Scan failed. Fix the error above and click Re-scan Library.")

@@ -30,25 +30,67 @@ FRIEND_PLAYLIST_URLS: list[str] = []
 
 # ── Playlist generation ───────────────────────────────────────────────────────
 PLAYLIST_PREFIX        = os.getenv("PLAYLIST_PREFIX", "Vibesort: ")
-RECS_PER_PLAYLIST      = int(os.getenv("RECS_PER_PLAYLIST", "15"))
+RECS_PER_PLAYLIST      = int(os.getenv("RECS_PER_PLAYLIST", "22"))
 MAX_TRACKS_PER_PLAYLIST = int(os.getenv("MAX_TRACKS_PER_PLAYLIST", "50"))
+# Target minimum tracks (library + recs) when expanding with recommendations
+MIN_PLAYLIST_TOTAL     = int(os.getenv("MIN_PLAYLIST_TOTAL", "25"))
 MIN_SONGS_PER_GENRE    = int(os.getenv("MIN_SONGS_PER_GENRE", "5"))
 MIN_SONGS_PER_ERA      = int(os.getenv("MIN_SONGS_PER_ERA", "5"))
 MIN_SONGS_PER_ARTIST   = int(os.getenv("MIN_SONGS_PER_ARTIST", "8"))
 COHESION_THRESHOLD     = float(os.getenv("COHESION_THRESHOLD", "0.60"))
 
-# Scoring weights (must roughly sum to 1.0)
-W_AUDIO = float(os.getenv("W_AUDIO", "0.45"))
-W_TAGS  = float(os.getenv("W_TAGS",  "0.35"))
-W_GENRE = float(os.getenv("W_GENRE", "0.20"))
+# When a mood has fewer than this many passing tracks, rank_tracks can relax gates (MVP pass).
+MVP_MIN_PLAYLIST_SIZE  = int(os.getenv("MVP_MIN_PLAYLIST_SIZE", "22"))
+ALLOW_MVP_FALLBACK     = os.getenv("ALLOW_MVP_FALLBACK", "true").lower() == "true"
+# Floor for MVP pass scores (also scaled from min_score when unset in code).
+MVP_SCORE_FLOOR        = float(os.getenv("MVP_SCORE_FLOOR", "0.15"))
 
-# Playlist mining settings
-PLAYLISTS_PER_SEED    = int(os.getenv("PLAYLISTS_PER_SEED", "4"))
+# Scoring weights (must sum to 1.0 with W_METADATA_AUDIO when proxy is used)
+# W_AUDIO: Spotify GET /audio-features (deprecated; kept at 0).
+# W_METADATA_AUDIO: weight for metadata-derived proxy vectors (tags/genres/BPM heuristics).
+# Defaults bias slightly toward meaning (semantic) over strict macro genre — pairs with
+# cross-genre rescue in scorer.effective_genre_score. Override via .env or outputs/.user_model.json.
+W_AUDIO            = 0.0    # Spotify API audio — do not re-enable
+W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.10"))
+W_TAGS             = float(os.getenv("W_TAGS",             "0.46"))
+W_SEMANTIC         = float(os.getenv("W_SEMANTIC",         "0.26"))
+W_GENRE            = float(os.getenv("W_GENRE",            "0.18"))
+
+# When playlist mining is blocked or <10% of tracks got mined tags, scale up enrichment
+# caps (AudioDB, Discogs, Last.fm, Deezer, MusicBrainz, lyrics, Musixmatch).
+MINING_FALLBACK_ENRICH_MULT = float(os.getenv("MINING_FALLBACK_ENRICH_MULT", "1.65"))
+
+# Playlist mining — conservative defaults to avoid rate limits / quota burn
+PLAYLISTS_PER_SEED    = int(os.getenv("PLAYLISTS_PER_SEED", "3"))
 MINING_FORCE_REFRESH  = os.getenv("MINING_FORCE_REFRESH", "false").lower() == "true"
+# Max track URIs fetched per public playlist (smaller = fewer API pages)
+MINING_MAX_TRACKS_PER_PLAYLIST = int(os.getenv("MINING_MAX_TRACKS_PER_PLAYLIST", "100"))
+# Hard cap on playlist_items calls per full mining run (stops early; cache still saves)
+MINING_MAX_PLAYLIST_ITEMS_CALLS = int(os.getenv("MINING_MAX_PLAYLIST_ITEMS_CALLS", "320"))
+# Delays (seconds) — stay polite to Spotify search + Web API
+MINING_SEARCH_DELAY = float(os.getenv("MINING_SEARCH_DELAY", "0.38"))
+MINING_PLAYLIST_ITEMS_GAP = float(os.getenv("MINING_PLAYLIST_ITEMS_GAP", "0.14"))
+MINING_ITEMS_BATCH_GAP = float(os.getenv("MINING_ITEMS_BATCH_GAP", "0.12"))
+# Seed phrases per mood (fewer = fewer searches)
+MINING_MAX_SEED_PHRASES = int(os.getenv("MINING_MAX_SEED_PHRASES", "2"))
+# Max anchor playlists processed per mood
+MINING_MAX_ANCHORS_PER_MOOD = int(os.getenv("MINING_MAX_ANCHORS_PER_MOOD", "4"))
+# Max owned playlists to pull items from per scan
+MINING_MAX_OWNED_PLAYLISTS = int(os.getenv("MINING_MAX_OWNED_PLAYLISTS", "48"))
 
 # ── ListenBrainz ──────────────────────────────────────────────────────────────
 LISTENBRAINZ_TOKEN    = os.getenv("LISTENBRAINZ_TOKEN", "")
 LISTENBRAINZ_USERNAME = os.getenv("LISTENBRAINZ_USERNAME", "")
+
+# ── Last.fm ────────────────────────────────────────────────────────────────────
+# Free API key at: https://www.last.fm/api/account/create
+LASTFM_API_KEY    = os.getenv("LASTFM_API_KEY",    "")
+LASTFM_API_SECRET = os.getenv("LASTFM_API_SECRET", "")
+LASTFM_USERNAME   = os.getenv("LASTFM_USERNAME",   "")
+
+# ── Musixmatch (per-track genre enrichment, free tier: 2000 calls/day) ────────
+MUSIXMATCH_API_KEY = os.getenv("MUSIXMATCH_API_KEY", "")
+DISCOGS_TOKEN      = os.getenv("DISCOGS_TOKEN", "")        # optional — raises rate limit 25→60 req/min
 
 # ── Genius ─────────────────────────────────────────────────────────────────────
 GENIUS_API_KEY = os.getenv("GENIUS_API_KEY", "")

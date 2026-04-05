@@ -2,7 +2,21 @@
 
 **Your Spotify library, sorted by feeling.**
 
-Vibesort scans your liked songs, top tracks, and saved playlists — then groups them into mood, genre, era, and artist playlists using a multi-signal scoring engine that combines audio features, genre data, and real-world human labeling extracted from public Spotify playlists.
+Vibesort scans your liked songs, top tracks, and saved playlists — then groups them into mood, genre, era, and artist playlists using a multi-signal scoring engine that combines tags, semantic similarity, genre structure, and real-world human labeling from public Spotify playlists.
+
+---
+
+## Quick start
+
+Step-by-step install for Windows, Mac, and Linux (no Git required): **[SETUP.md](SETUP.md)**.
+
+Repository layout and legacy scripts: **[docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md)**.  
+Optional Windows bundle (embedded Python, no system install): **[docs/PACKAGING.md](docs/PACKAGING.md)**.
+
+- **Windows:** double-click `run.bat`
+- **Mac / Linux:** `bash run.sh`
+
+First launch installs dependencies and opens the app in your browser.
 
 ---
 
@@ -10,13 +24,14 @@ Vibesort scans your liked songs, top tracks, and saved playlists — then groups
 
 Most tools sort by audio features alone (energy, tempo, valence). The problem: that gives you playlists that *sound* similar but don't *feel* similar. Dark phonk and sad indie can share identical audio fingerprints but hit completely differently.
 
-Vibesort combines three signals:
+Spotify removed the public audio-features API in late 2024. Vibesort uses **metadata-derived proxy** audio vectors (tags, genres, BPM heuristics) with tunable weight **`W_METADATA_AUDIO`** alongside tags, semantic, and genre layers. Defaults (see `config.py` / `.env`):
 
-| Signal | Weight | Source |
+| Signal | Default weight | Source |
 |---|---|---|
-| Audio features | 45% | Spotify API (energy, valence, danceability, tempo, acousticness) |
-| Playlist context | 35% | Mines public Spotify playlists to extract human vibe labels |
-| Genre | 20% | 42-genre hierarchy built from Spotify's artist tags |
+| Tags | 48% | Playlist mining, Last.fm, AudioDB, Discogs, lyrics keywords, etc. |
+| Semantic | 22% | Abstract meaning layer in the scorer |
+| Genre | 20% | 42-genre hierarchy from artist tags + enrichers |
+| Metadata audio | 10% | Proxy energy/valence/tempo from tags + genres (not Spotify-measured) |
 
 The playlist mining step is the key: it searches public playlists named things like "late night drive", "gym rage", "overthinking" — checks which of your songs appear in them — and uses that as a human-labeled signal. This is how real music systems work.
 
@@ -42,19 +57,13 @@ The playlist mining step is the key: it searches public playlists named things l
 
 ## Setup
 
-**Windows** — double-click `run.bat`
+See **[SETUP.md](SETUP.md)** for a full walkthrough (Python install, ZIP download, PATH on Windows).
 
-**Mac / Linux:**
-```bash
-bash run.sh
-```
+**Windows** — double-click `run.bat`  
+**Mac / Linux** — `bash run.sh`  
+**Or:** `python launch.py` (after Python 3.10+ is installed)
 
-**Or directly:**
-```bash
-python launch.py
-```
-
-That's it. No Spotify developer account needed. No credentials to fill in. First run installs dependencies automatically, then the browser opens. Click **Connect to Spotify**, authorize, done.
+No Spotify developer account is required for the default shared app. First run installs dependencies, then the browser opens. Click **Connect to Spotify**, authorize, done.
 
 > **Note:** The app is currently in Spotify Development Mode (25-user limit). If you can't connect, [open an issue](https://github.com/PapaKoftes/VibeSort/issues) to be added to the allowlist.
 

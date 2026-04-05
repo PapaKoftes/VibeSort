@@ -76,6 +76,19 @@ def _deploy_all(staged_list: list) -> list[dict]:
 
 st.title("Staging Shelf")
 
+# Warn if Spotify recommendations will also be blocked (Dev Mode restriction).
+# sp.recommendations() requires the same Extended Quota Mode as playlist_items.
+_mining_blocked = (vibesort or {}).get("mining_blocked", False)
+if _mining_blocked:
+    st.info(
+        "ℹ️ **Spotify Dev Mode:** the 'Expand with recs' toggle won't add new songs "
+        "because `recommendations` is also blocked in Development Mode. "
+        "Playlists will still deploy with your library tracks. "
+        "Apply for [Extended Quota Mode](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) "
+        "to enable recommendations.",
+        icon="🎧",
+    )
+
 # Load all pending playlists
 try:
     staged_playlists = staging.load_all()
@@ -120,9 +133,15 @@ if deploy_all_clicked:
             results = _deploy_all(staged_playlists)
         st.divider()
         st.subheader("Deploy Results")
+        try:
+            from core import telemetry as _tel
+        except Exception:
+            _tel = None
         for r in results:
             if r["success"]:
                 st.success(f"**{r['name']}** — [Open in Spotify]({r['url']})")
+                if _tel:
+                    _tel.log_event("deploy_playlist", playlist_name=r.get("name", ""), url=r.get("url"))
             else:
                 st.error(f"**{r['name']}** — Failed: {r['error']}")
         st.divider()
@@ -165,6 +184,13 @@ for staged in staged_playlists:
         with hcol2:
             st.caption(f"{ptype.upper()} · {len(track_uris)} tracks · {cohesion * 100:.0f}% cohesion")
 
+        # Confidence gate warning
+        if cohesion < 0.55:
+            st.warning(
+                f"⚠️ Low confidence ({cohesion:.0%}) — this playlist may lack focus. "
+                "Consider rescanning."
+            )
+
         # Description
         new_desc = st.text_area(
             "Description",
@@ -201,6 +227,21 @@ for staged in staged_playlists:
                     staging.update(pid, {"expand_with_recs": expand_recs})
                 except Exception:
                     pass
+        try:
+            _min_t = int(getattr(cfg, "MIN_PLAYLIST_TOTAL", 25)) if cfg else 25
+        except Exception:
+            _min_t = 25
+        _pred_total = len(track_uris) + (len(rec_uris) if expand_recs else 0)
+        if _pred_total < _min_t and expand_recs:
+            st.caption(
+                f"Target ≥{_min_t} songs — deploy will request extra Spotify recommendations "
+                "when your app quota allows (not in Dev Mode)."
+            )
+        elif _pred_total < _min_t:
+            st.caption(
+                f"Only {_pred_total} library tracks here — turn on **Expand with recs** "
+                f"or rescan with a higher minimum to reach ~{_min_t}."
+            )
 
         # Track preview expander
         with st.expander(f"Preview {len(track_uris)} tracks"):
@@ -215,7 +256,14 @@ for staged in staged_playlists:
         btn_col1, btn_col2, btn_col3 = st.columns([2, 2, 2])
 
         with btn_col1:
-            if st.button("Deploy This One", key=f"deploy_{pid}", use_container_width=True, type="primary"):
+            _blocked = cohesion < 0.55
+            if st.button(
+                "Deploy This One" if not _blocked else "⚠️ Deploy Anyway",
+                key=f"deploy_{pid}",
+                use_container_width=True,
+                type="primary" if not _blocked else "secondary",
+                help="Low confidence — consider rescanning first" if _blocked else None,
+            ):
                 if not user_id:
                     st.error("Could not determine Spotify user ID.")
                 else:
@@ -226,6 +274,17 @@ for staged in staged_playlists:
                             success, result = _deploy_one(fresh)
                         if success:
                             st.success(f"Deployed! [Open in Spotify]({result})")
+                            try:
+                                from core import telemetry as _tel
+
+                                _tel.log_event(
+                                    "deploy_playlist",
+                                    playlist_name=fresh.get("user_name")
+                                    or fresh.get("suggested_name", ""),
+                                    url=result,
+                                )
+                            except Exception:
+                                pass
                         else:
                             st.error(f"Deploy failed: {result}")
                     else:

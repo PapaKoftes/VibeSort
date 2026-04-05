@@ -13,7 +13,7 @@ st.set_page_config(
     page_icon="🎧",
     layout="wide",
 )
-from core.theme import inject
+from core.theme import inject, render_scan_quality_strip
 inject()
 
 if not st.session_state.get("spotify_token"):
@@ -39,6 +39,10 @@ audio_features = vibesort.get("audio_features", {})
 history_stats  = vibesort.get("history_stats", {})
 user_mean      = vibesort.get("user_mean", [0.5] * 6)
 top_artists_list = vibesort.get("top_artists", [])
+user_tag_prefs   = vibesort.get("user_tag_prefs", {})
+track_tags     = vibesort.get("track_tags", {}) or {}
+artist_genres  = vibesort.get("artist_genres", {}) or {}
+scan_flags     = vibesort.get("scan_flags", {}) or {}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -51,11 +55,18 @@ def avg_feature(key):
 def taste_profile_line() -> str:
     """Generate a one-line personality description from top genres and audio."""
     top_genres = sorted(genre_map.items(), key=lambda x: -len(x[1]))[:2]
-    top_genre_names = [g for g, _ in top_genres]
+    top_genre_names = [g for g, _ in top_genres if g != "Other"]
 
-    energy    = avg_feature("energy")
-    valence   = avg_feature("valence")
-    acoustic  = avg_feature("acousticness")
+    # audio_features may be empty (Spotify deprecated the endpoint Nov 2024).
+    # Fall back to user_mean from track profiles — same values, always available.
+    if audio_features:
+        energy   = avg_feature("energy")
+        valence  = avg_feature("valence")
+        acoustic = avg_feature("acousticness")
+    else:
+        energy   = user_mean[0] if len(user_mean) > 0 else 0.5
+        valence  = user_mean[1] if len(user_mean) > 1 else 0.5
+        acoustic = user_mean[4] if len(user_mean) > 4 else 0.5
 
     if energy >= 0.75 and valence < 0.35:
         energy_word = "dark, high-energy"
@@ -91,6 +102,8 @@ def taste_profile_line() -> str:
 # ── Page ─────────────────────────────────────────────────────────────────────
 
 st.title("Your Taste Report")
+render_scan_quality_strip(vibesort)
+st.write("")
 
 # ── Overview metrics ──────────────────────────────────────────────────────────
 col1, col2, col3, col4 = st.columns(4)
@@ -109,6 +122,109 @@ col2.metric("Genres", len(genre_map))
 col3.metric("Eras", len(era_map))
 col4.metric(f"Obscurity ({obscurity_label})", f"{obscurity}/100")
 
+_apop = vibesort.get("artist_popularity") or {}
+_ah_sum, _ah_n = 0, 0
+for _t in all_tracks:
+    _arts = _t.get("artists") or []
+    if _arts and isinstance(_arts[0], dict):
+        _pid = _arts[0].get("id")
+        if _pid and _pid in _apop:
+            _ah_sum += int(_apop[_pid])
+            _ah_n += 1
+if _ah_n:
+    _ah = round(_ah_sum / _ah_n, 1)
+    st.caption(
+        f"**Artist heat (Spotify):** average primary-artist popularity **{_ah}/100** "
+        f"across {_ah_n} tracks — complements track obscurity (lower = typically smaller acts)."
+    )
+else:
+    st.caption(
+        "**Artist heat:** rescans fetch Spotify artist popularity (0–100) for niche-vs-mainstream context."
+    )
+
+st.divider()
+
+# ── Enrichment coverage ───────────────────────────────────────────────────────
+st.subheader("Enrichment coverage")
+st.caption(
+    "How much of your library received signals from genres, tags, and lyrics. "
+    "Tag sources (Last.fm, AudioDB, Discogs, mining) are merged in one layer."
+)
+
+_n_total = len(all_tracks)
+
+
+def _primary_artist_id(track: dict) -> str:
+    arts = track.get("artists") or []
+    if not arts:
+        return ""
+    a0 = arts[0]
+    return a0.get("id", "") if isinstance(a0, dict) else ""
+
+
+_n_genre = 0
+_n_lyr = 0
+_n_non_lyr_tags = 0
+_n_genre_only = 0
+_n_blank = 0
+
+for t in all_tracks:
+    uri = t.get("uri", "")
+    if not uri:
+        continue
+    aid = _primary_artist_id(t)
+    genres = artist_genres.get(aid, []) if aid else []
+    has_genre = bool(genres)
+    tags = track_tags.get(uri) or {}
+    lyr_keys = [k for k in tags if str(k).lower().startswith("lyr_")]
+    other_keys = [k for k in tags if not str(k).lower().startswith("lyr_")]
+    has_lyr = bool(lyr_keys)
+    has_other = bool(other_keys)
+    has_any_tags = bool(tags)
+
+    if has_genre:
+        _n_genre += 1
+    if has_lyr:
+        _n_lyr += 1
+    if has_other:
+        _n_non_lyr_tags += 1
+    if has_genre and not has_other:
+        _n_genre_only += 1
+    if not has_genre and not has_any_tags:
+        _n_blank += 1
+
+ec1, ec2, ec3, ec4 = st.columns(4)
+ec1.metric("Tracks scanned", _n_total)
+ec2.metric("With artist genres", _n_genre)
+ec3.metric("With mood / context tags", _n_non_lyr_tags)
+ec4.metric("With lyric mood scores", _n_lyr)
+
+st.caption(
+    f"**Genre only (no context tags):** {_n_genre_only} tracks · "
+    f"**No genre & no tags:** {_n_blank} tracks"
+)
+
+_cov_rows = [
+    {"Source": "Genres (Spotify + Deezer + enrichers)", "Tracks": _n_genre},
+    {"Source": "Tags (Last.fm, AudioDB, Discogs, mining, …)", "Tracks": _n_non_lyr_tags},
+    {"Source": "Lyrics-derived (lyr_*)", "Tracks": _n_lyr},
+]
+try:
+    import pandas as pd
+
+    st.bar_chart(pd.DataFrame(_cov_rows).set_index("Source"))
+except Exception:
+    for row in _cov_rows:
+        st.write(f"**{row['Source']}** — {row['Tracks']} tracks")
+
+if scan_flags:
+    st.caption(
+        "Last scan flags: "
+        f"tags={scan_flags.get('has_tags')}, genres={scan_flags.get('has_genres')}, "
+        f"lyrics={scan_flags.get('has_lyrics')}, discogs_ok={scan_flags.get('has_discogs')}, "
+        f"genius_key={scan_flags.get('has_genius')}, listenbrainz={scan_flags.get('has_listenbrainz')}"
+    )
+
 st.divider()
 
 # ── Taste profile ─────────────────────────────────────────────────────────────
@@ -120,13 +236,28 @@ st.divider()
 # ── Audio fingerprint ─────────────────────────────────────────────────────────
 st.subheader("Audio Fingerprint")
 
-energy       = avg_feature("energy")
-valence      = avg_feature("valence")
-danceability = avg_feature("danceability")
-acousticness = avg_feature("acousticness")
-instrumental = avg_feature("instrumentalness")
-tempos       = [f.get("tempo", 120) for f in audio_features.values() if f]
-avg_tempo    = round(sum(tempos) / len(tempos)) if tempos else 0
+# audio_features is empty when Spotify's deprecated endpoint returns 403.
+# Fall back to user_mean (profile-averaged audio vector) so the chart isn't
+# all zeros. user_mean = [energy, valence, danceability, tempo_norm,
+#                          acousticness, instrumentalness]
+if audio_features:
+    energy       = avg_feature("energy")
+    valence      = avg_feature("valence")
+    danceability = avg_feature("danceability")
+    acousticness = avg_feature("acousticness")
+    instrumental = avg_feature("instrumentalness")
+    tempos       = [f.get("tempo", 120) for f in audio_features.values() if f]
+    avg_tempo    = round(sum(tempos) / len(tempos)) if tempos else 0
+    _fp_source   = ""
+else:
+    # Derived from profile audio vectors (neutral [0.5]*6 default per track)
+    energy       = user_mean[0] if len(user_mean) > 0 else 0.5
+    valence      = user_mean[1] if len(user_mean) > 1 else 0.5
+    danceability = user_mean[2] if len(user_mean) > 2 else 0.5
+    acousticness = user_mean[4] if len(user_mean) > 4 else 0.5
+    instrumental = user_mean[5] if len(user_mean) > 5 else 0.0
+    avg_tempo    = 0
+    _fp_source   = " *(estimated from track profiles — Spotify audio endpoint deprecated)*"
 
 try:
     import pandas as pd
@@ -146,6 +277,8 @@ except Exception:
 
 if avg_tempo:
     st.caption(f"Average tempo: {avg_tempo} BPM")
+if _fp_source:
+    st.caption(_fp_source)
 
 st.divider()
 
@@ -166,6 +299,36 @@ with left_col:
         except Exception:
             for g, uris in top_genres[:5]:
                 st.write(f"**{g}** — {len(uris)} tracks")
+    st.markdown("**Genre mix (multi-affiliation)**")
+    st.caption(
+        "Each track splits one vote across every macro genre on its artists — "
+        "percentages can add up to more than 100% across the library."
+    )
+    _multi: dict[str, float] = {}
+    for _p in profiles.values():
+        _macros = [g for g in (_p.get("macro_genres") or []) if g != "Other"]
+        if not _macros:
+            continue
+        _w = 1.0 / len(_macros)
+        for _g in _macros:
+            _multi[_g] = _multi.get(_g, 0.0) + _w
+    _multi_sorted = sorted(_multi.items(), key=lambda x: -x[1])[:12]
+    _n_prof = max(len(profiles), 1)
+    if _multi_sorted:
+        try:
+            import pandas as pd
+            df_mg = pd.DataFrame(
+                {
+                    "Library affinity %": [
+                        round(100 * w / _n_prof, 2) for _, w in _multi_sorted
+                    ]
+                },
+                index=[g for g, _ in _multi_sorted],
+            )
+            st.bar_chart(df_mg)
+        except Exception:
+            for g, w in _multi_sorted[:8]:
+                st.caption(f"{g}: {round(100 * w / _n_prof, 1)}% library affinity")
 
 with right_col:
     st.subheader("Top Moods")
@@ -198,6 +361,32 @@ if sorted_eras:
     except Exception:
         for e, uris in sorted_eras:
             st.write(f"**{e}** — {len(uris)} tracks")
+
+st.divider()
+
+# ── Vibe Tags ─────────────────────────────────────────────────────────────────
+# Aggregated from playlist mining or MusicBrainz — shows the mood/genre context
+# words most associated with this library.
+st.subheader("Vibe Tags")
+if user_tag_prefs:
+    top_tags = sorted(user_tag_prefs.items(), key=lambda x: -x[1])[:30]
+    max_w = max(w for _, w in top_tags) if top_tags else 1
+    html = "<div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px'>"
+    for tag, w in top_tags:
+        opacity = 0.40 + 0.60 * (w / max_w)
+        html += (
+            f"<span style='background:#1a0020;color:#c0006a;"
+            f"padding:3px 10px;border-radius:12px;"
+            f"font-family:JetBrains Mono,monospace;font-size:0.78rem;"
+            f"opacity:{opacity:.2f};border:1px solid #c0006a44'>{tag}</span>"
+        )
+    html += "</div>"
+    st.markdown(html, unsafe_allow_html=True)
+else:
+    st.caption(
+        "No vibe tags yet — these appear after a scan with MusicBrainz enrichment "
+        "or after Spotify Extended Quota Mode is enabled."
+    )
 
 st.divider()
 

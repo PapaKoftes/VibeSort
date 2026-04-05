@@ -26,8 +26,8 @@ if not st.session_state.get("spotify_token"):
 
 st.title("Blend")
 st.write(
-    "Better than Spotify Blend: supports 3+ users, genre-aware, and generates multiple playlist angles. "
-    "Paste Spotify playlist URLs to represent each user's library."
+    "Merge multiple libraries into shared playlists. Supports 3+ users, genre-aware, "
+    "and generates multiple playlist angles. Paste Spotify playlist URLs to represent each person's library."
 )
 
 vibesort = st.session_state.get("vibesort")
@@ -66,17 +66,94 @@ if st.button("Find Common Ground", type="primary", use_container_width=False):
                 from core.blend import fetch_user_library, blend_profiles, generate_blend_playlists
                 import config as cfg
 
-                user_profiles = []
+                # fetch_user_library() returns simplified track dicts.
+                # generate_blend_playlists() expects profile-format dicts
+                # with audio_vector and macro_genres — build minimal ones so
+                # audio scoring and genre-overlap logic work correctly.
+                from core import profile as _profile_mod
+                from core.genre import to_macro as _to_macro
+
+                def _minimal_profile(track_dict: dict, artist_genres_by_name: dict = None) -> dict:
+                    """Wrap a raw track dict in the minimal profile shape."""
+                    # Build real macro_genres from Deezer-enriched artist data if available
+                    macro_genres = []
+                    if artist_genres_by_name:
+                        _seen: set[str] = set()
+                        for _a in track_dict.get("artists", []):
+                            _aname = (_a if isinstance(_a, str) else _a.get("name", "")).lower().strip()
+                            for _genre in artist_genres_by_name.get(_aname, []):
+                                _macro = _to_macro(_genre)
+                                if _macro not in _seen:
+                                    _seen.add(_macro)
+                                    macro_genres.append(_macro)
+                    return {
+                        "uri":          track_dict.get("uri", ""),
+                        "name":         track_dict.get("name", ""),
+                        "artists":      track_dict.get("artists", []),
+                        "audio_vector": [0.5] * 6,   # neutral — no audio features for other users
+                        "raw_genres":   [],
+                        "macro_genres": macro_genres or ["Other"],
+                        "tags":         {},
+                        "popularity":   track_dict.get("popularity", 50),
+                    }
+
+                # Collect all external tracks first so we can batch-enrich genres
+                user_raw_tracks: list[tuple[str, dict]] = []
                 for i, url in enumerate(urls):
-                    tracks = fetch_user_library(sp, [url])
-                    user_profiles.append((f"User {i+1}", tracks))
+                    raw_tracks = fetch_user_library(sp, [url])
+                    user_raw_tracks.append((f"User {i+1}", raw_tracks))
+
+                # ── Deezer genre enrichment for external tracks ───────────────
+                # Collect unique artist names across all external playlists,
+                # enrich via Deezer, then pass the result to _minimal_profile()
+                # so genre-overlap playlists work for Blend users too.
+                _blend_artist_genres_by_name: dict[str, list[str]] = {}
+                try:
+                    from core import deezer as _dz_blend
+
+                    # Build artist-name frequency map (name_lower → (name, count))
+                    _blend_artist_freq: dict[str, tuple[str, int]] = {}
+                    for _, _rt in user_raw_tracks:
+                        for _t in _rt.values():
+                            for _a in _t.get("artists", []):
+                                _aname = _a if isinstance(_a, str) else ""
+                                if _aname:
+                                    _akey = _aname.lower().strip()
+                                    _prev = _blend_artist_freq.get(_akey, (_aname, 0))[1]
+                                    _blend_artist_freq[_akey] = (_aname, _prev + 1)
+
+                    # enrich_artists() expects {artist_id: (name, count)} but Blend
+                    # tracks have no Spotify artist IDs — use name as key instead.
+                    _dz_freq_for_blend = {k: v for k, v in _blend_artist_freq.items()}
+                    _dz_blend_result = _dz_blend.enrich_artists(
+                        _dz_freq_for_blend,
+                        existing_genres={},
+                        max_artists=150,
+                        progress_fn=None,
+                    )
+                    # Result is keyed by the same key we passed in (artist_name_lower)
+                    _blend_artist_genres_by_name = {
+                        k: v for k, v in _dz_blend_result.items() if v
+                    }
+                except Exception:
+                    pass  # Genre enrichment optional — fall back to "Other"
+
+                user_profiles = []
+                for label, raw_tracks in user_raw_tracks:
+                    profiles_for_user = {
+                        uri: _minimal_profile(t, _blend_artist_genres_by_name)
+                        for uri, t in raw_tracks.items()
+                    }
+                    user_profiles.append((label, profiles_for_user))
 
                 # Merge all profiles
                 combined = {}
                 for _, profs in user_profiles:
                     combined.update(profs)
 
-                # If own library is scanned, add it to first user's profiles
+                # If own library is scanned, replace User 1 with the real scanned
+                # profiles — these have proper audio_vector, macro_genres, and tags,
+                # so genre-overlap and audio-scoring will actually work.
                 if vibesort:
                     own_profiles = vibesort.get("profiles", {})
                     if own_profiles:

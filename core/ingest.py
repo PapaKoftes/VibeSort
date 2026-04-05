@@ -6,6 +6,7 @@ flat list of track dicts plus metadata about origin.
 """
 
 import time
+import logging
 import spotipy
 
 
@@ -66,10 +67,23 @@ def top_artists(sp: spotipy.Spotify) -> list[dict]:
     return artists
 
 
-def followed_artist_tracks(sp: spotipy.Spotify, n: int = 3) -> list[dict]:
+def followed_artist_tracks(
+    sp: spotipy.Spotify,
+    n: int = 3,
+    market: str | None = None,
+) -> list[dict]:
+    """
+    Fetch top-N tracks from each followed artist.
+
+    market: the user's own Spotify country code (e.g. "DE", "FR").
+            Using the user's actual market avoids 403s from market-restricted
+            content.  Defaults to None which lets Spotify use the token's
+            implicit market.  Never hardcode "US" — that breaks for every
+            non-US account and causes 403s in Dev Mode.
+    """
     followed, after = [], None
     while True:
-        kw = {"limit": 50, "type": "artist"}
+        kw = {"limit": 50}
         if after:
             kw["after"] = after
         data = sp.current_user_followed_artists(**kw).get("artists", {})
@@ -82,35 +96,86 @@ def followed_artist_tracks(sp: spotipy.Spotify, n: int = 3) -> list[dict]:
             break
         time.sleep(0.08)
 
+    # Suppress spotipy's HTTP-level 403 log spam: artist/top-tracks is
+    # blocked in Dev Mode regardless of market — the exception is already
+    # caught below so the output is pure noise.
+    _sp_log = logging.getLogger("spotipy.client")
+    _prev_level = _sp_log.level
+    _sp_log.setLevel(logging.CRITICAL)
+
     tracks, seen = [], set()
+    blocked_count = 0
     for artist in followed:
         try:
-            for t in sp.artist_top_tracks(artist["id"], country="US")["tracks"][:n]:
-                if t["uri"] not in seen:
+            # Use the user's own market; if none provided Spotify picks from token
+            kw_tt = {}
+            if market:
+                kw_tt["country"] = market
+            result = sp.artist_top_tracks(artist["id"], **kw_tt)
+            for t in (result.get("tracks") or [])[:n]:
+                if t.get("uri") and t["uri"] not in seen:
                     seen.add(t["uri"])
                     tracks.append(t)
+        except spotipy.SpotifyException as exc:
+            if exc.http_status == 403:
+                blocked_count += 1
+                if blocked_count >= 5:
+                    # Endpoint is universally blocked in this session — bail out
+                    break
+            # else: other error, skip this artist silently
         except Exception:
             pass
         time.sleep(0.05)
-    print(f"  followed artists     {len(tracks)} tracks from {len(followed)} artists")
+
+    _sp_log.setLevel(_prev_level)
+
+    if blocked_count >= 5:
+        print(f"  followed artists     [blocked by Spotify Dev Mode — endpoint restricted]")
+    else:
+        print(f"  followed artists     {len(tracks)} tracks from {len(followed)} artists")
     return tracks
 
 
 def saved_playlist_tracks(sp: spotipy.Spotify) -> list[dict]:
+    # In Spotify Dev Mode, playlist_items returns 403 for playlists owned by
+    # users not registered in the app.  Only read playlists the current user
+    # actually OWNS — followed/saved playlists from other users will 403.
+    try:
+        user_id = sp.current_user()["id"]
+    except Exception:
+        user_id = None
+
     playlists = _paginate(sp.current_user_playlists)
+
+    # Filter to user-owned playlists only (avoids mass 403 spam in Dev Mode)
+    if user_id:
+        owned = [pl for pl in playlists if pl.get("owner", {}).get("id") == user_id]
+    else:
+        owned = playlists  # fallback: try all (will 403 on others' playlists)
+
     tracks, seen = [], set()
-    for pl in playlists:
+    consec_403 = 0
+    for pl in owned:
         try:
             items = _paginate(sp.playlist_items, pl["id"], additional_types=["track"])
+            consec_403 = 0
             for item in items:
                 t = item.get("track")
                 if t and t.get("uri") and t["uri"] not in seen:
                     seen.add(t["uri"])
                     tracks.append(t)
-        except Exception:
-            pass
+        except Exception as e:
+            err_str = str(e)
+            if "403" in err_str or "Forbidden" in err_str:
+                consec_403 += 1
+                if consec_403 >= 3:
+                    # Spotify is blocking all playlist reads — bail out early
+                    print(f"\n  [warn] playlist_items blocked (Dev Mode) — skipping remaining")
+                    break
+            # else ignore other errors
         time.sleep(0.08)
-    print(f"  saved playlists      {len(tracks)} tracks from {len(playlists)} playlists")
+
+    print(f"  saved playlists      {len(tracks)} tracks from {len(owned)} owned ({len(playlists)} total)")
     return tracks
 
 
@@ -144,6 +209,16 @@ def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict
     print("\n  Collecting your library:")
     all_raw: list[dict] = []
 
+    # Fetch user profile once to get their market/country.
+    # This is used for country-specific endpoints (artist top-tracks).
+    # Using the user's own market avoids cross-region 403s.
+    _user_market: str | None = None
+    try:
+        _me = sp.current_user()
+        _user_market = (_me.get("country") or "").strip() or None
+    except Exception:
+        pass
+
     liked = liked_songs(sp)
     all_raw.extend(liked)
 
@@ -153,7 +228,13 @@ def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict
     t_artists = top_artists(sp)
 
     if getattr(cfg, "INCLUDE_FOLLOWED_ARTISTS", True):
-        all_raw.extend(followed_artist_tracks(sp, getattr(cfg, "FOLLOWED_ARTIST_TOP_N", 3)))
+        all_raw.extend(
+            followed_artist_tracks(
+                sp,
+                getattr(cfg, "FOLLOWED_ARTIST_TOP_N", 3),
+                market=_user_market,
+            )
+        )
 
     if getattr(cfg, "INCLUDE_SAVED_PLAYLISTS", True):
         all_raw.extend(saved_playlist_tracks(sp))

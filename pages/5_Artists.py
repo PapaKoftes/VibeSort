@@ -49,11 +49,7 @@ with st.sidebar:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _top_genres_for_artist(artist_name: str) -> list[str]:
-    """Get top macro genres for an artist from the artist_genres map."""
-    for raw_genres in artist_genres.values():
-        # artist_genres is {artist_id: [genre_str, ...]}; we need to look up by name
-        pass
-    # Collect from profiles
+    """Get top macro genres for an artist by aggregating from track profiles."""
     counts = {}
     for uri in artist_map.get(artist_name, []):
         p = profiles.get(uri, {})

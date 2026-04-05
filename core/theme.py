@@ -11,6 +11,7 @@ import streamlit as st
 
 _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cinzel:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
 
 /* ── Tokens ──────────────────────────────────────────────────────────────── */
 :root {
@@ -47,11 +48,39 @@ _CSS = """
 }
 
 /* ── Global text + font ──────────────────────────────────────────────────── */
-html, body, p, span, div, li, td, th, label,
+/* Do not force monospace on bare `span` — it breaks Streamlit Material icon ligatures
+   (shows "keyboard_double_arrow_right" text on sidebar / expanders). */
+html, body, p, div, li, td, th, label,
 .stMarkdown, [data-testid="stText"],
 [data-testid="stMarkdownContainer"] {
   font-family: 'JetBrains Mono', 'Courier New', monospace !important;
   color: var(--text) !important;
+}
+[data-testid="stMarkdownContainer"] span,
+.stMarkdown span {
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+/* Streamlit chrome: keep default UI font + Material Symbols for icons */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] *,
+[data-testid="stSidebarNav"] a,
+[data-testid="stSidebarNav"] span,
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary *,
+button[kind="header"],
+button[kind="headerNoPadding"],
+button[kind="headerNoPadding"] * {
+  font-family: "Source Sans Pro", sans-serif !important;
+}
+span.material-symbols-outlined,
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  font-size: 1.25rem !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
 }
 
 /* ── Headings — Cinzel + accent glow ─────────────────────────────────────── */
@@ -228,6 +257,24 @@ body::after {
   z-index: 9998;
 }
 
+/* ── Music glyph background layer ───────────────────────────────────────── */
+/* Injected via JS below; CSS controls the glyph appearance */
+.vs-glyph {
+  position: fixed;
+  font-size: 1.4rem;
+  color: rgba(255,255,255,0.07);
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+  animation: glyph-breathe var(--dur, 5s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  will-change: opacity;
+}
+@keyframes glyph-breathe {
+  0%,100% { opacity: 0.03; transform: scale(1);   }
+  50%      { opacity: 0.13; transform: scale(1.08); }
+}
+
 /* ── Sidebar nav ─────────────────────────────────────────────────────────── */
 [data-testid="stSidebarNav"] a {
   font-family: 'JetBrains Mono', monospace !important;
@@ -253,6 +300,93 @@ body::after {
 """
 
 
+_GLYPHS_JS = """
+<script>
+(function() {
+  if (document.getElementById('vs-glyphs')) return;
+  var GLYPHS = [
+    '♩','♪','♫','♬','𝄞','𝄢','𝄡','𝄠','𝄟','𝄻','𝄼','𝄽','𝄾','𝄿',
+    '𝅗𝅥','𝅘𝅥𝅮','𝅘𝅥𝅯','𝅘𝅥𝅰','𝅘𝅥𝅱','𝅘𝅥𝅲',
+    '🎵','🎶','🎼','🎹','🎸','🥁','🎷','🎺','🎻','🪗','🪘','🎤',
+  ];
+  var layer = document.createElement('div');
+  layer.id = 'vs-glyphs';
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden';
+  var count = 28;
+  for (var i = 0; i < count; i++) {
+    var el = document.createElement('span');
+    el.className = 'vs-glyph';
+    el.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    var x = Math.random() * 98;
+    var y = Math.random() * 95;
+    var dur = (4 + Math.random() * 6).toFixed(1);
+    var delay = (Math.random() * -8).toFixed(1);
+    var size = (1.0 + Math.random() * 1.4).toFixed(2);
+    el.style.cssText =
+      'left:' + x + '%;top:' + y + '%;' +
+      'font-size:' + size + 'rem;' +
+      '--dur:' + dur + 's;--delay:' + delay + 's;';
+    layer.appendChild(el);
+  }
+  // Insert after body renders — retry until stApp exists
+  var tries = 0;
+  function tryInsert() {
+    var app = document.querySelector('[data-testid="stAppViewContainer"]') || document.body;
+    if (app) { app.insertBefore(layer, app.firstChild); }
+    else if (++tries < 20) { setTimeout(tryInsert, 300); }
+  }
+  tryInsert();
+})();
+</script>
+"""
+
+
 def inject():
     """Inject Vibesort design system. Call once at the top of each page."""
     st.markdown(f"<style>{_CSS}</style>", unsafe_allow_html=True)
+    st.markdown(_GLYPHS_JS, unsafe_allow_html=True)
+
+
+def render_scan_quality_strip(vibesort: dict, title: str = "Scan Data Quality") -> None:
+    """
+    Compact signal/provenance strip for pages that depend on scan quality.
+    """
+    flags = (vibesort or {}).get("scan_flags", {})
+    meta = (vibesort or {}).get("scan_meta", {})
+    weights = flags.get("weights", (0.0, 0.0, 0.0, 0.0))
+    corpus_mode = meta.get("corpus_mode", "full_library")
+    corpus_label = "Liked songs only" if corpus_mode == "liked_only" else "Full library"
+
+    def _badge(ok: bool, label: str) -> str:
+        return f"{'✅' if ok else '⚠️'} {label}"
+
+    import config as _cfg
+
+    _lb_token = bool(getattr(_cfg, "LISTENBRAINZ_TOKEN", "").strip())
+    _lb_user = bool(getattr(_cfg, "LISTENBRAINZ_USERNAME", "").strip())
+    _lb_configured = _lb_token and _lb_user
+    _lb_matched = bool(flags.get("has_listenbrainz", False))
+    if _lb_matched:
+        _lb_line = "✅ listenbrainz (listening history matched library tracks)"
+    elif _lb_configured:
+        _lb_line = "ℹ️ listenbrainz (token set — no listens overlapped this library; boosts inactive)"
+    else:
+        _lb_line = "⚠️ listenbrainz (add LISTENBRAINZ_TOKEN + USERNAME in .env)"
+
+    with st.container(border=True):
+        st.markdown(f"#### {title}")
+        st.caption(
+            " · ".join(
+                [
+                    _badge(flags.get("has_tags", False), "tags"),
+                    _badge(flags.get("has_genres", False), "genres"),
+                    _badge(flags.get("has_lyrics", False), "lyrics"),
+                    _lb_line,
+                    _badge(flags.get("has_audio", False), "audio"),
+                ]
+            )
+        )
+        st.caption(
+            f"Corpus: {corpus_label} | "
+            f"Weights A/T/S/G: {weights[0]:.2f}/{weights[1]:.2f}/{weights[2]:.2f}/{weights[3]:.2f}"
+        )

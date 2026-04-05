@@ -26,8 +26,8 @@ except ImportError:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import config
-from core import ingest, enrich, genre as genre_mod, playlist_mining, profile as profile_mod
-from core import scorer, cohesion as cohesion_mod, recommend, builder
+from core import cohesion as cohesion_mod, recommend, builder
+from core.scan_pipeline import execute_library_scan
 from core import history_parser
 from core.mood_graph import all_moods, fuzzy_match, related_moods, cosine_similarity
 
@@ -107,94 +107,42 @@ def connect() -> tuple[spotipy.Spotify, dict]:
 # ── Session state (loaded once, reused across menu) ───────────────────────────
 
 _session: dict = {}
+_session_mode: str | None = None
 
 
-def load_session(sp: spotipy.Spotify, user_id: str) -> dict:
-    if _session:
+def load_session(sp: spotipy.Spotify, user_id: str, corpus_mode: str = "full_library") -> dict:
+    global _session, _session_mode
+    if _session and _session_mode == corpus_mode:
         return _session
 
     section("SCANNING YOUR LIBRARY")
 
-    # Step 1: Ingest
-    all_tracks, top_tracks_list, top_artists_list = ingest.collect(sp, config)
+    def step(msg: str, pct: int):
+        print(f"\r  [{pct:3d}%] {msg:<55}", end="", flush=True)
+        if pct >= 100:
+            print()
 
-    # Step 2: Enrich
-    artist_genres_map, audio_features_map = enrich.gather(sp, all_tracks)
-
-    # Step 3: Playlist mining (the core signal)
-    moods = all_moods()
-    user_uris = {t["uri"] for t in all_tracks if t.get("uri")}
-    print("  Playlist mining       (first run ~30s, then cached)")
-    mining = playlist_mining.mine(
-        sp, user_uris, moods,
-        playlists_per_seed=config.PLAYLISTS_PER_SEED,
-        force_refresh=config.MINING_FORCE_REFRESH,
+    payload, _lyrics = execute_library_scan(
+        sp,
+        user_id,
+        config,
+        step,
+        strictness=3,
+        playlist_min_size=25,
+        playlist_expansion=True,
+        allow_mvp_fallback=config.ALLOW_MVP_FALLBACK,
+        mvp_min_playlist_size=config.MVP_MIN_PLAYLIST_SIZE,
+        mvp_score_floor=config.MVP_SCORE_FLOOR,
+        corpus_mode=corpus_mode,
+        lyric_weight=1.16,
+        max_tracks_cap=config.MAX_TRACKS_PER_PLAYLIST,
     )
-    track_tags = mining.get("track_tags", {})
-
-    # Step 4: Build track profiles
-    print("  Building track profiles...", end="", flush=True)
-    profiles = profile_mod.build_all(all_tracks, artist_genres_map, audio_features_map, track_tags)
-    print(f"\r  Track profiles        {len(profiles)} built")
-
-    # Step 5: User taste vectors
-    user_mean = profile_mod.user_audio_mean(profiles)
-
-    # Step 6: Genre/era/artist breakdowns
-    genre_map  = genre_mod.library_genre_breakdown(all_tracks, artist_genres_map)
-    era_map    = genre_mod.era_breakdown(all_tracks)
-    artist_map = genre_mod.artist_breakdown(all_tracks, config.MIN_SONGS_PER_ARTIST)
-
-    # Step 7: Score every mood against the library
-    print("  Scoring moods against library...", end="", flush=True)
-    mood_results: dict[str, dict] = {}
-    for mood_name in moods:
-        ranked = scorer.rank_tracks(
-            profiles, mood_name, user_mean,
-            min_score=0.22,
-            weights=(config.W_AUDIO, config.W_TAGS, config.W_GENRE),
-        )
-        if not ranked:
-            continue
-        top_uris = [u for u, _ in ranked[:config.MAX_TRACKS_PER_PLAYLIST * 2]]
-        filtered, c_score = cohesion_mod.top_n_by_score(
-            ranked, profiles,
-            n=config.MAX_TRACKS_PER_PLAYLIST,
-            cohesion_threshold=config.COHESION_THRESHOLD,
-            min_tracks=5,
-        )
-        if len(filtered) >= 5:
-            mood_results[mood_name] = {
-                "uris":     filtered,
-                "cohesion": c_score,
-                "count":    len(filtered),
-            }
-    print(f"\r  Moods discovered      {len(mood_results)} vibes found in your library")
-
-    # Step 8: Full history if available
-    history_entries = history_parser.load("data")
-    history_stats = history_parser.stats(history_entries) if history_entries else {}
-    history_uris  = history_parser.sorted_uris(history_entries) if history_entries else []
-
-    _session.update({
-        "sp":               sp,
-        "user_id":          user_id,
-        "all_tracks":       all_tracks,
-        "top_tracks":       top_tracks_list,
-        "top_artists":      top_artists_list,
-        "profiles":         profiles,
-        "user_mean":        user_mean,
-        "artist_genres":    artist_genres_map,
-        "audio_features":   audio_features_map,
-        "track_tags":       track_tags,
-        "genre_map":        genre_map,
-        "era_map":          era_map,
-        "artist_map":       artist_map,
-        "mood_results":     mood_results,
-        "history_stats":    history_stats,
-        "history_uris":     history_uris,
-        "existing_uris":    user_uris,
-    })
+    _session = payload
+    _session_mode = corpus_mode
+    print(
+        f"\r  Moods discovered      {len(_session.get('mood_results', {}))} "
+        f"vibes found in your library{' ' * 20}"
+    )
     return _session
 
 
@@ -252,7 +200,7 @@ def action_create_vibe(data: dict, mood_name: str, info: dict):
     rec_uris: list[str] = []
     if confirm(f"  Add similar songs (recommendations)?", default=True):
         print("  Fetching recommendations...", end="", flush=True)
-        rec_uris = recommend.filtered_recommendations(
+        rec_uris, _fb = recommend.filtered_recommendations(
             sp=data["sp"],
             seed_uris=info["uris"],
             profiles=data["profiles"],
@@ -260,7 +208,8 @@ def action_create_vibe(data: dict, mood_name: str, info: dict):
             mood_name=mood_name,
             n=config.RECS_PER_PLAYLIST,
         )
-        print(f"\r  Recommendations: {len(rec_uris)} similar songs found")
+        _fb_note = " (fallback)" if _fb else ""
+        print(f"\r  Recommendations: {len(rec_uris)} similar songs found{_fb_note}")
 
     print("  Creating playlist...", end="", flush=True)
     url = builder.build_mood_playlist(
@@ -271,6 +220,8 @@ def action_create_vibe(data: dict, mood_name: str, info: dict):
         cohesion=info["cohesion"],
         rec_uris=rec_uris if rec_uris else None,
         prefix=config.PLAYLIST_PREFIX,
+        profiles=data["profiles"],
+        top_tags=info.get("top_tags"),
     )
     print(f"\r  Created: {url}")
 
@@ -335,14 +286,20 @@ def action_create_all_vibes(data: dict):
     for mood_name, info in sorted_moods:
         rec_uris: list[str] = []
         if want_recs:
-            rec_uris = recommend.filtered_recommendations(
+            rec_uris, _ = recommend.filtered_recommendations(
                 data["sp"], info["uris"], data["profiles"],
                 data["existing_uris"], mood_name, n=config.RECS_PER_PLAYLIST,
             )
         url = builder.build_mood_playlist(
-            data["sp"], data["user_id"], mood_name,
-            info["uris"], info["cohesion"],
-            rec_uris or None, config.PLAYLIST_PREFIX,
+            data["sp"],
+            data["user_id"],
+            mood_name,
+            info["uris"],
+            info["cohesion"],
+            rec_uris or None,
+            config.PLAYLIST_PREFIX,
+            profiles=data["profiles"],
+            top_tags=info.get("top_tags"),
         )
         print(f"  {mood_name:<25}  {url}")
 
@@ -367,7 +324,7 @@ def action_genre_playlists(data: dict):
     for g, uris in sorted(valid.items(), key=lambda x: -len(x[1])):
         rec_uris = []
         if want_recs:
-            rec_uris = recommend.filtered_recommendations(
+            rec_uris, _ = recommend.filtered_recommendations(
                 data["sp"], uris, data["profiles"], data["existing_uris"],
                 mood_name=None, n=config.RECS_PER_PLAYLIST,
             )
@@ -444,7 +401,7 @@ def action_heavy_rotation(data: dict):
     want_recs = confirm("  Add recommendations?", default=True)
     rec_uris = []
     if want_recs:
-        rec_uris = recommend.filtered_recommendations(
+        rec_uris, _ = recommend.filtered_recommendations(
             data["sp"], uris, data["profiles"], data["existing_uris"],
             mood_name=None, n=config.RECS_PER_PLAYLIST,
         )
@@ -560,8 +517,15 @@ def main():
     name = me.get("display_name") or me["id"]
     print(f"\n  Logged in as: {name}  ({me['id']})")
 
+    _mode_raw = ask(
+        "Scan mode: [1] full library, [2] liked songs only",
+        default="1",
+    ).strip().lower()
+    corpus_mode = "liked_only" if _mode_raw in ("2", "liked", "liked_only", "likes") else "full_library"
+    print(f"  Using corpus mode: {'Liked songs only' if corpus_mode == 'liked_only' else 'Full library'}")
+
     section("LOADING YOUR LIBRARY")
-    data = load_session(sp, me["id"])
+    data = load_session(sp, me["id"], corpus_mode=corpus_mode)
 
     while True:
         section("MAIN MENU")

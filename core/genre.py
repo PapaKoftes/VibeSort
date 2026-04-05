@@ -68,13 +68,58 @@ def _load_rules() -> list[tuple[str, str]]:
     return _RULES
 
 
+def _macro_fallback(g: str) -> str | None:
+    """
+    Last-resort heuristics when no macro_genres.json rule matched.
+    Reduces everything landing in Other when Spotify uses uncommon genre strings.
+    """
+    if any(x in g for x in ("hip hop", "hip-hop", "hiphop", "rap", "trap", "drill", "grime", "boom bap", "cloud rap", "plugg")):
+        return "Southern Rap"
+    if any(x in g for x in ("edm", "house", "techno", "trance", "dubstep", "dnb", "drum and bass", "electronic", "electronica", "idm", "breakbeat", "garage", "jungle")):
+        return "Electronic / House"
+    if any(x in g for x in ("metal", "death", "black metal", "thrash", "doom", "core")):
+        return "Metal"
+    if any(x in g for x in ("punk", "hardcore", "screamo", "post-hardcore", "post hardcore")):
+        return "Punk / Hardcore"
+    if any(x in g for x in ("indie", "alternative", "alt-", "slowcore", "bedroom")):
+        return "Indie / Alternative"
+    if any(x in g for x in ("r&b", "rnb", "neo soul", "soul", "funk")):
+        return "R&B / Soul"
+    if any(x in g for x in ("pop", "singer", "vocal", "boy band", "girl group", "dance-pop")):
+        return "Pop"
+    if any(x in g for x in ("rock", "grunge", "britpop", "arena")):
+        return "Rock"
+    if any(x in g for x in ("jazz", "swing", "bebop", "fusion")):
+        return "Jazz / Blues"
+    if any(x in g for x in ("folk", "americana", "bluegrass", "celtic")):
+        return "Folk / Americana"
+    if any(x in g for x in ("country", "honky", "nashville")):
+        return "Country"
+    if any(x in g for x in ("latin", "reggaeton", "salsa", "bachata", "cumbia", "urbano")):
+        return "Latin / Reggaeton"
+    if any(x in g for x in ("afro", "amapiano", "afrobeats")):
+        return "Afrobeats / Amapiano"
+    if any(x in g for x in ("reggae", "dancehall", "ska", "dub")):
+        return "Caribbean / Reggae"
+    if any(x in g for x in ("ambient", "soundtrack", "score", "experimental")):
+        return "Ambient / Experimental"
+    if any(x in g for x in ("classical", "orchestral", "opera", "baroque", "chamber")):
+        return "Classical / Orchestral"
+    if any(x in g for x in ("k-pop", "kpop", "j-pop", "jpop", "anime", "city pop")):
+        return "K-Pop / J-Pop"
+    if any(x in g for x in ("world", "traditional", "regional", "african", "middle eastern", "indian", "asian")):
+        return "World / Regional"
+    return None
+
+
 def to_macro(genre: str) -> str:
     """Map a single Spotify genre string to its macro genre."""
     g = genre.lower()
     for pattern, macro in _load_rules():
         if pattern in g:
             return macro
-    return "Other"
+    fb = _macro_fallback(g)
+    return fb if fb else "Other"
 
 
 def track_macro_genres(track: dict, artist_genres: dict[str, list[str]]) -> list[str]:

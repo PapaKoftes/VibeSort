@@ -7,7 +7,7 @@ Two auth modes:
   OAuth mode — User provides their own SPOTIFY_CLIENT_ID + SECRET in .env.
                Fallback / power-user option.
 """
-import os, sys, time
+import os, sys, time, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
@@ -82,7 +82,10 @@ if st.session_state.get("spotify_token"):
     if st.button("Disconnect", use_container_width=True):
         for k in ["spotify_token", "sp", "me", "vibesort", "pkce_token"]:
             st.session_state.pop(k, None)
-        for f in [".vibesort_cache", ".vibesort_pkce_state"]:
+        if USE_PKCE:
+            from core.pkce import clear_token
+            clear_token()
+        for f in [".vibesort_pkce_state"]:
             try:
                 if os.path.exists(f):
                     os.remove(f)
@@ -93,17 +96,28 @@ if st.session_state.get("spotify_token"):
 
 
 # ── Handle OAuth callback ?code= ──────────────────────────────────────────────
-code = st.query_params.get("code")
+# Code arrives either directly in query params (user bookmarked /1_Connect)
+# or forwarded via session_state from app.py (normal flow via root redirect).
+code = (
+    st.query_params.get("code")
+    or st.session_state.pop("_pending_code", None)
+)
 if code:
     with st.spinner("Connecting..."):
         try:
             import spotipy
 
             if USE_PKCE:
-                from core.pkce import exchange_code, make_spotify
-                token = exchange_code(code, SHARED_ID, REDIRECT_URI)
+                from core.pkce import exchange_code, make_spotify, save_token
+                returned_state = (
+                    st.query_params.get("state")
+                    or st.session_state.pop("_pending_state", "")
+                )
+                token = exchange_code(code, SHARED_ID, REDIRECT_URI, returned_state)
                 sp, token = make_spotify(token, SHARED_ID)
+                save_token(token)
                 st.session_state["pkce_token"] = token
+                st.session_state.pop("pkce_auth_url", None)  # force fresh URL next time
 
             else:
                 from spotipy.oauth2 import SpotifyOAuth
@@ -126,14 +140,18 @@ if code:
 
 # ── Check for cached/valid existing token ─────────────────────────────────────
 if USE_PKCE:
-    from core.pkce import make_spotify, refresh_access_token
-    cached = st.session_state.get("pkce_token")
-    if cached and cached.get("expires_at", 0) - time.time() > 60:
+    from core.pkce import make_spotify, refresh_access_token, load_token, save_token
+    # Session first, then disk cache (survives restarts)
+    cached = st.session_state.get("pkce_token") or load_token()
+    if cached:
         try:
             import spotipy
-            sp = spotipy.Spotify(auth=cached["access_token"])
+            sp, refreshed = make_spotify(cached, SHARED_ID)
+            if refreshed is not cached:
+                save_token(refreshed)
+                st.session_state["pkce_token"] = refreshed
             me = sp.current_user()
-            st.session_state["spotify_token"] = cached
+            st.session_state["spotify_token"] = refreshed
             st.session_state["sp"]            = sp
             st.session_state["me"]            = me
             st.rerun()
@@ -172,15 +190,41 @@ if USE_PKCE or USE_OAUTH:
 
     if USE_PKCE:
         from core.pkce import generate_auth_url
-        auth_url = generate_auth_url(SHARED_ID, REDIRECT_URI, SCOPE)
+        # Cache auth URL in session_state — generate_auth_url() writes the PKCE
+        # verifier to disk. If we call it on every re-render we overwrite the
+        # state file between click and callback, breaking the code exchange.
+        if "pkce_auth_url" not in st.session_state:
+            auth_url = generate_auth_url(SHARED_ID, REDIRECT_URI, SCOPE)
+            st.session_state["pkce_auth_url"] = auth_url
+        else:
+            auth_url = st.session_state["pkce_auth_url"]
     else:
         auth_url = _make_oauth(USER_ID, USER_SEC).get_authorize_url()
 
-    st.link_button(
-        "Connect to Spotify",
-        auth_url,
-        use_container_width=True,
-        type="primary",
+    # target="_self" so auth happens in the same tab/session —
+    # a new tab would create a separate Streamlit session and the token
+    # would never reach this page.
+    st.markdown(
+        f"""
+        <a href="{auth_url}" target="_self" style="
+            display: block;
+            width: 100%;
+            padding: 0.65rem 1rem;
+            text-align: center;
+            background: #c0006a;
+            color: #ffffff;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            letter-spacing: 0.04em;
+            border: 1px solid #8b0000;
+            box-shadow: 0 0 12px #c0006a44;
+            transition: box-shadow 0.2s;
+        ">Connect to Spotify</a>
+        """,
+        unsafe_allow_html=True,
     )
     st.caption(
         "You'll be taken to Spotify to authorize, then returned here automatically."
@@ -216,3 +260,30 @@ else:
     st.caption(f"File location: `{env_path}`")
     st.write("")
     st.info("Save `.env` then restart Vibesort — this page will update automatically.")
+
+st.divider()
+with st.expander("Sharing with friends & going beyond the Spotify “test user” cap"):
+    st.markdown(
+        """
+**Today (typical Spotify app in Development Mode)**  
+You can add a small set of **test users** in the Spotify Developer Dashboard. Everyone else
+will get blocked until they are on that list — fine for a closed beta.
+
+**Unlimited listeners (production-style)**  
+Spotify requires you to **submit the app for review** and move toward **production /
+Extended Quota** on their terms. There is no legal shortcut around that for the official
+Web API: if you want strangers to log in without being manually whitelisted, you need an
+approved integration.
+
+**Practical paths**
+- **Friends run Vibesort locally** — each person uses their own machine (or their own
+  Spotify app + `.env`) so your quota is not shared.
+- **You host the Streamlit app** — still uses *your* Spotify client; scale only after
+  Spotify approves broader access.
+- **Last.fm / ListenBrainz / Genius** stay **per-user API keys or tokens in `.env`** for now;
+  full “Sign in with Last.fm” style OAuth can be added later — Musixmatch is primarily
+  API-key based for lyrics metadata.
+
+Built-in sources (Deezer public search, lrclib, etc.) need no per-user login.
+        """
+    )

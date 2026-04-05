@@ -16,7 +16,8 @@ import os
 import time
 from typing import Optional
 
-CACHE_PATH = os.path.join("outputs", ".mb_cache.json")
+_ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE_PATH = os.path.join(_ROOT, "outputs", ".mb_cache.json")
 _cache: dict | None = None
 _last_request_time: float = 0.0
 MB_USER_AGENT = "Vibesort/1.0 (https://github.com/PapaKoftes/VibeSort)"
@@ -26,7 +27,7 @@ def _load_cache() -> dict:
     global _cache
     if _cache is not None:
         return _cache
-    os.makedirs("outputs", exist_ok=True)
+    os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
     if os.path.exists(CACHE_PATH):
         try:
             with open(CACHE_PATH, "r", encoding="utf-8") as f:
@@ -224,6 +225,54 @@ def artist_tags(artist: str) -> dict[str, float]:
         return {}
 
 
+def recording_tags_by_isrc(isrc: str) -> dict[str, float]:
+    """
+    Fetch tags for a recording using its ISRC code.
+
+    ISRC-based lookup is more reliable than name/title search because it
+    identifies the exact recording rather than relying on fuzzy text matching.
+    Spotify includes ISRCs in track['external_ids']['isrc'].
+
+    Returns {tag: weight} or empty dict on failure / not found.
+    """
+    if not isrc:
+        return {}
+
+    isrc = isrc.upper().strip()
+    cache = _load_cache()
+    key = f"isrc|{isrc}"
+    if key in cache:
+        return cache[key]
+
+    if not _setup_mb():
+        return {}
+
+    import musicbrainzngs
+
+    try:
+        _rate_limit()
+        result = musicbrainzngs.get_recordings_by_isrc(isrc, includes=["tags"])
+        recordings = result.get("isrc", {}).get("recording-list", [])
+        if not recordings:
+            cache[key] = {}
+            _save_cache()
+            return {}
+
+        # Prefer recording with the most tags; fall back to first result
+        best = max(recordings, key=lambda r: len(r.get("tag-list", [])), default=recordings[0])
+        tags = best.get("tag-list", [])
+        weights = _tags_to_weights(tags)
+
+        cache[key] = weights
+        _save_cache()
+        return weights
+
+    except Exception:
+        cache[key] = {}
+        _save_cache()
+        return {}
+
+
 def enrich_tracks(tracks: list[dict], max_tracks: int = 200) -> dict[str, dict[str, float]]:
     """
     Enrich a list of track dicts with MusicBrainz tags.
@@ -252,12 +301,31 @@ def enrich_tracks(tracks: list[dict], max_tracks: int = 200) -> dict[str, dict[s
         if not name or not artist_name or not uri:
             continue
 
+        # Check name-based cache first (covers both ISRC and name lookups)
         cache = _load_cache()
         key = _cache_key(artist_name, name)
         if key in cache:
             result[uri] = cache[key]
             continue
 
+        # Try ISRC lookup first — more reliable than fuzzy name matching
+        isrc = (track.get("external_ids") or {}).get("isrc", "")
+        if isrc:
+            isrc_key = f"isrc|{isrc.upper()}"
+            if isrc_key in cache:
+                tags = cache[isrc_key]
+            else:
+                tags = recording_tags_by_isrc(isrc)
+            if tags:
+                # Cross-cache under name key too so future name lookups hit cache
+                cache = _load_cache()
+                cache[key] = tags
+                _save_cache()
+                result[uri] = tags
+                processed += 1
+                continue
+
+        # Fall back to name/title search
         tags = recording_tags(artist_name, name)
         result[uri] = tags
         processed += 1
