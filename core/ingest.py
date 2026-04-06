@@ -5,9 +5,23 @@ Pulls from every configured source and returns a deduplicated
 flat list of track dicts plus metadata about origin.
 """
 
+import sys
 import time
 import logging
 import spotipy
+
+
+def _print(*args, **kwargs) -> None:
+    """Safe print that survives non-TTY stdout (Streamlit, pipes, Windows)."""
+    try:
+        print(*args, **kwargs)
+    except (OSError, UnicodeEncodeError):
+        try:
+            kwargs.pop("end", None)
+            kwargs.pop("flush", None)
+            print(*args, file=sys.stderr)
+        except Exception:
+            pass
 
 
 def _paginate(fn, *args, limit=50, **kwargs) -> list:
@@ -38,10 +52,10 @@ def _normalize(items: list) -> list[dict]:
 
 
 def liked_songs(sp: spotipy.Spotify) -> list[dict]:
-    print("  liked songs...", end="", flush=True)
+    _print("  liked songs...")
     raw = _paginate(sp.current_user_saved_tracks)
     tracks = _normalize(raw)
-    print(f"\r  liked songs          {len(tracks)}")
+    _print(f"  liked songs          {len(tracks)}")
     return tracks
 
 
@@ -52,7 +66,7 @@ def top_tracks(sp: spotipy.Spotify) -> list[dict]:
             if t["uri"] not in seen:
                 seen.add(t["uri"])
                 tracks.append(t)
-    print(f"  top tracks           {len(tracks)}")
+    _print(f"  top tracks           {len(tracks)}")
     return tracks
 
 
@@ -63,7 +77,7 @@ def top_artists(sp: spotipy.Spotify) -> list[dict]:
             if a["id"] not in seen:
                 seen.add(a["id"])
                 artists.append(a)
-    print(f"  top artists          {len(artists)}")
+    _print(f"  top artists          {len(artists)}")
     return artists
 
 
@@ -130,9 +144,9 @@ def followed_artist_tracks(
     _sp_log.setLevel(_prev_level)
 
     if blocked_count >= 5:
-        print(f"  followed artists     [blocked by Spotify Dev Mode — endpoint restricted]")
+        _print(f"  followed artists     [blocked by Spotify Dev Mode — endpoint restricted]")
     else:
-        print(f"  followed artists     {len(tracks)} tracks from {len(followed)} artists")
+        _print(f"  followed artists     {len(tracks)} tracks from {len(followed)} artists")
     return tracks
 
 
@@ -170,12 +184,12 @@ def saved_playlist_tracks(sp: spotipy.Spotify) -> list[dict]:
                 consec_403 += 1
                 if consec_403 >= 3:
                     # Spotify is blocking all playlist reads — bail out early
-                    print(f"\n  [warn] playlist_items blocked (Dev Mode) — skipping remaining")
+                    _print(f"  [warn] playlist_items blocked (Dev Mode) — skipping remaining")
                     break
             # else ignore other errors
         time.sleep(0.08)
 
-    print(f"  saved playlists      {len(tracks)} tracks from {len(owned)} owned ({len(playlists)} total)")
+    _print(f"  saved playlists      {len(tracks)} tracks from {len(owned)} owned ({len(playlists)} total)")
     return tracks
 
 
@@ -192,9 +206,9 @@ def friend_playlist_tracks(sp: spotipy.Spotify, urls: list[str]) -> list[dict]:
                     seen.add(t["uri"])
                     tracks.append(t)
                     count += 1
-            print(f"  friend playlist      {count} tracks (...{pid[-8:]})")
+            _print(f"  friend playlist      {count} tracks (...{pid[-8:]})")
         except Exception as e:
-            print(f"  friend playlist      ERROR: {e}")
+            _print(f"  friend playlist      ERROR: {e}")
         time.sleep(0.1)
     return tracks
 
@@ -206,7 +220,7 @@ def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict
       top_tracks   — just the user's top-played tracks
       top_artists  — user's top artists
     """
-    print("\n  Collecting your library:")
+    _print("\n  Collecting your library:")
     all_raw: list[dict] = []
 
     # Fetch user profile once to get their market/country.
@@ -251,5 +265,5 @@ def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict
             seen.add(t["uri"])
             all_tracks.append(t)
 
-    print(f"\n  Total unique tracks: {len(all_tracks)}")
+    _print(f"\n  Total unique tracks: {len(all_tracks)}")
     return all_tracks, t_tracks, t_artists

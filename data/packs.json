@@ -405,7 +405,8 @@
         "no_feelings",
         "ice_veins",
         "threat_level",
-        "dangerous_aura"
+        "dangerous_aura",
+        "lyr_jealousy"
       ],
       "preferred_macro_genres": [
         "East Coast Rap",
@@ -484,7 +485,8 @@
         "carefree",
         "bright_day",
         "serene_happiness",
-        "simple_joy"
+        "simple_joy",
+        "lyr_summer"
       ],
       "preferred_macro_genres": [
         "Pop",
@@ -710,7 +712,8 @@
         "close_dancing",
         "swaying_together",
         "4am_sunrise",
-        "last_ones_standing"
+        "last_ones_standing",
+        "lyr_friends"
       ],
       "preferred_macro_genres": [
         "R&B / Soul",
@@ -864,7 +867,8 @@
         "first_light",
         "ritual",
         "intentional_morning",
-        "warm_mug"
+        "warm_mug",
+        "lyr_hope"
       ],
       "preferred_macro_genres": [
         "Folk / Americana",
@@ -1243,7 +1247,9 @@
         "festival_latin",
         "summer_heat",
         "waist_movement",
-        "night_vibes_global"
+        "night_vibes_global",
+        "lyr_summer",
+        "lyr_ocean"
       ],
       "preferred_macro_genres": [
         "Latin / Reggaeton",
@@ -1833,7 +1839,9 @@
         "wordplay",
         "cocky_confident",
         "on_top_winning",
-        "sauce_waving"
+        "sauce_waving",
+        "lyr_city",
+        "lyr_friends"
       ],
       "preferred_macro_genres": [
         "Southern Rap",
@@ -2297,7 +2305,8 @@
         "predatory_energy",
         "knife_cold",
         "road_life",
-        "gritty_street"
+        "gritty_street",
+        "lyr_city"
       ],
       "preferred_macro_genres": [
         "Midwest Rap",
@@ -2524,7 +2533,8 @@
         "cold_shoulder",
         "done_with_you",
         "goodbye_angry",
-        "unforgiving"
+        "unforgiving",
+        "lyr_jealousy"
       ],
       "preferred_macro_genres": [
         "Pop",
@@ -2675,7 +2685,8 @@
         "outlaw_country",
         "country_soul",
         "barn_dance",
-        "wide_open_sky"
+        "wide_open_sky",
+        "lyr_family"
       ],
       "preferred_macro_genres": [
         "Country",
@@ -2750,7 +2761,9 @@
         "holy_praise",
         "gospel_choir",
         "sunday_morning_praise",
-        "sanctified_soul"
+        "sanctified_soul",
+        "lyr_family",
+        "lyr_hope"
       ],
       "preferred_macro_genres": [
         "R&B / Soul",

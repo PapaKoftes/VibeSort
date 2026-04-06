@@ -18,8 +18,23 @@ import collections
 import json
 import logging
 import os
+import sys
 import time
 import spotipy
+
+
+def _print(*args, **kwargs) -> None:
+    """Safe print that survives non-TTY stdout (Streamlit, pipes, Windows)."""
+    try:
+        print(*args, **kwargs)
+    except (OSError, UnicodeEncodeError):
+        try:
+            kwargs.pop("end", None)
+            kwargs.pop("flush", None)
+            print(*args, file=sys.stderr)
+        except Exception:
+            pass
+
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _SPOTIFY_GENRE_CACHE = os.path.join(_ROOT, "outputs", ".spotify_genres_cache.json")
@@ -297,7 +312,7 @@ def gather(
     )
     batch_ok = False
     if missing:
-        print(f"  Fetching genre data   ({len(missing)} artists not in seed/cache)...", end="", flush=True)
+        _print(f"  Fetching genre data   ({len(missing)} artists not in seed/cache)...")
         fetched = artist_genres(sp, missing, id_name_map=artist_names)
         genres.update(fetched)
         batch_ok = bool(fetched)
@@ -310,12 +325,12 @@ def gather(
 
     nonempty = sum(1 for v in genres.values() if v)
     source   = "seed+batch" if batch_ok else ("seed only" if genres else "unavailable")
-    print(f"\r  Genre data            {nonempty}/{len(genres)} artists have genres ({source})")
+    _print(f"  Genre data            {nonempty}/{len(genres)} artists have genres ({source})")
 
     uris = [t["uri"] for t in tracks if t.get("uri")]
-    print(f"  Fetching audio features ({len(uris)} tracks)...", end="", flush=True)
+    _print(f"  Fetching audio features ({len(uris)} tracks)...")
     feats = audio_features(sp, uris)
-    print(f"\r  Audio features        {len(feats)} tracks"
-          f"{' (unavailable — deprecated)' if not feats else ''}")
+    _print(f"  Audio features        {len(feats)} tracks"
+           f"{' (unavailable — deprecated)' if not feats else ''}")
 
     return genres, feats

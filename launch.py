@@ -50,15 +50,47 @@ def check_pip() -> None:
 
 # ── Step 0: Dependencies ──────────────────────────────────────────────────────
 
-def ensure_dependencies():
+# Sentinel file: records mtime of requirements.txt when deps were last installed.
+# If requirements.txt is newer → reinstall.  Catches any missing/outdated package.
+_SENTINEL = os.path.join(ROOT, ".deps_installed")
+
+# Canonical name → importable name (for packages where they differ)
+_IMPORT_NAMES = {
+    "python-dotenv":  "dotenv",
+    "scikit-learn":   "sklearn",
+    "pylast":         "pylast",
+    "liblistenbrainz":"liblistenbrainz",
+    "lyricsgenius":   "lyricsgenius",
+    "musicbrainzngs": "musicbrainzngs",
+    "langdetect":     "langdetect",
+}
+
+
+def _deps_up_to_date() -> bool:
+    """Return True if deps were installed after the last requirements.txt change."""
+    if not os.path.exists(_SENTINEL):
+        return False
     try:
-        import streamlit  # noqa: F401
+        req_mtime  = os.path.getmtime(REQUIREMENTS)
+        sent_mtime = os.path.getmtime(_SENTINEL)
+        if sent_mtime < req_mtime:
+            return False
+        # Also probe critical imports so a half-broken venv is caught
+        import importlib.util
+        for pkg in ("streamlit", "spotipy", "dotenv", "requests", "numpy", "pandas"):
+            if importlib.util.find_spec(pkg) is None:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def ensure_dependencies():
+    if _deps_up_to_date():
         return
-    except ImportError:
-        pass
 
     check_pip()
-    print("Installing dependencies (first run — may take 1–2 minutes)...")
+    print("Installing / updating dependencies (may take 1–2 minutes)...")
     try:
         with open(REQUIREMENTS, encoding="utf-8") as rf:
             for line in rf:
@@ -66,12 +98,20 @@ def ensure_dependencies():
                 if spec:
                     print(f"  • {spec}")
     except OSError:
-        print("  (could not list requirements)")
+        print("  (could not read requirements.txt)")
 
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-r", REQUIREMENTS]
+        [sys.executable, "-m", "pip", "install", "-r", REQUIREMENTS, "--quiet"]
     )
-    print("Dependencies installed.\n")
+
+    # Write sentinel
+    try:
+        with open(_SENTINEL, "w") as _sf:
+            _sf.write(str(os.path.getmtime(REQUIREMENTS)))
+    except OSError:
+        pass
+
+    print("Dependencies ready.\n")
 
 
 # ── Step 1: .env ──────────────────────────────────────────────────────────────

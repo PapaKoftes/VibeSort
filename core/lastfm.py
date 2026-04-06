@@ -42,6 +42,7 @@ Cache: outputs/.lastfm_cache.json (persistent, shared with future runs).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -49,9 +50,12 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
-_ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE_PATH = os.path.join(_ROOT, "outputs", ".lastfm_cache.json")
-BASE_URL   = "https://ws.audioscrobbler.com/2.0/"
+_ROOT           = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE_PATH      = os.path.join(_ROOT, "outputs", ".lastfm_cache.json")
+SESSION_PATH    = os.path.join(_ROOT, "outputs", ".lastfm_session.json")
+BASE_URL        = "https://ws.audioscrobbler.com/2.0/"
+AUTH_URL        = "https://www.last.fm/api/auth/"
+CALLBACK_URL    = "https://papakoftes.github.io/VibeSort/callback.html"
 
 # Tags that add zero signal -- generic filler that Last.fm users add
 _SKIP_TAGS: frozenset = frozenset({
@@ -373,3 +377,204 @@ def cache_stats() -> dict:
         "tracks_cached":  len(c.get("tracks",  {})),
         "cache_path":     CACHE_PATH,
     }
+
+
+# ── Web authentication (user "Sign in with Last.fm") ─────────────────────────
+#
+# How it works (identical pattern to Spotify PKCE):
+#   1. generate_auth_url(api_key)  → redirect user to last.fm to approve
+#   2. Last.fm redirects to CALLBACK_URL?token=TOKEN
+#   3. GitHub Pages passes all query params to localhost (existing callback.html)
+#   4. app.py intercepts ?token= → stores in session_state["_pending_lastfm_token"]
+#   5. Connect page calls exchange_token(token, api_key, api_secret) → session_key
+#   6. Session key + username stored via save_session()
+#
+# Developer setup (one-time):
+#   Register a Vibesort Last.fm app at https://www.last.fm/api/account/create
+#   Set VIBESORT_LASTFM_API_KEY and VIBESORT_LASTFM_API_SECRET in config.py.
+#   End users never need to touch Last.fm's developer tools.
+
+def _sign(params: dict, secret: str) -> str:
+    """
+    Compute Last.fm API signature (md5 of sorted key+value pairs + secret).
+    'format' and 'callback' parameters are excluded from the signature per spec.
+    """
+    exclude = {"format", "callback"}
+    sig_str = "".join(
+        f"{k}{v}"
+        for k, v in sorted(params.items())
+        if k not in exclude
+    ) + secret
+    return hashlib.md5(sig_str.encode("utf-8")).hexdigest()
+
+
+def generate_auth_url(api_key: str) -> str:
+    """Return the Last.fm web-auth URL to redirect the user to."""
+    params = urllib.parse.urlencode({
+        "api_key":  api_key,
+        "cb":       CALLBACK_URL,
+    })
+    return f"{AUTH_URL}?{params}"
+
+
+def exchange_token(token: str, api_key: str, api_secret: str) -> dict | None:
+    """
+    Exchange a web-auth token for a session key.
+
+    Returns {"key": session_key, "name": lastfm_username} or None on failure.
+    Requires api_secret to sign the request — this is the developer's shared secret,
+    not the user's password.
+    """
+    if not token or not api_key or not api_secret:
+        return None
+    params = {
+        "method":  "auth.getSession",
+        "api_key": api_key,
+        "token":   token,
+    }
+    params["api_sig"] = _sign(params, api_secret)
+    params["format"]  = "json"
+
+    _rate_limit()
+    try:
+        req = urllib.request.Request(
+            BASE_URL,
+            data=urllib.parse.urlencode(params).encode("utf-8"),
+            headers={
+                "User-Agent":   "Vibesort/1.0 (github.com/PapaKoftes/VibeSort)",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        if "error" in data:
+            return None
+        sess = data.get("session", {})
+        return {"key": sess.get("key", ""), "name": sess.get("name", "")} or None
+    except Exception:
+        return None
+
+
+def save_session(session: dict) -> None:
+    """Persist the session key + username to disk."""
+    try:
+        os.makedirs(os.path.dirname(SESSION_PATH), exist_ok=True)
+        with open(SESSION_PATH, "w", encoding="utf-8") as f:
+            json.dump(session, f)
+    except Exception:
+        pass
+
+
+def load_session() -> dict | None:
+    """Load persisted Last.fm session from disk. Returns None if absent/invalid."""
+    try:
+        if os.path.exists(SESSION_PATH):
+            with open(SESSION_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("key") and data.get("name"):
+                return data
+    except Exception:
+        pass
+    return None
+
+
+def clear_session() -> None:
+    """Remove the persisted Last.fm session (disconnect)."""
+    try:
+        if os.path.exists(SESSION_PATH):
+            os.remove(SESSION_PATH)
+    except Exception:
+        pass
+
+
+def get_user_loved_tracks(
+    session_key: str,
+    api_key: str,
+    username: str,
+    limit: int = 200,
+) -> dict[str, float]:
+    """
+    Fetch the user's loved tracks from Last.fm.
+
+    Returns {(artist_norm, title_norm): boost_weight} where boost_weight is
+    always 1.0 (binary — track is loved).  Used in scan to apply a score
+    multiplier to loved tracks.
+    """
+    if not session_key or not api_key or not username:
+        return {}
+
+    loved: dict[str, float] = {}
+    page = 1
+    fetched = 0
+
+    while fetched < limit:
+        per_page = min(200, limit - fetched)
+        data = _api_get(
+            "user.getlovedtracks",
+            {"user": username, "limit": str(per_page), "page": str(page)},
+            api_key,
+        )
+        if not data:
+            break
+        tracks = (data.get("lovedtracks") or {}).get("track", [])
+        if isinstance(tracks, dict):
+            tracks = [tracks]
+        if not tracks:
+            break
+        for t in tracks:
+            artist = _normalize_tag((t.get("artist") or {}).get("name", ""))
+            title  = _normalize_tag(t.get("name", ""))
+            if artist and title:
+                loved[f"{artist}|||{title}"] = 1.0
+        fetched += len(tracks)
+        page += 1
+        if len(tracks) < per_page:
+            break
+
+    return loved
+
+
+def get_user_top_tracks(
+    api_key: str,
+    username: str,
+    period: str = "6month",
+    limit: int = 200,
+) -> dict[str, float]:
+    """
+    Fetch user's top tracks from Last.fm (by play count in the given period).
+
+    Returns {(artist_norm, title_norm): normalised_weight} where weight is
+    play_count / max_play_count in [0, 1].  Used for score boosting.
+    period: overall | 7day | 1month | 3month | 6month | 12month
+    """
+    if not api_key or not username:
+        return {}
+
+    data = _api_get(
+        "user.gettoptracks",
+        {"user": username, "period": period, "limit": str(min(limit, 1000))},
+        api_key,
+    )
+    if not data:
+        return {}
+
+    tracks = (data.get("toptracks") or {}).get("track", [])
+    if isinstance(tracks, dict):
+        tracks = [tracks]
+    if not tracks:
+        return {}
+
+    raw: list[tuple[str, int]] = []
+    for t in tracks:
+        artist = _normalize_tag((t.get("artist") or {}).get("name", ""))
+        title  = _normalize_tag(t.get("name", ""))
+        count  = int((t.get("playcount") or "0").strip() if isinstance(t.get("playcount"), str) else t.get("playcount") or 0)
+        if artist and title and count > 0:
+            raw.append((f"{artist}|||{title}", count))
+
+    if not raw:
+        return {}
+
+    max_count = max(c for _, c in raw) or 1
+    return {key: round(count / max_count, 4) for key, count in raw}

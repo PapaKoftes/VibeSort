@@ -1,11 +1,17 @@
 """
-pages/1_Connect.py — Spotify OAuth login.
+pages/1_Connect.py — Spotify OAuth login + optional service connections.
 
-Two auth modes:
+Two Spotify auth modes:
   PKCE mode  — VIBESORT_CLIENT_ID is set in .env (or config.py).
                End users click Connect and never touch Spotify's dashboard.
   OAuth mode — User provides their own SPOTIFY_CLIENT_ID + SECRET in .env.
                Fallback / power-user option.
+
+Additional connections (configured here without editing .env):
+  Last.fm    — Free API key; powers artist genre + track mood tags.
+               Strongly recommended for best playlist quality.
+  Own Spotify app — Bypass the shared 25-user Dev Mode quota by using your
+               own Spotify Client ID (PKCE, no secret needed).
 """
 import os, sys, time, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,6 +36,34 @@ REDIRECT_URI = "https://papakoftes.github.io/VibeSort/callback.html"
 PLACEHOLDERS = {"your_client_id_here", "your_id_here", "", "paste_here",
                 "your_client_id", "paste_your_client_id_here"}
 
+_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+
+
+def _update_env_key(key: str, value: str) -> bool:
+    """Write or update a single key in the project's .env file."""
+    try:
+        lines: list[str] = []
+        if os.path.exists(_ENV_PATH):
+            with open(_ENV_PATH, "r", encoding="utf-8") as fh:
+                lines = fh.readlines()
+        new_lines: list[str] = []
+        found = False
+        for line in lines:
+            if line.strip().startswith(f"{key}="):
+                new_lines.append(f"{key}={value}\n")
+                found = True
+            else:
+                new_lines.append(line)
+        if not found:
+            if new_lines and not new_lines[-1].endswith("\n"):
+                new_lines.append("\n")
+            new_lines.append(f"{key}={value}\n")
+        with open(_ENV_PATH, "w", encoding="utf-8") as fh:
+            fh.writelines(new_lines)
+        return True
+    except Exception:
+        return False
+
 
 def _creds_ok(cid, secret):
     return (bool(cid) and bool(secret)
@@ -46,6 +80,31 @@ def _make_oauth(cid, secret):
         redirect_uri=REDIRECT_URI, scope=SCOPE,
         cache_path=".vibesort_cache", open_browser=False,
     )
+
+
+# ── Helpers: resolve active Last.fm credentials ───────────────────────────────
+
+def _lf_app_creds() -> tuple[str, str]:
+    """
+    Return (api_key, api_secret) for the shared Vibesort Last.fm app.
+    Falls back to per-user LASTFM_API_KEY if shared key not yet configured.
+    """
+    try:
+        import config as _c
+        shared_k = (getattr(_c, "VIBESORT_LASTFM_API_KEY",    "") or "").strip()
+        shared_s = (getattr(_c, "VIBESORT_LASTFM_API_SECRET", "") or "").strip()
+        if shared_k and shared_s:
+            return shared_k, shared_s
+        # Fallback: per-user key (if developer hasn't registered shared app yet)
+        user_k = (getattr(_c, "LASTFM_API_KEY",    "") or "").strip()
+        user_s = (getattr(_c, "LASTFM_API_SECRET", "") or "").strip()
+        if user_k and user_s:
+            return user_k, user_s
+        if user_k:
+            return user_k, ""
+    except Exception:
+        pass
+    return "", ""
 
 
 # ── Load config ───────────────────────────────────────────────────────────────
@@ -262,7 +321,264 @@ else:
     st.info("Save `.env` then restart Vibesort — this page will update automatically.")
 
 st.divider()
-with st.expander("Sharing with friends & going beyond the Spotify “test user” cap"):
+
+# ── Last.fm connection ────────────────────────────────────────────────────────
+st.subheader("Last.fm  ·  Mood & genre tags")
+st.caption(
+    "Strongly recommended. Crowd-sourced mood tags per artist and track — "
+    "'sad', 'dark', 'chill', 'hype' — go straight into the scoring engine. "
+    "Also unlocks your personal loved tracks and top artists for smarter playlists."
+)
+
+# ── Handle incoming web-auth token (from GitHub Pages callback) ───────────────
+_pending_lf_token = st.session_state.pop("_pending_lastfm_token", None)
+if _pending_lf_token:
+    _lf_k, _lf_s = _lf_app_creds()
+    if _lf_k and _lf_s:
+        with st.spinner("Connecting to Last.fm..."):
+            from core.lastfm import exchange_token as _lf_exchange, save_session as _lf_save
+            _sess = _lf_exchange(_pending_lf_token, _lf_k, _lf_s)
+        if _sess and _sess.get("key"):
+            _lf_save(_sess)
+            st.session_state["lastfm_session"] = _sess
+            try:
+                cfg.LASTFM_API_KEY = _lf_k
+            except Exception:
+                pass
+            st.success(f"✅ Connected to Last.fm as **{_sess.get('name', '')}**")
+            st.rerun()
+        else:
+            st.error("Last.fm connection failed — token may have expired. Try again.")
+    else:
+        # No shared key configured yet — fall through to manual key section
+        pass
+
+# ── Show connection status or connect button ─────────────────────────────────
+_lf_session = st.session_state.get("lastfm_session") or {}
+_lf_username = _lf_session.get("name", "")
+_lf_key_only = (                       # API key available but no user auth
+    st.session_state.get("lastfm_api_key_runtime")
+    or getattr(cfg, "LASTFM_API_KEY", "").strip()
+)
+_lf_k, _lf_s = _lf_app_creds()
+
+if _lf_username:
+    # ── Fully authenticated ────────────────────────────────────────────────
+    st.success(f"✅ Connected as **{_lf_username}** on Last.fm")
+    st.caption("Your loved tracks and listening history will be used to personalise playlists.")
+    if st.button("Disconnect Last.fm", key="lf_disconnect"):
+        from core.lastfm import clear_session as _lf_clear
+        _lf_clear()
+        st.session_state.pop("lastfm_session", None)
+        st.session_state.pop("lastfm_api_key_runtime", None)
+        st.rerun()
+
+elif _lf_k:
+    # ── Shared key available — show OAuth button ───────────────────────────
+    from core.lastfm import generate_auth_url as _lf_auth_url
+    _lf_oauth_url = _lf_auth_url(_lf_k)
+    st.markdown(
+        f"""
+        <a href="{_lf_oauth_url}" target="_self" style="
+            display: block;
+            width: 100%;
+            padding: 0.60rem 1rem;
+            text-align: center;
+            background: #d51007;
+            color: #ffffff;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            letter-spacing: 0.04em;
+            border: 1px solid #8b0000;
+            box-shadow: 0 0 12px #d5100744;
+        ">Connect with Last.fm</a>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("You'll be taken to Last.fm to authorise, then returned here automatically.")
+
+    if _lf_key_only and not _lf_username:
+        st.caption(
+            f"_(API key active, not logged in — click above to get personal recommendations)_"
+        )
+
+else:
+    # ── No shared key — developer hasn't registered the Vibesort Last.fm app yet ──
+    st.info(
+        "Last.fm connection requires the developer to register a shared Vibesort app. "
+        "See the setup instructions below, or enter your own API key as a fallback."
+    )
+    with st.expander("Developer setup (one-time): register the shared Vibesort Last.fm app"):
+        st.markdown(
+            """
+1. Go to **[last.fm/api/account/create](https://www.last.fm/api/account/create)** and log in.
+2. Fill in: Application name = `Vibesort`, Homepage = `https://github.com/PapaKoftes/VibeSort`.
+3. Copy the **API Key** and **Shared Secret**.
+4. Add to `config.py` (or `.env`):
+```
+VIBESORT_LASTFM_API_KEY=your_api_key_here
+VIBESORT_LASTFM_API_SECRET=your_shared_secret_here
+```
+5. Restart the app — the "Connect with Last.fm" button will appear for all users.
+            """
+        )
+    # Fallback: manual key input (for users who have their own key)
+    _lf_input = st.text_input(
+        "Or paste your own Last.fm API key (personal fallback)",
+        type="password",
+        placeholder="32-character API key",
+        key="lf_key_input",
+    )
+    if st.button("Save API key", key="lf_save"):
+        _k = (_lf_input or "").strip()
+        if len(_k) < 16:
+            st.error("Key looks too short — check it and try again.")
+        else:
+            _update_env_key("LASTFM_API_KEY", _k)
+            try:
+                cfg.LASTFM_API_KEY = _k
+            except Exception:
+                pass
+            st.session_state["lastfm_api_key_runtime"] = _k
+            st.success("✅ API key saved. Re-scan to use it.")
+            st.rerun()
+
+st.divider()
+
+# ── ListenBrainz connection ───────────────────────────────────────────────────
+st.subheader("ListenBrainz  ·  Listening history")
+st.caption(
+    "Optional but powerful. Your personal play counts are used to boost frequently-listened "
+    "tracks to the top of playlists. Free account at listenbrainz.org — takes 30 seconds."
+)
+
+_lb_token_saved = (
+    st.session_state.get("listenbrainz_token_runtime")
+    or getattr(cfg, "LISTENBRAINZ_TOKEN", "").strip()
+)
+_lb_user_saved = (
+    st.session_state.get("listenbrainz_username_runtime")
+    or getattr(cfg, "LISTENBRAINZ_USERNAME", "").strip()
+)
+
+if _lb_token_saved and _lb_user_saved:
+    st.success(f"✅ Connected as **{_lb_user_saved}** on ListenBrainz")
+    st.caption("Your listening history will be used to prioritise frequently-played tracks.")
+    if st.button("Disconnect ListenBrainz", key="lb_disconnect"):
+        _update_env_key("LISTENBRAINZ_TOKEN", "")
+        _update_env_key("LISTENBRAINZ_USERNAME", "")
+        try:
+            cfg.LISTENBRAINZ_TOKEN    = ""
+            cfg.LISTENBRAINZ_USERNAME = ""
+        except Exception:
+            pass
+        st.session_state.pop("listenbrainz_token_runtime", None)
+        st.session_state.pop("listenbrainz_username_runtime", None)
+        st.rerun()
+else:
+    with st.form("lb_connect_form"):
+        st.markdown(
+            "1. Create a free account at [listenbrainz.org](https://listenbrainz.org/)\n"
+            "2. Go to your **Profile → API Token** — copy the token\n"
+            "3. Paste it below with your username"
+        )
+        _lb_token_input = st.text_input(
+            "ListenBrainz API token",
+            type="password",
+            placeholder="Paste your token here",
+            key="lb_token_input",
+        )
+        _lb_user_input = st.text_input(
+            "ListenBrainz username",
+            placeholder="Your ListenBrainz username",
+            key="lb_user_input",
+        )
+        _lb_submit = st.form_submit_button("Connect ListenBrainz", use_container_width=True)
+        if _lb_submit:
+            _tok = (_lb_token_input or "").strip()
+            _usr = (_lb_user_input or "").strip()
+            if len(_tok) < 10:
+                st.error("Token looks too short — check it and try again.")
+            elif not _usr:
+                st.error("Username is required.")
+            else:
+                _update_env_key("LISTENBRAINZ_TOKEN", _tok)
+                _update_env_key("LISTENBRAINZ_USERNAME", _usr)
+                try:
+                    cfg.LISTENBRAINZ_TOKEN    = _tok
+                    cfg.LISTENBRAINZ_USERNAME = _usr
+                except Exception:
+                    pass
+                st.session_state["listenbrainz_token_runtime"]    = _tok
+                st.session_state["listenbrainz_username_runtime"] = _usr
+                st.success(f"✅ Connected as **{_usr}**. Re-scan to use your listening history.")
+                st.rerun()
+
+st.divider()
+
+# ── Own Spotify app (bypass 25-user Dev Mode limit) ───────────────────────────
+with st.expander("Use your own Spotify app  ·  Bypass the 25-user limit"):
+    st.markdown(
+        """
+Every Spotify account can create a **free developer app** at
+[developer.spotify.com/dashboard](https://developer.spotify.com/dashboard).
+With your own app, YOU are the only user — no quota limit, no whitelist needed.
+
+**Setup (2 minutes):**
+1. Go to the dashboard → **Create app**
+2. Add redirect URI: `https://papakoftes.github.io/VibeSort/callback.html`
+3. Copy your **Client ID** (the 32-char hex string — no secret needed)
+4. Paste it below and click Save
+        """
+    )
+    _own_id_current = getattr(cfg, "VIBESORT_CLIENT_ID", "").strip()
+    _is_shared = _own_id_current == "c9e2d0ff7cbb49b0a59ca6c3b1c150bf"
+    if _own_id_current and not _is_shared:
+        _masked_id = _own_id_current[:6] + "•" * 20 + _own_id_current[-4:]
+        st.success(f"✅ Using your own Spotify app ({_masked_id})")
+        if st.button("Revert to shared app", key="sp_revert"):
+            _default_id = "c9e2d0ff7cbb49b0a59ca6c3b1c150bf"
+            _update_env_key("VIBESORT_CLIENT_ID", _default_id)
+            try:
+                cfg.VIBESORT_CLIENT_ID = _default_id
+            except Exception:
+                pass
+            st.session_state.pop("pkce_auth_url", None)
+            st.rerun()
+    else:
+        _own_id_input = st.text_input(
+            "Your Spotify Client ID",
+            placeholder="Paste your 32-character Client ID here",
+            key="own_client_id_input",
+        )
+        if st.button("Save and reconnect with my app", key="sp_own_save"):
+            _cid = (_own_id_input or "").strip()
+            if len(_cid) < 16:
+                st.error("Client ID looks too short — check it and try again.")
+            else:
+                ok = _update_env_key("VIBESORT_CLIENT_ID", _cid)
+                try:
+                    cfg.VIBESORT_CLIENT_ID = _cid
+                except Exception:
+                    pass
+                # Force fresh PKCE URL and clear existing token so they re-auth
+                st.session_state.pop("pkce_auth_url", None)
+                for _k2 in ["spotify_token", "sp", "me", "pkce_token"]:
+                    st.session_state.pop(_k2, None)
+                if ok:
+                    st.success("✅ Saved. Click **Connect to Spotify** above to re-authenticate with your app.")
+                else:
+                    st.warning(
+                        "Active for this session — could not write to .env. "
+                        "Add `VIBESORT_CLIENT_ID=<your_id>` manually for persistence."
+                    )
+                st.rerun()
+
+st.divider()
+with st.expander('Sharing with friends & going beyond the Spotify "test user" cap'):
     st.markdown(
         """
 **Today (typical Spotify app in Development Mode)**  
@@ -281,7 +597,7 @@ approved integration.
 - **You host the Streamlit app** — still uses *your* Spotify client; scale only after
   Spotify approves broader access.
 - **Last.fm / ListenBrainz / Genius** stay **per-user API keys or tokens in `.env`** for now;
-  full “Sign in with Last.fm” style OAuth can be added later — Musixmatch is primarily
+  full "Sign in with Last.fm" style OAuth can be added later — Musixmatch is primarily
   API-key based for lyrics metadata.
 
 Built-in sources (Deezer public search, lrclib, etc.) need no per-user login.

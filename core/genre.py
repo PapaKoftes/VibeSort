@@ -132,7 +132,10 @@ def track_macro_genres(track: dict, artist_genres: dict[str, list[str]]) -> list
             if macro not in seen:
                 seen.add(macro)
                 result.append(macro)
-    return result or ["Other"]
+    # Drop "Other" when real genres exist — it only means some raw genre strings
+    # didn't match a rule, not that the track is genuinely unclassified.
+    real = [g for g in result if g != "Other"]
+    return real or ["Other"]
 
 
 def library_genre_breakdown(

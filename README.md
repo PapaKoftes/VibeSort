@@ -2,11 +2,17 @@
 
 **Your Spotify library, sorted by feeling.**
 
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Vibesort home screen" width="800"/>
+</p>
+
 Vibesort scans your liked songs, top tracks, and saved playlists — then groups them into mood, genre, era, and artist playlists using a multi-signal scoring engine that combines tags, semantic similarity, genre structure, and real-world human labeling from public Spotify playlists.
 
 ---
 
 ## Quick start
+
+New to Vibesort? Read the **[Getting Started Guide](docs/GUIDE.md)** — covers everything from install to deploying your first playlists.
 
 Step-by-step install for Windows, Mac, and Linux (no Git required): **[SETUP.md](SETUP.md)**.
 
@@ -99,11 +105,19 @@ Rename them · toggle recommendations · preview tracks
 Deploy All to Spotify  (one click)
 ```
 
+<p align="center">
+  <img src="docs/screenshots/scan.png" alt="Library Scan page" width="800"/>
+</p>
+
 ---
 
 ## Mood presets (87 total)
 
 All vibe names, descriptions, and scoring hints live in [`data/packs.json`](data/packs.json) under `moods`. After you **Scan Library**, open **Vibes** in the app to browse and stage playlists.
+
+<p align="center">
+  <img src="docs/screenshots/vibes.png" alt="Vibes page showing mood playlist cards" width="800"/>
+</p>
 
 ---
 
@@ -156,6 +170,19 @@ Vibesort/
     ├── macro_genres.json       Genre normalization rules
     └── HOW_TO_GET_FULL_HISTORY.md
 ```
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/genres.png" alt="Genre Playlists" width="390" style="display:inline-block; margin-right:8px"/>
+  <img src="docs/screenshots/stats.png" alt="Taste Report / Stats" width="390" style="display:inline-block"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/settings.png" alt="Settings page" width="390" style="display:inline-block; margin-right:8px"/>
+  <img src="docs/screenshots/connect.png" alt="Connect page" width="390" style="display:inline-block"/>
+</p>
 
 ---
 

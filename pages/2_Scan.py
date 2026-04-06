@@ -204,7 +204,11 @@ if vibesort:
     col4.metric("Artists", len(vibesort.get("artist_map", {})))
 
     import config as _cfg_info
-    _has_lf_key = bool(getattr(_cfg_info, "LASTFM_API_KEY", "").strip())
+    _has_lf_key = bool(
+        getattr(_cfg_info, "VIBESORT_LASTFM_API_KEY", "").strip()
+        or getattr(_cfg_info, "LASTFM_API_KEY", "").strip()
+        or st.session_state.get("lastfm_api_key_runtime", "")
+    )
 
     _n_genres    = len(vibesort.get("genre_map", {}))
     _mining_blk  = vibesort.get("mining_blocked") or vibesort.get("playlist_items_blocked")
@@ -236,9 +240,8 @@ if vibesort:
             st.warning(
                 "⚠️ **Playlist mining is blocked in Spotify's Development Mode.** "
                 "Genre detection via Deezer is the only active signal — results may be thin. "
-                "For rich mood detection, add a free Last.fm key: "
-                "`LASTFM_API_KEY=<key>` in your `.env` "
-                "([get one here](https://www.last.fm/api/account/create)) and re-scan."
+                "For rich mood detection, connect your **Last.fm** account on the "
+                "[Connect page](1_Connect) and re-scan."
             )
 
     st.write("")

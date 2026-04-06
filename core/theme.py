@@ -48,9 +48,9 @@ _CSS = """
 }
 
 /* ── Global text + font ──────────────────────────────────────────────────── */
-/* Do not force monospace on bare `span` — it breaks Streamlit Material icon ligatures
-   (shows "keyboard_double_arrow_right" text on sidebar / expanders). */
-html, body, p, div, li, td, th, label,
+/* Target semantic text containers only — never bare `div` or `span`,
+   which would cascade into Streamlit's icon elements and break ligatures. */
+html, body, p, li, td, th, label,
 .stMarkdown, [data-testid="stText"],
 [data-testid="stMarkdownContainer"] {
   font-family: 'JetBrains Mono', 'Courier New', monospace !important;
@@ -60,20 +60,19 @@ html, body, p, div, li, td, th, label,
 .stMarkdown span {
   font-family: 'JetBrains Mono', 'Courier New', monospace !important;
 }
-/* Streamlit chrome: keep default UI font + Material Symbols for icons */
-[data-testid="stSidebarCollapseButton"],
-[data-testid="stSidebarCollapseButton"] *,
-[data-testid="stSidebarNav"] a,
-[data-testid="stSidebarNav"] span,
-[data-testid="stExpander"] summary,
-[data-testid="stExpander"] summary *,
-button[kind="header"],
-button[kind="headerNoPadding"],
-button[kind="headerNoPadding"] * {
-  font-family: "Source Sans Pro", sans-serif !important;
-}
+
+/* ── Icons — target Streamlit's actual icon testid, not the old class name ── */
+/* Streamlit renders icons as:
+     <span data-testid="stIconMaterial" translate="no">icon_name</span>
+   The font-family MUST be Material Symbols Outlined for ligature rendering.
+   This rule comes last so it beats everything above via cascade order. */
+[data-testid="stIconMaterial"],
 span.material-symbols-outlined,
-.material-symbols-outlined {
+span.material-symbols-rounded,
+span.material-symbols-sharp,
+.material-symbols-outlined,
+.material-symbols-rounded,
+.material-symbols-sharp {
   font-family: 'Material Symbols Outlined', sans-serif !important;
   font-weight: normal !important;
   font-style: normal !important;
@@ -81,6 +80,8 @@ span.material-symbols-outlined,
   letter-spacing: normal !important;
   text-transform: none !important;
   white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
 /* ── Headings — Cinzel + accent glow ─────────────────────────────────────── */
@@ -371,7 +372,7 @@ def render_scan_quality_strip(vibesort: dict, title: str = "Scan Data Quality") 
     elif _lb_configured:
         _lb_line = "ℹ️ listenbrainz (token set — no listens overlapped this library; boosts inactive)"
     else:
-        _lb_line = "⚠️ listenbrainz (add LISTENBRAINZ_TOKEN + USERNAME in .env)"
+        _lb_line = "⚠️ listenbrainz (connect in Settings → Connect page)"
 
     with st.container(border=True):
         st.markdown(f"#### {title}")

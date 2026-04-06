@@ -20,10 +20,24 @@ Delete the file to force a refresh.
 import re
 import json
 import os
+import sys
 import math
 import time
 import collections
 import spotipy
+
+
+def _print(*args, **kwargs) -> None:
+    """Safe print that survives non-TTY stdout (Streamlit, pipes, Windows)."""
+    try:
+        print(*args, **kwargs)
+    except (OSError, UnicodeEncodeError):
+        try:
+            kwargs.pop("end", None)
+            kwargs.pop("flush", None)
+            print(*args, file=sys.stderr)
+        except Exception:
+            pass
 from core.anchors import get_anchor_ids
 from core.profile import collapse_tags as _collapse_tags
 
@@ -717,9 +731,8 @@ def mine(
                 seed_phrases = [mood_name.lower()]
 
             queries_used = seed_phrases[:_max_seeds]
-            print(
-                f"\r  Searching             {processed_moods}/{total_moods}: {mood_name[:30]:<30}",
-                end="", flush=True,
+            _print(
+                f"  Searching             {processed_moods}/{total_moods}: {mood_name[:30]:<30}",
             )
 
             # Prepend anchor playlists for this mood (curated, high-quality signal)

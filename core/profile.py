@@ -149,7 +149,7 @@ def build(
         "audio_vector": vec,
         "audio_vector_source": av_src,
         "raw_genres":   raw_genres,
-        "macro_genres": macro_genres or ["Other"],
+        "macro_genres": [g for g in macro_genres if g != "Other"] or ["Other"],
         "tags":         tags,
         "tag_clusters": collapse_tags(tags),
         "popularity":   track.get("popularity", 50),
@@ -211,51 +211,78 @@ TAG_CLUSTERS: dict[str, list[str]] = {
                       "after_dark", "witching_hour", "insomnia"],
     "sad":           ["sad", "sadness", "crying", "hollow", "heartbreak", "sorrow",
                       "grief", "depressed", "numb", "empty", "melancholy", "hopeless",
-                      "lyr_sad"],                          # lyrics signal
+                      "lyr_sad",                           # lyrics signal
+                      # semantic_core alias resolution
+                      "melancholic", "emotional", "lonely", "cathartic",
+                      # bittersweet lives here (primary sad cluster; not in nostalgic)
+                      "bittersweet"],
     "rage":          ["rage", "angry", "aggressive", "furious", "hate", "brutal",
                       "intense", "explosive", "bitter", "seething",
-                      "lyr_angry"],                        # lyrics signal
+                      "lyr_angry",                         # lyrics signal
+                      # semantic_core alias resolution
+                      "chaotic", "menacing", "rebellious"],
     "calm":          ["calm", "peaceful", "tranquil", "serene", "gentle", "soft",
-                      "soothing", "relax", "mellow", "ambient"],
+                      "soothing", "relax", "mellow", "ambient",
+                      "sleep", "lullaby", "bedtime", "sleepy"],
     "hype":          ["hype", "energy", "energetic", "lit", "fire", "flames", "banger",
-                      "pump", "electric", "amped", "turnt", "beast_mode", "powerful",
-                      "lyr_hype"],                         # lyrics signal
+                      "pump", "electric", "amped", "turnt", "beast_mode",
+                      # powerful lives in "confident" cluster (where it resolves correctly)
+                      "lyr_hype",                          # lyrics signal
+                      # semantic_core alias resolution
+                      "celebratory", "anthemic", "marching", "epic", "gym",
+                      # forbidden_tags dead-tag coverage
+                      "trap", "workout", "gym_rage"],
     "dark":          ["dark", "darkness", "sinister", "gothic", "shadow", "noir",
                       "ominous", "haunting", "void", "abyss",
-                      "lyr_dark"],                         # lyrics signal
+                      "lyr_dark",                          # lyrics signal
+                      # semantic_core alias resolution
+                      "cold", "anxious",
+                      # forbidden_tags dead-tag coverage
+                      "phonk", "phonk_only", "drill", "funeral", "scream", "death",
+                      "doom", "death_metal"],
     "love":          ["love", "romance", "romantic", "lover", "crush", "adore",
                       "tender", "intimate", "heart",
-                      "lyr_love"],                         # lyrics signal
+                      "lyr_love",                          # lyrics signal
+                      # semantic_core alias resolution
+                      "sensual", "sexy"],
     "happy":         ["happy", "happiness", "joy", "bliss", "euphoria", "euphoric",
-                      "elated", "cheerful", "upbeat", "sunshine", "smile",
+                      "elated", "cheerful", "upbeat", "smile",
+                      # sunshine lives in "summer" cluster (where it resolves correctly)
                       "lyr_euphoric"],                     # lyrics signal
     "focus":         ["focus", "study", "concentrate", "productive", "flow",
                       "deep_work", "reading", "brain",
                       "lyr_introspective"],                # lyrics signal
+    # "bittersweet" is in "sad" cluster (not here); resolves there correctly.
     "nostalgic":     ["nostalgia", "memories", "throwback", "vintage", "retro",
-                      "classic", "childhood", "bittersweet"],
+                      "classic", "childhood"],
     # ── Extended clusters (cover all semantic_core dims used in packs.json) ──
     "introspective": ["introspective", "reflective", "pensive", "contemplative",
                       "thoughtful", "meditation", "self_discovery", "searching",
-                      "soul_searching", "inner", "vulnerable", "open"],
+                      "soul_searching", "inner", "vulnerable", "open",
+                      # semantic_core alias resolution
+                      "meditative", "devotional"],
     "party":         ["party", "parties", "celebration", "celebrate", "turn_up",
                       "club", "dance", "dancing", "dancefloor", "rave", "festival",
                       "anthem", "crowd", "vibe", "good_times", "pregame", "shots",
                       "lyr_party"],                        # lyrics signal
     "chill":         ["chill", "chilled", "chilling", "laid_back", "easy", "smooth",
-                      "cozy", "slow", "sunset", "vibe", "vibes", "breezy"],
+                      "cozy", "slow", "sunset", "vibe", "vibes", "breezy", "slow_jams"],
     "angry":         ["angry", "anger", "mad", "pissed", "furious", "fury",
                       "frustrated", "frustration", "scorned", "revenge", "bitter",
                       "seething", "not_over_it"],
     "ambient":       ["ambient", "atmospheric", "ethereal", "cinematic", "spacey",
                       "texture", "soundscape", "dreamlike", "weightless", "drift",
-                      "floating", "liminal", "eerie"],
+                      "floating", "liminal", "eerie",
+                      # semantic_core alias resolution
+                      "hazy", "minimal", "subtle", "lush", "hypnotic", "nautical"],
     "drive":         ["drive", "driving", "road", "cruise", "highway", "car",
                       "journey", "travel", "open_road", "ride", "cruising",
-                      "backroads", "freeway", "windows_down"],
+                      "backroads", "freeway", "windows_down", "country_road"],
     "spiritual":     ["spiritual", "gospel", "sacred", "divine", "holy", "worship",
                       "prayer", "faith", "choir", "church", "blessed", "praise",
-                      "revival", "anointed", "sanctified", "soulful", "transcendent"],
+                      "revival", "anointed", "sanctified", "soulful", "transcendent",
+                      # semantic_core alias resolution
+                      "uplift", "hopeful"],
     "confident":     ["confident", "confidence", "boss", "winning", "winner",
                       "unstoppable", "invincible", "strong", "fearless", "bold",
                       "badass", "slay", "slaying", "queen", "king", "powerful"],
@@ -267,14 +294,31 @@ TAG_CLUSTERS: dict[str, list[str]] = {
     "groovy":        ["groove", "funky", "funk", "soul", "r&b", "rnb", "rhythmic",
                       "organic", "jazz", "smooth", "swing", "laid_back_groove"],
     "raw":           ["raw", "authentic", "real", "honest", "underground", "diy",
-                      "lo_fi", "lofi", "acoustic", "stripped", "unfiltered"],
+                      "lo_fi", "lofi", "acoustic", "stripped", "unfiltered",
+                      # MB genre tags that map to raw/gritty energy
+                      "gangsta", "gangsta_rap", "thug_rap", "punk", "punk_rock",
+                      "punk-pop", "punk_revival", "alternative_punk",
+                      # semantic_core alias resolution
+                      "urban",
+                      # forbidden_tag genre coverage (acoustic/folk styles)
+                      "country", "bluegrass", "folk", "americana", "rap", "hip-hop"],
     "intense":       ["intense", "heavy", "brutal", "hardcore", "extreme",
-                      "crushing", "pounding", "relentless", "ferocious"],
+                      "crushing", "pounding", "relentless", "ferocious",
+                      # MB genre tags for heavy music
+                      "alternative_rock", "hard_rock", "metal", "heavy_metal",
+                      "post-hardcore",
+                      # semantic_core alias resolution
+                      "dramatic", "theatrical"],
     "electronic":    ["electronic", "edm", "synthwave", "techno", "house",
-                      "trance", "beats", "808", "synth", "rave", "club_music",
-                      "dj", "drop", "bass"],
+                      "trance", "beats", "808", "synth", "club_music",
+                      "dj", "drop", "bass",
+                      # MB genre tags for electronic subgenres
+                      "synth-pop", "new_wave", "darkwave", "electropop",
+                      "industrial", "ambient_electronic"],
     "mysterious":    ["mysterious", "mystery", "eerie", "haunted", "cryptic",
-                      "uncanny", "surreal", "strange", "weird", "unsettling"],
+                      "uncanny", "surreal", "strange", "weird", "unsettling",
+                      # semantic_core alias resolution
+                      "trippy"],
     "vibrant":       ["vibrant", "colorful", "vivid", "lively", "playful", "bouncy",
                       "bubbly", "bright", "radiant", "sparkling"],
 }

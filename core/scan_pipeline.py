@@ -114,7 +114,10 @@ def execute_library_scan(
     mining_blocked = mining.get("blocked", False)
     playlist_items_blocked = mining.get("playlist_items_blocked", mining_blocked)
     if mining_blocked or playlist_items_blocked:
-        _lf_key_present = bool(getattr(cfg, "LASTFM_API_KEY", "").strip())
+        _lf_key_present = bool(
+            getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+            or getattr(cfg, "LASTFM_API_KEY", "").strip()
+        )
         _fallback_label = "Last.fm" if _lf_key_present else "MusicBrainz"
         step(f"Playlist mining limited (Spotify Dev Mode) — enriching via {_fallback_label}...", 48)
     else:
@@ -133,7 +136,10 @@ def execute_library_scan(
             49,
         )
 
-    _lf_key = getattr(cfg, "LASTFM_API_KEY", "").strip()
+    _lf_key = (
+        getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+        or getattr(cfg, "LASTFM_API_KEY", "").strip()
+    )
     if _lf_key:
         try:
             from core import lastfm as _lf_mod
@@ -601,6 +607,70 @@ def execute_library_scan(
         except Exception as _lb_err:
             step(f"ListenBrainz enrichment failed: {_lb_err}", 66)
 
+    # ── Last.fm user boost (loved tracks + personal top tracks) ──────────────
+    # If the user is authenticated via Last.fm web-auth, their loved tracks get
+    # a fixed 1.15× boost and personal top tracks get up to 1.10× boost.
+    # This is merged into the same _lb_top_uris multiplier used by ListenBrainz.
+    try:
+        from core import lastfm as _lf_user_mod
+        _lf_sess = _lf_user_mod.load_session()
+        if _lf_sess and _lf_sess.get("key") and _lf_sess.get("name"):
+            _lf_sess_key = _lf_sess["key"]
+            _lf_sess_user = _lf_sess["name"]
+            # resolve active API key (shared app key takes priority)
+            _lf_active_key = (
+                getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+                or getattr(cfg, "LASTFM_API_KEY", "").strip()
+            )
+            if _lf_active_key:
+                step(f"Fetching Last.fm loved tracks for {_lf_sess_user}...", 67)
+
+                # Build artist|||title lookup key matching Last.fm normalisation
+                _lf_lookup: dict[str, str] = {}  # "artist|||title" → uri
+                for _t in all_tracks:
+                    _t_uri = _t.get("uri", "")
+                    if not _t_uri:
+                        continue
+                    for _a in (_t.get("artists") or []):
+                        _a_name = "_".join(_a.get("name", "").lower().split())
+                        _t_name = "_".join(_t.get("name", "").lower().split())
+                        if _a_name and _t_name:
+                            _lf_lookup[f"{_a_name}|||{_t_name}"] = _t_uri
+                            break
+
+                # Loved tracks → 1.15× boost
+                _loved = _lf_user_mod.get_user_loved_tracks(
+                    _lf_sess_key, _lf_active_key, _lf_sess_user, limit=500
+                )
+                _loved_matched = 0
+                for _lk in _loved:
+                    _matched_uri = _lf_lookup.get(_lk)
+                    if _matched_uri:
+                        _lb_top_uris[_matched_uri] = max(
+                            _lb_top_uris.get(_matched_uri, 1.0), 1.15
+                        )
+                        _loved_matched += 1
+
+                # Top tracks → up to 1.10× boost (normalised play count)
+                _lf_top = _lf_user_mod.get_user_top_tracks(
+                    _lf_active_key, _lf_sess_user, period="6month", limit=200
+                )
+                _top_matched = 0
+                for _lk, _lw in _lf_top.items():
+                    _matched_uri = _lf_lookup.get(_lk)
+                    if _matched_uri and _matched_uri not in _lb_top_uris:
+                        _lb_top_uris[_matched_uri] = 1.0 + (_lw * 0.10)
+                        _top_matched += 1
+
+                if _loved_matched or _top_matched:
+                    step(
+                        f"Last.fm personal boost — {_loved_matched} loved · "
+                        f"{_top_matched} top tracks prioritised",
+                        68,
+                    )
+    except Exception as _lf_user_err:
+        step(f"Last.fm personal boost skipped: {_lf_user_err}", 68)
+
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 
@@ -638,6 +708,32 @@ def execute_library_scan(
     )
     if _proxy_n:
         step(f"Metadata audio proxy — {_proxy_n} tracks (tags/genres heuristics)", 61)
+
+    # ── Tag-derived genre backfill ───────────────────────────────────────────────
+    # Artists with no genre data (Spotify/Deezer/Discogs/AudioDB all missed them)
+    # often have genre-like tags from Last.fm / AudioDB tags (e.g. "hip-hop", "pop",
+    # "rock").  Add those tag keys to artist_genres_map so to_macro() can categorise
+    # them, shrinking the "Other" bucket on the Genres/Stats pages.
+    _artists_without_genres: dict[str, set] = {}
+    for _bt in all_tracks:
+        _buri = _bt.get("uri", "")
+        _btags = track_tags.get(_buri) or {}
+        if not _btags:
+            continue
+        for _ba in _bt.get("artists", []):
+            _baid = _ba.get("id", "")
+            if _baid and not artist_genres_map.get(_baid):
+                if _baid not in _artists_without_genres:
+                    _artists_without_genres[_baid] = set()
+                _artists_without_genres[_baid].update(_btags.keys())
+    _backfilled_n = 0
+    for _baid, _btag_keys in _artists_without_genres.items():
+        _synthesised = list(_btag_keys)
+        if _synthesised:
+            artist_genres_map[_baid] = _synthesised
+            _backfilled_n += 1
+    if _backfilled_n:
+        step(f"Genre backfill — {_backfilled_n} artists enriched from tags (reduces 'Other')", 62)
 
     step("Building track profiles...", 62)
     profiles = profile_mod.build_all(all_tracks, artist_genres_map, audio_features_map, track_tags)
@@ -908,4 +1004,31 @@ def execute_library_scan(
         delattr(cfg, "SCAN_LYRIC_WEIGHT")
     except AttributeError:
         pass
+
+    # ── Auto-save serializable snapshot (so browser refresh doesn't lose scan) ─
+    _snapshot_path = os.path.join(_ROOT if "_ROOT" in dir() else os.path.dirname(os.path.abspath(__file__)), "..", "outputs", ".last_scan_snapshot.json")
+    try:
+        import json as _json
+        _SKIP_KEYS = {"sp"}  # spotipy client is not JSON-serializable
+        _snap = {}
+        for _sk, _sv in payload.items():
+            if _sk in _SKIP_KEYS:
+                continue
+            try:
+                _json.dumps(_sv)    # probe serializability
+                _snap[_sk] = _sv
+            except (TypeError, ValueError):
+                pass
+        _snap["_snapshot_ts"] = __import__("time").time()
+        _snap_dir = os.path.dirname(_snapshot_path)
+        os.makedirs(_snap_dir, exist_ok=True)
+        # Atomic write: write to temp file then rename so a crash mid-write
+        # never leaves a corrupt snapshot on disk.
+        _tmp_path = _snapshot_path + ".tmp"
+        with open(_tmp_path, "w", encoding="utf-8") as _sf:
+            _json.dump(_snap, _sf, ensure_ascii=False)
+        os.replace(_tmp_path, _snapshot_path)
+    except Exception:
+        pass   # never block the return on snapshot failure
+
     return payload, _lyrics_lang_map

@@ -83,7 +83,13 @@ LISTENBRAINZ_TOKEN    = os.getenv("LISTENBRAINZ_TOKEN", "")
 LISTENBRAINZ_USERNAME = os.getenv("LISTENBRAINZ_USERNAME", "")
 
 # ── Last.fm ────────────────────────────────────────────────────────────────────
-# Free API key at: https://www.last.fm/api/account/create
+# VIBESORT_LASTFM_API_KEY / SECRET — shared Vibesort app credentials.
+# Register once at https://www.last.fm/api/account/create, paste here.
+# End users will see a "Connect with Last.fm" button and never need their own key.
+VIBESORT_LASTFM_API_KEY    = os.getenv("VIBESORT_LASTFM_API_KEY",    "bc42469eca89948643d4404101f51666")
+VIBESORT_LASTFM_API_SECRET = os.getenv("VIBESORT_LASTFM_API_SECRET", "c0821c213e0408c2e9353f514fd56d3b")
+
+# Per-user overrides (advanced / manual setup, rarely needed)
 LASTFM_API_KEY    = os.getenv("LASTFM_API_KEY",    "")
 LASTFM_API_SECRET = os.getenv("LASTFM_API_SECRET", "")
 LASTFM_USERNAME   = os.getenv("LASTFM_USERNAME",   "")

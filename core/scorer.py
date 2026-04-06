@@ -484,8 +484,18 @@ def negative_filter_penalty(
     penalty = 0.0
 
     if forbidden_t and track_tags:
+        from core.profile import _TAG_TO_CLUSTER  # noqa: PLC0415
+        # Resolve each forbidden tag to its canonical cluster name so the check
+        # works even when packs.json uses raw tag names ("worship", "gym", etc.)
+        # instead of cluster names ("spiritual", "hype").
+        resolved_ft = set()
+        for ft in forbidden_t:
+            resolved_ft.add(ft)
+            cluster = _TAG_TO_CLUSTER.get(ft)
+            if cluster:
+                resolved_ft.add(cluster)
         for tag, weight in track_tags.items():
-            for ft in forbidden_t:
+            for ft in resolved_ft:
                 if tag == ft or tag.startswith(ft) or ft.startswith(tag):
                     penalty += weight * 0.6  # proportional to how strongly the track is tagged
                     break
@@ -962,16 +972,25 @@ def semantic_score(profile: dict, mood_name: str) -> float:
     if not track_tags:
         return 0.0
 
+    from core.profile import _TAG_TO_CLUSTER  # noqa: PLC0415
+
     weighted_overlap = 0.0
     for dim, mood_weight in sem_core.items():
         if dim in track_tags:
             weighted_overlap += track_tags[dim] * mood_weight
         else:
-            # lyr_* prefix expansion: "lyr_dark" satisfies the "dark" semantic dimension.
-            # Lyrics-derived mood signals are real but slightly less reliable than direct tags.
-            lyr_key = "lyr_" + dim
-            if lyr_key in track_tags:
-                weighted_overlap += track_tags[lyr_key] * mood_weight * 0.85
+            # Cluster resolution: dim may be a cluster MEMBER, not a cluster name.
+            # e.g. "peaceful" → "calm", "worship" → "spiritual", "atmospheric" → "ambient"
+            # Use the same inverted-lookup table that collapse_tags uses.
+            cluster = _TAG_TO_CLUSTER.get(dim)
+            if cluster and cluster in track_tags:
+                weighted_overlap += track_tags[cluster] * mood_weight * 0.9
+            else:
+                # lyr_* prefix expansion: "lyr_dark" satisfies the "dark" semantic dimension.
+                # Lyrics-derived mood signals are real but slightly less reliable than direct tags.
+                lyr_key = "lyr_" + dim
+                if lyr_key in track_tags:
+                    weighted_overlap += track_tags[lyr_key] * mood_weight * 0.85
 
     max_possible = sum(sem_core.values())
     if max_possible == 0:

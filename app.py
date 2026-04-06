@@ -36,7 +36,7 @@ from core.mood_graph import mood_display_name
 inject()
 
 # ── OAuth callback interception ───────────────────────────────────────────────
-# The GitHub Pages proxy always redirects to the root URL (?code=...).
+# The GitHub Pages proxy always redirects to the root URL (?code=... or ?token=...).
 _code  = st.query_params.get("code")
 _state = st.query_params.get("state", "")
 if _code:
@@ -44,7 +44,23 @@ if _code:
     st.session_state["_pending_state"] = _state
     st.query_params.clear()
 
+# Last.fm web-auth sends ?token= (distinct from Spotify's ?code=)
+_lastfm_token = st.query_params.get("token")
+if _lastfm_token and not _code:   # avoid picking up unrelated ?token= params
+    st.session_state["_pending_lastfm_token"] = _lastfm_token
+    st.query_params.clear()
+
 import config as cfg
+
+# ── Last.fm session restore (survives page reload) ────────────────────────────
+if not st.session_state.get("lastfm_session"):
+    try:
+        from core.lastfm import load_session as _lf_load
+        _lf_sess = _lf_load()
+        if _lf_sess:
+            st.session_state["lastfm_session"] = _lf_sess
+    except Exception:
+        pass
 
 # ── Session state defaults (prevent KeyError on first load / rerun) ───────────
 st.session_state.setdefault("observed_mood_tags",   {})
@@ -57,16 +73,72 @@ st.session_state.setdefault("playlist_expansion",    True)
 st.session_state.setdefault("allow_mvp_fallback",    getattr(cfg, "ALLOW_MVP_FALLBACK", True))
 st.session_state.setdefault("scan_corpus_mode",      "full_library")
 
+# ── Snapshot resume: restore last scan if session was lost ───────────────────
+# Offer to load the on-disk snapshot when the user is connected but has no scan
+# in memory (e.g. browser refresh, app restart while Spotify token is still valid).
+if (
+    st.session_state.get("spotify_token")
+    and not st.session_state.get("vibesort")
+    and not st.session_state.get("_snapshot_declined")
+):
+    _snap_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs", ".last_scan_snapshot.json")
+    if os.path.exists(_snap_path):
+        try:
+            import json as _json, time as _time
+            with open(_snap_path, "r", encoding="utf-8") as _sf:
+                _snap = _json.load(_sf)
+            # Validate snapshot has the minimum required keys before offering it
+            _REQUIRED = {"all_tracks", "mood_results", "profiles", "genre_map"}
+            if not _REQUIRED.issubset(_snap.keys()):
+                raise ValueError("snapshot missing required keys")
+            _snap_age_h = (_time.time() - _snap.get("_snapshot_ts", 0)) / 3600
+            if _snap_age_h < 24 and _snap.get("mood_results"):
+                _n_moods  = len(_snap.get("mood_results", {}))
+                _n_tracks = len(_snap.get("all_tracks", []))
+                _age_str  = f"{int(_snap_age_h)}h ago" if _snap_age_h >= 1 else f"{int(_snap_age_h * 60)}m ago"
+                _c1, _c2, _c3 = st.columns([5, 2, 2])
+                with _c1:
+                    st.info(
+                        f"**Previous scan available** ({_age_str}) — "
+                        f"{_n_tracks} songs · {_n_moods} moods. "
+                        "Load it or run a fresh scan."
+                    )
+                with _c2:
+                    if st.button("Load previous scan", use_container_width=True, type="primary"):
+                        _snap.pop("_snapshot_ts", None)
+                        st.session_state["vibesort"] = _snap
+                        st.session_state["mood_results"]     = _snap.get("mood_results", {})
+                        st.session_state["profiles"]         = _snap.get("profiles", {})
+                        st.session_state["user_tag_prefs"]   = _snap.get("user_tag_prefs", {})
+                        st.session_state["observed_mood_tags"] = _snap.get("observed_mood_tags", {})
+                        st.rerun()
+                with _c3:
+                    if st.button("Dismiss", use_container_width=True):
+                        st.session_state["_snapshot_declined"] = True
+                        st.rerun()
+        except Exception:
+            pass
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _feature_status() -> dict:
     """Return dict of which enrichment sources are configured/active."""
     vibesort   = st.session_state.get("vibesort", {})
     scan_flags = vibesort.get("scan_flags", {})
+    _lf_active = bool(
+        getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+        or getattr(cfg, "LASTFM_API_KEY", "").strip()
+        or st.session_state.get("lastfm_api_key_runtime", "")
+        or (st.session_state.get("lastfm_session") or {}).get("key")
+    )
+    _lb_active = bool(
+        st.session_state.get("listenbrainz_token_runtime")
+        or getattr(cfg, "LISTENBRAINZ_TOKEN", "").strip()
+    )
     return {
         "spotify":       bool(st.session_state.get("spotify_token")),
-        "lastfm":        bool(getattr(cfg, "LASTFM_API_KEY",    "").strip()),
-        "listenbrainz":  bool(getattr(cfg, "LISTENBRAINZ_TOKEN","").strip()),
+        "lastfm":        _lf_active,
+        "listenbrainz":  _lb_active,
         "genius":        bool(getattr(cfg, "GENIUS_API_KEY",   "").strip()),
         "deezer":        True,
         "lyrics":        True,
