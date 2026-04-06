@@ -134,5 +134,25 @@ LOCAL_MUSIC_PATH  = os.getenv("LOCAL_MUSIC_PATH", "")
 # ── MusicBrainz ───────────────────────────────────────────────────────────────
 MUSICBRAINZ_ENRICH = os.getenv("MUSICBRAINZ_ENRICH", "false").lower() == "true"
 
+# ── Navidrome / Jellyfin (OpenSubsonic API) ────────────────────────────────────
+# https://www.navidrome.org/ — starred tracks + local genre tags.
+# Both Navidrome and Jellyfin (with OpenSubsonic plugin) are supported.
+NAVIDROME_URL  = os.getenv("NAVIDROME_URL",  "")
+NAVIDROME_USER = os.getenv("NAVIDROME_USER", "")
+NAVIDROME_PASS = os.getenv("NAVIDROME_PASS", "")
+
+# ── Apple Music ───────────────────────────────────────────────────────────────
+# Path to your Apple Music / iTunes Library XML export.
+# In Apple Music: File → Library → Export Library... → save the .xml file.
+# Defaults to ~/Music/Music/Music Library.xml if not set.
+APPLE_MUSIC_XML_PATH = os.getenv("APPLE_MUSIC_XML_PATH", "")
+
+# ── Plex Media Server ─────────────────────────────────────────────────────────
+# https://www.plex.tv/ — rated/played tracks + local genre tags.
+# PLEX_URL: full base URL (e.g. http://localhost:32400)
+# PLEX_TOKEN: Settings → Troubleshooting → "Download logs" → search X-Plex-Token
+PLEX_URL   = os.getenv("PLEX_URL",   "")
+PLEX_TOKEN = os.getenv("PLEX_TOKEN", "")
+
 # Staging
 STAGING_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "staging", "playlists")

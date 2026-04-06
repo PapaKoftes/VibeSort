@@ -801,6 +801,114 @@ def execute_library_scan(
         except Exception as _rym_err:
             step(f"RYM import skipped: {_rym_err}", 74)
 
+    # ── Navidrome / Jellyfin (OpenSubsonic) enrichment ───────────────────────
+    # Starred tracks from Navidrome/Jellyfin → 1.15× boost in _lb_top_uris.
+    # Artist genres from local file tags fill gaps in artist_genres_map.
+    _nd_url   = getattr(cfg, "NAVIDROME_URL",  "").strip()
+    _nd_user  = getattr(cfg, "NAVIDROME_USER", "").strip()
+    _nd_pass  = getattr(cfg, "NAVIDROME_PASS", "").strip()
+    _has_navidrome = False
+    if _nd_url and _nd_user and _nd_pass:
+        try:
+            from core import navidrome as _nd_mod
+            step("Fetching Navidrome starred tracks & genres...", 75)
+            _nd_starred = _nd_mod.get_starred(_nd_url, _nd_user, _nd_pass)
+            if _nd_starred:
+                _nd_boosts = _nd_mod.match_to_spotify(_nd_starred, all_tracks)
+                for _uri, _boost in _nd_boosts.items():
+                    _lb_top_uris[_uri] = max(_lb_top_uris.get(_uri, 1.0), _boost)
+                _has_navidrome = bool(_nd_boosts)
+                step(f"Navidrome done — {len(_nd_boosts)} starred tracks boosted", 75)
+            # Artist genre fill
+            _nd_genres = _nd_mod.get_artist_genres(_nd_url, _nd_user, _nd_pass)
+            _nd_genre_added = 0
+            for _nd_aname, _nd_agenres in _nd_genres.items():
+                if not _nd_agenres:
+                    continue
+                for _t in all_tracks:
+                    for _a in _t.get("artists", []):
+                        if _a.get("name", "").lower() == _nd_aname:
+                            _aid = _a.get("id", "")
+                            if _aid and not artist_genres_map.get(_aid):
+                                artist_genres_map[_aid] = _nd_agenres
+                                _nd_genre_added += 1
+            if _nd_genre_added:
+                _has_genres = True
+                step(f"Navidrome genres — {_nd_genre_added} artists enriched", 76)
+        except Exception as _nd_err:
+            step(f"Navidrome enrichment skipped: {_nd_err}", 76)
+
+    # ── Plex Media Server enrichment ──────────────────────────────────────────
+    # Rated/recently-played tracks from Plex → boost in _lb_top_uris.
+    # Artist genre tags from embedded file metadata → fill artist_genres_map.
+    _plex_url   = getattr(cfg, "PLEX_URL",   "").strip()
+    _plex_token = getattr(cfg, "PLEX_TOKEN", "").strip()
+    _has_plex = False
+    if _plex_url and _plex_token:
+        try:
+            from core import plex as _plex_mod
+            step("Fetching Plex library tracks & ratings...", 76)
+            _plex_tracks = _plex_mod.get_tracks(_plex_url, _plex_token)
+            if _plex_tracks:
+                _plex_boosts = _plex_mod.match_to_spotify(_plex_tracks, all_tracks)
+                for _uri, _boost in _plex_boosts.items():
+                    _lb_top_uris[_uri] = max(_lb_top_uris.get(_uri, 1.0), _boost)
+                _has_plex = bool(_plex_boosts)
+                step(f"Plex done — {len(_plex_boosts)} rated/recent tracks boosted", 77)
+            # Artist genre fill from Plex file tags
+            _plex_genres = _plex_mod.get_artist_genres(_plex_url, _plex_token)
+            _plex_genre_added = 0
+            for _px_aname, _px_agenres in _plex_genres.items():
+                if not _px_agenres:
+                    continue
+                for _t in all_tracks:
+                    for _a in _t.get("artists", []):
+                        if _a.get("name", "").lower() == _px_aname:
+                            _aid = _a.get("id", "")
+                            if _aid and not artist_genres_map.get(_aid):
+                                artist_genres_map[_aid] = _px_agenres
+                                _plex_genre_added += 1
+            if _plex_genre_added:
+                _has_genres = True
+                step(f"Plex genres — {_plex_genre_added} artists enriched", 77)
+        except Exception as _plex_err:
+            step(f"Plex enrichment skipped: {_plex_err}", 77)
+
+    # ── Apple Music XML enrichment ────────────────────────────────────────────
+    # Loved/rated/played tracks from the user's Apple Music library export.
+    # Pure stdlib — no dependencies. Loved tracks → 1.15×, high play count → up
+    # to 1.10×. Genre tags from embedded file metadata fill artist_genres_map.
+    _am_xml = getattr(cfg, "APPLE_MUSIC_XML_PATH", "").strip()
+    _has_apple_music = False
+    try:
+        from core import apple_music as _am_mod
+        if _am_mod.is_available(_am_xml or None):
+            step("Importing Apple Music library...", 78)
+            _am_artist_genres, _am_track_info = _am_mod.parse_library(_am_xml or None)
+            if _am_track_info:
+                _am_boosts = _am_mod.match_to_spotify(_am_track_info, all_tracks)
+                for _uri, _boost in _am_boosts.items():
+                    _lb_top_uris[_uri] = max(_lb_top_uris.get(_uri, 1.0), _boost)
+                _has_apple_music = bool(_am_boosts)
+                step(f"Apple Music done — {len(_am_boosts)} loved/rated/played tracks boosted", 78)
+            # Genre fill from embedded tags
+            _am_genre_added = 0
+            for _am_aname, _am_agenres in _am_artist_genres.items():
+                if not _am_agenres:
+                    continue
+                for _t in all_tracks:
+                    for _a in _t.get("artists", []):
+                        if _a.get("name", "").lower() == _am_aname:
+                            _aid = _a.get("id", "")
+                            if _aid and not artist_genres_map.get(_aid):
+                                artist_genres_map[_aid] = _am_agenres
+                                _am_genre_added += 1
+            if _am_genre_added:
+                _has_genres = True
+                step(f"Apple Music genres — {_am_genre_added} artists enriched", 79)
+    except Exception as _am_err:
+        step(f"Apple Music enrichment skipped: {_am_err}", 79)
+
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 
@@ -1119,6 +1227,9 @@ def execute_library_scan(
             "has_lyrics": _has_lyrics,
             "has_listenbrainz": _has_listenbrainz,
             "has_maloja": _has_maloja,
+            "has_navidrome": _has_navidrome,
+            "has_plex": _has_plex,
+            "has_apple_music": _has_apple_music,
             "has_discogs": _has_discogs,
             "has_genius": _has_genius,
             "weights": _weights,

@@ -378,7 +378,7 @@ with r5b:
                 pass
 
 st.markdown("#### Self-hosted Listening History")
-r6a, _r6b = st.columns(2)
+r6a, r6b = st.columns(2)
 
 with r6a:
     with st.container(border=True):
@@ -390,6 +390,76 @@ with r6a:
         st.caption(
             "[maloja.krateng.ch](https://maloja.krateng.ch) — "
             "set `MALOJA_URL` + `MALOJA_TOKEN` in `.env` or Connect page."
+        )
+
+st.markdown("#### Self-hosted Music Servers")
+r7a, r7b = st.columns(2)
+
+_nd_url  = getattr(cfg, "NAVIDROME_URL",  "").strip()
+_nd_user = getattr(cfg, "NAVIDROME_USER", "").strip()
+_plex_url   = getattr(cfg, "PLEX_URL",   "").strip()
+_plex_token = getattr(cfg, "PLEX_TOKEN", "").strip()
+
+with r7a:
+    with st.container(border=True):
+        st.markdown("**Navidrome / Jellyfin** · OpenSubsonic server")
+        if _nd_url and _nd_user:
+            st.success(f"Connected — {_nd_url} (as {_nd_user})")
+            try:
+                from core import navidrome as _ndm
+                _nd_cache = _ndm._session_cache.get(f"{_nd_url}:{_nd_user}", {})
+                if _nd_cache.get("starred"):
+                    st.caption(f"Cache: {len(_nd_cache['starred'])} starred tracks")
+            except Exception:
+                pass
+        else:
+            st.info("Optional — starred tracks & local genre tags. Connect on the Connect page.")
+        st.caption(
+            "[navidrome.org](https://www.navidrome.org) / [jellyfin.org](https://jellyfin.org) — "
+            "set `NAVIDROME_URL`, `NAVIDROME_USER`, `NAVIDROME_PASS` in `.env` or Connect page."
+        )
+
+with r7b:
+    with st.container(border=True):
+        st.markdown("**Plex** · Plex Media Server")
+        if _plex_url and _plex_token:
+            st.success(f"Connected — {_plex_url}")
+            try:
+                from core import plex as _plexm
+                _plex_cache = _plexm._session_cache.get(f"{_plex_url}:tracks", {})
+                if _plex_cache.get("tracks"):
+                    st.caption(f"Cache: {len(_plex_cache['tracks'])} tracks")
+            except Exception:
+                pass
+        else:
+            st.info("Optional — rated/played tracks & local genre tags. Connect on the Connect page.")
+        st.caption(
+            "[plex.tv](https://www.plex.tv) — "
+            "set `PLEX_URL` + `PLEX_TOKEN` in `.env` or Connect page."
+        )
+
+_am_xml_path = getattr(cfg, "APPLE_MUSIC_XML_PATH", "").strip()
+st.markdown("#### Apple Music")
+r8a, _r8b = st.columns(2)
+with r8a:
+    with st.container(border=True):
+        st.markdown("**Apple Music** · Library XML import")
+        try:
+            from core import apple_music as _amm
+            _am_st = _amm.library_stats(_am_xml_path or None)
+            if _am_st.get("available"):
+                st.success(
+                    f"Loaded — {_am_st['total_tracks']:,} tracks · "
+                    f"{_am_st['loved']} loved · {_am_st['rated_4plus']} rated 4+"
+                )
+                st.caption(f"`{_am_st['xml_path']}`")
+            else:
+                st.info("Optional — loved/rated tracks & genre tags from your Apple Music library.")
+        except Exception:
+            st.info("Optional — loved/rated tracks & genre tags from your Apple Music library.")
+        st.caption(
+            "Export from Apple Music: File → Library → Export Library... — "
+            "set `APPLE_MUSIC_XML_PATH` in `.env` or Connect page."
         )
 
 st.divider()

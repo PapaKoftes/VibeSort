@@ -604,6 +604,228 @@ else:
 
 st.divider()
 
+# ── Navidrome / Jellyfin connection ───────────────────────────────────────────
+st.subheader("Navidrome / Jellyfin  ·  Self-hosted music server")
+st.caption(
+    "Uses the OpenSubsonic API. Starred tracks get a boost in playlist scoring. "
+    "Local file genre tags fill gaps that Spotify doesn't cover. "
+    "Works with Navidrome, Jellyfin, Airsonic-Advanced, and any OpenSubsonic server."
+)
+
+_nd_url_saved   = st.session_state.get("navidrome_url_runtime")   or getattr(cfg, "NAVIDROME_URL",  "").strip()
+_nd_user_saved  = st.session_state.get("navidrome_user_runtime")  or getattr(cfg, "NAVIDROME_USER", "").strip()
+_nd_pass_saved  = st.session_state.get("navidrome_pass_runtime")  or getattr(cfg, "NAVIDROME_PASS", "").strip()
+
+if _nd_url_saved and _nd_user_saved and _nd_pass_saved:
+    st.success(f"✅ Navidrome connected — {_nd_url_saved} (as **{_nd_user_saved}**)")
+    if st.button("Disconnect Navidrome", key="nd_disconnect"):
+        for _k in ("NAVIDROME_URL", "NAVIDROME_USER", "NAVIDROME_PASS"):
+            _update_env_key(_k, "")
+        try:
+            cfg.NAVIDROME_URL  = ""
+            cfg.NAVIDROME_USER = ""
+            cfg.NAVIDROME_PASS = ""
+        except Exception:
+            pass
+        for _sk in ("navidrome_url_runtime", "navidrome_user_runtime", "navidrome_pass_runtime"):
+            st.session_state.pop(_sk, None)
+        st.rerun()
+else:
+    with st.form("navidrome_form"):
+        st.markdown(
+            "Enter your Navidrome (or Jellyfin) server details below.\n"
+            "Credentials are stored locally in `.env` — never sent anywhere else."
+        )
+        _nd_url_in  = st.text_input("Server URL",  placeholder="http://localhost:4533", key="nd_url_in")
+        _nd_user_in = st.text_input("Username",    placeholder="admin",                 key="nd_user_in")
+        _nd_pass_in = st.text_input("Password",    type="password",                     key="nd_pass_in")
+        _nd_submit  = st.form_submit_button("Connect Navidrome", use_container_width=True)
+        if _nd_submit:
+            _nurl = (_nd_url_in  or "").strip().rstrip("/")
+            _nusr = (_nd_user_in or "").strip()
+            _npas = (_nd_pass_in or "").strip()
+            if not _nurl or not _nusr or not _npas:
+                st.error("Server URL, username, and password are all required.")
+            else:
+                try:
+                    from core import navidrome as _nd_mod
+                    _ninfo = _nd_mod.ping(_nurl, _nusr, _npas)
+                    if _ninfo:
+                        for _k, _v in [("NAVIDROME_URL", _nurl), ("NAVIDROME_USER", _nusr), ("NAVIDROME_PASS", _npas)]:
+                            _update_env_key(_k, _v)
+                        try:
+                            cfg.NAVIDROME_URL  = _nurl
+                            cfg.NAVIDROME_USER = _nusr
+                            cfg.NAVIDROME_PASS = _npas
+                        except Exception:
+                            pass
+                        st.session_state["navidrome_url_runtime"]  = _nurl
+                        st.session_state["navidrome_user_runtime"] = _nusr
+                        st.session_state["navidrome_pass_runtime"] = _npas
+                        st.success(
+                            f"✅ Connected to **{_ninfo.get('server', 'Navidrome')}** "
+                            f"v{_ninfo.get('version', '?')}. Re-scan to use starred tracks."
+                        )
+                        st.rerun()
+                    else:
+                        st.error("Could not reach the server. Check the URL and credentials.")
+                except Exception as _nde:
+                    st.error(f"Connection error: {_nde}")
+
+st.divider()
+
+# ── Plex connection ───────────────────────────────────────────────────────────
+st.subheader("Plex  ·  Plex Media Server")
+st.caption(
+    "Rated and recently-played tracks get a priority boost. "
+    "Local file genre tags fill enrichment gaps. "
+    "Requires your Plex token — find it in Settings → Troubleshooting on plex.tv."
+)
+
+_plex_url_saved   = st.session_state.get("plex_url_runtime")   or getattr(cfg, "PLEX_URL",   "").strip()
+_plex_token_saved = st.session_state.get("plex_token_runtime") or getattr(cfg, "PLEX_TOKEN", "").strip()
+
+if _plex_url_saved and _plex_token_saved:
+    st.success(f"✅ Plex connected — {_plex_url_saved}")
+    if st.button("Disconnect Plex", key="plex_disconnect"):
+        _update_env_key("PLEX_URL",   "")
+        _update_env_key("PLEX_TOKEN", "")
+        try:
+            cfg.PLEX_URL   = ""
+            cfg.PLEX_TOKEN = ""
+        except Exception:
+            pass
+        st.session_state.pop("plex_url_runtime",   None)
+        st.session_state.pop("plex_token_runtime", None)
+        st.rerun()
+else:
+    with st.form("plex_form"):
+        st.markdown(
+            "1. Find your Plex token: **plex.tv** → Account → **Authorized Devices** → any device URL → `X-Plex-Token=...`\n"
+            "2. Your server URL is usually `http://localhost:32400` for local servers."
+        )
+        _px_url_in = st.text_input("Plex server URL",   placeholder="http://localhost:32400", key="px_url_in")
+        _px_tok_in = st.text_input("Plex token",        type="password",                      key="px_tok_in")
+        _px_submit = st.form_submit_button("Connect Plex", use_container_width=True)
+        if _px_submit:
+            _pxurl = (_px_url_in or "").strip().rstrip("/")
+            _pxtok = (_px_tok_in or "").strip()
+            if not _pxurl or not _pxtok:
+                st.error("Both server URL and token are required.")
+            else:
+                try:
+                    from core import plex as _plex_mod
+                    _pxinfo = _plex_mod.ping(_pxurl, _pxtok)
+                    if _pxinfo:
+                        _update_env_key("PLEX_URL",   _pxurl)
+                        _update_env_key("PLEX_TOKEN", _pxtok)
+                        try:
+                            cfg.PLEX_URL   = _pxurl
+                            cfg.PLEX_TOKEN = _pxtok
+                        except Exception:
+                            pass
+                        st.session_state["plex_url_runtime"]   = _pxurl
+                        st.session_state["plex_token_runtime"] = _pxtok
+                        st.success(
+                            f"✅ Connected to **{_pxinfo.get('server', 'Plex')}** "
+                            f"v{_pxinfo.get('version', '?')}. Re-scan to use your library."
+                        )
+                        st.rerun()
+                    else:
+                        st.error("Could not reach Plex. Check the URL and token.")
+                except Exception as _pxe:
+                    st.error(f"Connection error: {_pxe}")
+
+st.divider()
+
+# ── Apple Music connection ────────────────────────────────────────────────────
+st.subheader("Apple Music  ·  Library XML import")
+st.caption(
+    "Import your Apple Music loved tracks, ratings, and play counts. "
+    "No API key needed — just export your library from Apple Music and point Vibesort at the file. "
+    "Genre tags from your local file collection fill enrichment gaps."
+)
+
+_am_xml_saved = (
+    st.session_state.get("apple_music_xml_runtime")
+    or getattr(cfg, "APPLE_MUSIC_XML_PATH", "").strip()
+)
+
+try:
+    from core import apple_music as _am_mod_c
+    _am_stats = _am_mod_c.library_stats(_am_xml_saved or None)
+except Exception:
+    _am_stats = {"available": False}
+
+if _am_stats.get("available") and _am_xml_saved:
+    _am_total = _am_stats.get("total_tracks", 0)
+    _am_loved = _am_stats.get("loved", 0)
+    _am_rated = _am_stats.get("rated_4plus", 0)
+    st.success(
+        f"✅ Apple Music library loaded — {_am_total:,} tracks · "
+        f"{_am_loved} loved · {_am_rated} rated 4+"
+    )
+    st.caption(f"File: `{_am_xml_saved}`")
+    if st.button("Remove Apple Music library", key="am_disconnect"):
+        _update_env_key("APPLE_MUSIC_XML_PATH", "")
+        try:
+            cfg.APPLE_MUSIC_XML_PATH = ""
+        except Exception:
+            pass
+        st.session_state.pop("apple_music_xml_runtime", None)
+        st.rerun()
+else:
+    with st.form("apple_music_form"):
+        st.markdown(
+            "1. Open **Apple Music** (or iTunes)\n"
+            "2. Go to **File → Library → Export Library...**\n"
+            "3. Save the `.xml` file somewhere accessible\n"
+            "4. Paste the full path below  _(or leave blank to use the default location)_"
+        )
+        _am_path_in = st.text_input(
+            "Path to Music Library.xml",
+            placeholder="~/Music/Music/Music Library.xml  (auto-detected if blank)",
+            key="am_path_in",
+        )
+        _am_submit = st.form_submit_button("Load Apple Music Library", use_container_width=True)
+        if _am_submit:
+            _ampath = (_am_path_in or "").strip()
+            # Expand ~ and env vars
+            _ampath = os.path.expandvars(os.path.expanduser(_ampath)) if _ampath else ""
+            try:
+                from core import apple_music as _am_mod_c2
+                _test_stats = _am_mod_c2.library_stats(_ampath or None)
+                if _test_stats.get("available"):
+                    _real_path = _test_stats["xml_path"]
+                    _update_env_key("APPLE_MUSIC_XML_PATH", _real_path)
+                    try:
+                        cfg.APPLE_MUSIC_XML_PATH = _real_path
+                    except Exception:
+                        pass
+                    st.session_state["apple_music_xml_runtime"] = _real_path
+                    st.success(
+                        f"✅ Found {_test_stats['total_tracks']:,} tracks "
+                        f"({_test_stats['loved']} loved). Re-scan to use it."
+                    )
+                    st.rerun()
+                else:
+                    _default_paths = [
+                        "~/Music/Music/Music Library.xml",
+                        "~/Music/iTunes/iTunes Music Library.xml",
+                    ]
+                    st.error(
+                        "Library file not found. Try exporting from Apple Music: "
+                        "File → Library → Export Library..."
+                    )
+                    st.caption(
+                        f"Default locations checked: {', '.join(_default_paths)}"
+                        + (f" + `{_ampath}`" if _ampath else "")
+                    )
+            except Exception as _ame:
+                st.error(f"Could not read library: {_ame}")
+
+st.divider()
+
 # ── Genius connection ─────────────────────────────────────────────────────────
 st.subheader("Genius  ·  Lyrics enrichment (optional)")
 st.caption(
