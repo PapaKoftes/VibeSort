@@ -374,19 +374,29 @@ def render_scan_quality_strip(vibesort: dict, title: str = "Scan Data Quality") 
     else:
         _lb_line = "⚠️ listenbrainz (connect in Settings → Connect page)"
 
+    _mj_url = bool(getattr(_cfg, "MALOJA_URL", "").strip())
+    _mj_tok = bool(getattr(_cfg, "MALOJA_TOKEN", "").strip())
+    _mj_matched = bool(flags.get("has_maloja", False))
+    if _mj_matched:
+        _mj_line = "✅ maloja (self-hosted scrobbles boosting tracks)"
+    elif _mj_url and _mj_tok:
+        _mj_line = "ℹ️ maloja (configured — no overlap found; boosts inactive)"
+    else:
+        _mj_line = None  # not configured — omit from strip
+
+    _strip_items = [
+        _badge(flags.get("has_tags", False), "tags"),
+        _badge(flags.get("has_genres", False), "genres"),
+        _badge(flags.get("has_lyrics", False), "lyrics"),
+        _lb_line,
+    ]
+    if _mj_line:
+        _strip_items.append(_mj_line)
+    _strip_items.append(_badge(flags.get("has_audio", False), "audio"))
+
     with st.container(border=True):
         st.markdown(f"#### {title}")
-        st.caption(
-            " · ".join(
-                [
-                    _badge(flags.get("has_tags", False), "tags"),
-                    _badge(flags.get("has_genres", False), "genres"),
-                    _badge(flags.get("has_lyrics", False), "lyrics"),
-                    _lb_line,
-                    _badge(flags.get("has_audio", False), "audio"),
-                ]
-            )
-        )
+        st.caption(" · ".join(_strip_items))
         st.caption(
             f"Corpus: {corpus_label} | "
             f"Weights A/T/S/G: {weights[0]:.2f}/{weights[1]:.2f}/{weights[2]:.2f}/{weights[3]:.2f}"

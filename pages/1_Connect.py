@@ -519,6 +519,144 @@ else:
 
 st.divider()
 
+# ── Maloja connection ─────────────────────────────────────────────────────────
+st.subheader("Maloja  ·  Self-hosted scrobble server")
+st.caption(
+    "Run your own Last.fm-compatible scrobble server. "
+    "Play counts from Maloja are used to boost frequently-listened tracks, "
+    "same as ListenBrainz. [maloja.krateng.ch](https://maloja.krateng.ch)"
+)
+
+_maloja_url_saved = (
+    st.session_state.get("maloja_url_runtime")
+    or getattr(cfg, "MALOJA_URL", "").strip()
+)
+_maloja_token_saved = (
+    st.session_state.get("maloja_token_runtime")
+    or getattr(cfg, "MALOJA_TOKEN", "").strip()
+)
+
+if _maloja_url_saved and _maloja_token_saved:
+    st.success(f"✅ Maloja connected — {_maloja_url_saved}")
+    _c1_m, _c2_m = st.columns([3, 1])
+    with _c2_m:
+        if st.button("Disconnect Maloja", key="maloja_disconnect"):
+            _update_env_key("MALOJA_URL", "")
+            _update_env_key("MALOJA_TOKEN", "")
+            try:
+                cfg.MALOJA_URL   = ""
+                cfg.MALOJA_TOKEN = ""
+            except Exception:
+                pass
+            st.session_state.pop("maloja_url_runtime", None)
+            st.session_state.pop("maloja_token_runtime", None)
+            st.rerun()
+else:
+    with st.form("maloja_form"):
+        st.markdown(
+            "1. Run Maloja and open its admin panel\n"
+            "2. Go to **Settings → API** and copy the API token\n"
+            "3. Paste your server URL and token below"
+        )
+        _m_url = st.text_input(
+            "Maloja server URL",
+            placeholder="http://localhost:42010",
+            key="maloja_url_input",
+        )
+        _m_tok = st.text_input(
+            "Maloja API token",
+            type="password",
+            placeholder="Your Maloja API token",
+            key="maloja_token_input",
+        )
+        _m_submit = st.form_submit_button("Connect Maloja", use_container_width=True)
+        if _m_submit:
+            _murl = (_m_url or "").strip().rstrip("/")
+            _mtok = (_m_tok or "").strip()
+            if not _murl or not _mtok:
+                st.error("Both URL and token are required.")
+            else:
+                try:
+                    from core import maloja as _maloja_mod
+                    _info = _maloja_mod.ping(_murl, _mtok)
+                    if _info:
+                        _update_env_key("MALOJA_URL",   _murl)
+                        _update_env_key("MALOJA_TOKEN", _mtok)
+                        try:
+                            cfg.MALOJA_URL   = _murl
+                            cfg.MALOJA_TOKEN = _mtok
+                        except Exception:
+                            pass
+                        st.session_state["maloja_url_runtime"]   = _murl
+                        st.session_state["maloja_token_runtime"] = _mtok
+                        st.success(
+                            f"✅ Connected to **{_info.get('name', 'Maloja')}** "
+                            f"v{_info.get('version', '?')}. Re-scan to use your history."
+                        )
+                        st.rerun()
+                    else:
+                        st.error(
+                            "Could not reach the Maloja server. "
+                            "Check the URL and token, and make sure the server is running."
+                        )
+                except Exception as _me:
+                    st.error(f"Connection error: {_me}")
+
+st.divider()
+
+# ── Genius connection ─────────────────────────────────────────────────────────
+st.subheader("Genius  ·  Lyrics enrichment (optional)")
+st.caption(
+    "Genius is used as a fallback lyrics source when lrclib.net and lyrics.ovh miss a track. "
+    "Free API key at [genius.com/api-clients](https://genius.com/api-clients)."
+)
+
+_genius_key_saved = (
+    st.session_state.get("genius_api_key_runtime")
+    or getattr(cfg, "GENIUS_API_KEY", "").strip()
+)
+
+if _genius_key_saved:
+    _masked_g = _genius_key_saved[:6] + "•" * 20 + _genius_key_saved[-4:]
+    st.success(f"✅ Genius API key active ({_masked_g})")
+    if st.button("Remove Genius key", key="genius_disconnect"):
+        _update_env_key("GENIUS_API_KEY", "")
+        try:
+            cfg.GENIUS_API_KEY = ""
+        except Exception:
+            pass
+        st.session_state.pop("genius_api_key_runtime", None)
+        st.rerun()
+else:
+    with st.form("genius_form"):
+        st.markdown(
+            "1. Go to [genius.com/api-clients](https://genius.com/api-clients) and create a client\n"
+            "2. Copy the **Client Access Token**\n"
+            "3. Paste it below"
+        )
+        _g_key = st.text_input(
+            "Genius Client Access Token",
+            type="password",
+            placeholder="Paste your Genius access token",
+            key="genius_key_input",
+        )
+        _g_submit = st.form_submit_button("Save Genius key", use_container_width=True)
+        if _g_submit:
+            _gk = (_g_key or "").strip()
+            if len(_gk) < 16:
+                st.error("Key looks too short — check and try again.")
+            else:
+                _update_env_key("GENIUS_API_KEY", _gk)
+                try:
+                    cfg.GENIUS_API_KEY = _gk
+                except Exception:
+                    pass
+                st.session_state["genius_api_key_runtime"] = _gk
+                st.success("✅ Genius key saved. Re-scan to use it.")
+                st.rerun()
+
+st.divider()
+
 # ── Own Spotify app (bypass 25-user Dev Mode limit) ───────────────────────────
 with st.expander("Use your own Spotify app  ·  Bypass the 25-user limit"):
     st.markdown(

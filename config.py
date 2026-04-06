@@ -82,6 +82,13 @@ MINING_MAX_OWNED_PLAYLISTS = int(os.getenv("MINING_MAX_OWNED_PLAYLISTS", "48"))
 LISTENBRAINZ_TOKEN    = os.getenv("LISTENBRAINZ_TOKEN", "")
 LISTENBRAINZ_USERNAME = os.getenv("LISTENBRAINZ_USERNAME", "")
 
+# ── Maloja (self-hosted scrobble server) ───────────────────────────────────────
+# https://github.com/krateng/maloja — run your own Last.fm alternative.
+# MALOJA_URL: full base URL of your Maloja server (e.g. http://localhost:42010)
+# MALOJA_TOKEN: API token from Maloja admin → Settings → API Key
+MALOJA_URL   = os.getenv("MALOJA_URL",   "")
+MALOJA_TOKEN = os.getenv("MALOJA_TOKEN", "")
+
 # ── Last.fm ────────────────────────────────────────────────────────────────────
 # VIBESORT_LASTFM_API_KEY / SECRET — shared Vibesort app credentials.
 # Register once at https://www.last.fm/api/account/create, paste here.
@@ -100,6 +107,29 @@ DISCOGS_TOKEN      = os.getenv("DISCOGS_TOKEN", "")        # optional — raises
 
 # ── Genius ─────────────────────────────────────────────────────────────────────
 GENIUS_API_KEY = os.getenv("GENIUS_API_KEY", "")
+
+# ── Bandcamp ────────────────────────────────────────────────────────────────────
+# Your Bandcamp username (the one in bandcamp.com/username).
+# Collection must be public (or use session cookies — not yet supported).
+BANDCAMP_USERNAME = os.getenv("BANDCAMP_USERNAME", "")
+
+# ── beets music library ─────────────────────────────────────────────────────────
+# Absolute path to your beets library.db SQLite file.
+# Defaults to ~/.config/beets/library.db if not set.
+BEETS_DB_PATH = os.getenv("BEETS_DB_PATH", "")
+
+# ── Rate Your Music export ──────────────────────────────────────────────────────
+# Absolute path to your RYM ratings/collection CSV export file.
+# Export from: rateyourmusic.com → Profile → Export Data
+RYM_EXPORT_PATH = os.getenv("RYM_EXPORT_PATH", "")
+
+# ── AcoustID / Chromaprint ──────────────────────────────────────────────────────
+# Free API key at acoustid.org/login — used for fingerprinting local music files.
+ACOUSTID_API_KEY  = os.getenv("ACOUSTID_API_KEY", "")
+# Path to fpcalc binary (optional; auto-detected from PATH if not set).
+FPCALC_PATH       = os.getenv("FPCALC_PATH", "")
+# Root directory of local music files to fingerprint (optional).
+LOCAL_MUSIC_PATH  = os.getenv("LOCAL_MUSIC_PATH", "")
 
 # ── MusicBrainz ───────────────────────────────────────────────────────────────
 MUSICBRAINZ_ENRICH = os.getenv("MUSICBRAINZ_ENRICH", "false").lower() == "true"

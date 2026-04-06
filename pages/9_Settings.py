@@ -45,9 +45,15 @@ lb_user = (
     st.session_state.get("listenbrainz_username_runtime")
     or getattr(cfg, "LISTENBRAINZ_USERNAME", "").strip()
 )
-genius_key   = getattr(cfg, "GENIUS_API_KEY",      "").strip()
-mx_key       = getattr(cfg, "MUSIXMATCH_API_KEY",   "").strip()
-discogs_tok  = getattr(cfg, "DISCOGS_TOKEN",        "").strip()
+genius_key      = getattr(cfg, "GENIUS_API_KEY",      "").strip()
+mx_key          = getattr(cfg, "MUSIXMATCH_API_KEY",   "").strip()
+discogs_tok     = getattr(cfg, "DISCOGS_TOKEN",        "").strip()
+bandcamp_user   = getattr(cfg, "BANDCAMP_USERNAME",    "").strip()
+beets_db        = getattr(cfg, "BEETS_DB_PATH",        "").strip()
+rym_path        = getattr(cfg, "RYM_EXPORT_PATH",      "").strip()
+acoustid_key    = getattr(cfg, "ACOUSTID_API_KEY",     "").strip()
+local_music_dir = getattr(cfg, "LOCAL_MUSIC_PATH",     "").strip()
+maloja_url      = (st.session_state.get("maloja_url_runtime") or getattr(cfg, "MALOJA_URL", "").strip())
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -283,6 +289,108 @@ with r3b:
                 st.caption(f"Cache: {_mxn} tracks")
         except Exception:
             pass
+
+# Row 4: Phase 2 data sources
+st.markdown("#### Community & Local Sources")
+r4a, r4b = st.columns(2)
+
+with r4a:
+    with st.container(border=True):
+        st.markdown("**Bandcamp** · Underground taste signal")
+        if bandcamp_user:
+            st.success(f"Active — @{bandcamp_user}")
+        else:
+            st.info("Optional — your purchases/wishlist reveal underground genres")
+        st.caption(
+            "Set `BANDCAMP_USERNAME=` in `.env` or Connect page. "
+            "Collection must be public."
+        )
+        if bandcamp_user:
+            try:
+                from core.bandcamp import _load_cache as _bc_load
+                _bc_cache = _bc_load()
+                if bandcamp_user.lower() in _bc_cache:
+                    _n = len(_bc_cache[bandcamp_user.lower()].get("items", []))
+                    st.caption(f"Cache: {_n} collection items")
+            except Exception:
+                pass
+
+with r4b:
+    with st.container(border=True):
+        st.markdown("**beets** · Local library tags")
+        try:
+            from core import beets as _bm
+            _beets_ok = _bm.is_available(beets_db or None)
+        except Exception:
+            _beets_ok = False
+        if _beets_ok:
+            st.success("Database found — will enrich on next scan")
+            st.caption(f"Path: {beets_db or 'auto-detected'}")
+        else:
+            st.info("Optional — hand-curated genre/mood tags from beets library.db")
+        st.caption("Set `BEETS_DB_PATH=` in `.env` or leave blank to auto-detect `~/.config/beets/library.db`")
+
+r5a, r5b = st.columns(2)
+
+with r5a:
+    with st.container(border=True):
+        st.markdown("**Rate Your Music** · Deep genre taxonomy")
+        if rym_path and os.path.exists(rym_path):
+            st.success(f"Export found — {os.path.basename(rym_path)}")
+        elif rym_path:
+            st.warning(f"File not found: {rym_path}")
+        else:
+            st.info("Optional — 600+ micro-genres + mood descriptors from your RYM collection")
+        st.caption(
+            "Export from rateyourmusic.com → Profile → Export Data. "
+            "Set `RYM_EXPORT_PATH=` in `.env`."
+        )
+
+with r5b:
+    with st.container(border=True):
+        st.markdown("**AcoustID** · Audio fingerprinting")
+        try:
+            from core import acoustid as _aidm
+            _fpcalc_ok = _aidm.is_available()
+        except Exception:
+            _fpcalc_ok = False
+        if acoustid_key and _fpcalc_ok:
+            st.success("API key + fpcalc ready")
+            if local_music_dir:
+                st.caption(f"Music dir: {local_music_dir}")
+            else:
+                st.caption("Set `LOCAL_MUSIC_PATH=` to fingerprint local files")
+        elif acoustid_key:
+            st.warning("API key set but `fpcalc` not found on PATH")
+            st.caption("Install Chromaprint: acoustid.org/chromaprint")
+        else:
+            st.info("Optional — identify local files not in Spotify by audio fingerprint")
+        st.caption(
+            "Free key at acoustid.org/login. "
+            "Requires Chromaprint's `fpcalc` binary."
+        )
+        if acoustid_key:
+            try:
+                _ac_stats = _aidm.cache_stats()
+                if _ac_stats.get("fingerprints_cached"):
+                    st.caption(f"Cache: {_ac_stats['fingerprints_cached']} fingerprints")
+            except Exception:
+                pass
+
+st.markdown("#### Self-hosted Listening History")
+r6a, _r6b = st.columns(2)
+
+with r6a:
+    with st.container(border=True):
+        st.markdown("**Maloja** · Self-hosted scrobble server")
+        if maloja_url:
+            st.success(f"Connected — {maloja_url}")
+        else:
+            st.info("Optional — self-hosted Last.fm alternative. Connect on the Connect page.")
+        st.caption(
+            "[maloja.krateng.ch](https://maloja.krateng.ch) — "
+            "set `MALOJA_URL` + `MALOJA_TOKEN` in `.env` or Connect page."
+        )
 
 st.divider()
 

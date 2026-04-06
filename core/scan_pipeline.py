@@ -671,6 +671,136 @@ def execute_library_scan(
     except Exception as _lf_user_err:
         step(f"Last.fm personal boost skipped: {_lf_user_err}", 68)
 
+    # ── Maloja play-count boost ───────────────────────────────────────────────
+    # Maloja is a self-hosted scrobble server (open-source Last.fm alternative).
+    # We use it exactly like ListenBrainz: match top tracks by artist+title and
+    # apply a play-count-weighted boost multiplier to _lb_top_uris.
+    _maloja_url   = getattr(cfg, "MALOJA_URL",   "").strip()
+    _maloja_token = getattr(cfg, "MALOJA_TOKEN", "").strip()
+    _has_maloja   = False
+    if _maloja_url and _maloja_token:
+        try:
+            from core import maloja as _maloja_mod
+            step("Fetching Maloja listening history...", 69)
+            _mj_tracks = _maloja_mod.top_tracks(_maloja_url, _maloja_token, max_tracks=500)
+            if _mj_tracks:
+                _mj_max = max((t["scrobbles"] for t in _mj_tracks), default=1) or 1
+                _mj_lookup: dict[tuple, int] = {
+                    (t["artist"].lower().strip(), t["title"].lower().strip()): t["scrobbles"]
+                    for t in _mj_tracks
+                }
+                _mj_matched = 0
+                for _t in all_tracks:
+                    _uri = _t.get("uri", "")
+                    if not _uri:
+                        continue
+                    _t_title = _t.get("name", "").lower().strip()
+                    for _a in _t.get("artists", []):
+                        _lc = _mj_lookup.get((_a.get("name", "").lower().strip(), _t_title), 0)
+                        if _lc:
+                            _norm = _lc / _mj_max
+                            _boost = 1.05 + (_norm * 0.15)
+                            _lb_top_uris[_uri] = max(_lb_top_uris.get(_uri, 1.0), _boost)
+                            _mj_matched += 1
+                            break
+                _has_maloja = bool(_mj_matched)
+                step(f"Maloja done — {_mj_matched} frequently-played tracks prioritised", 69)
+            else:
+                step("Maloja: no scrobble history found", 69)
+        except Exception as _mj_err:
+            step(f"Maloja boost skipped: {_mj_err}", 69)
+
+    # ── Bandcamp collection enrichment ───────────────────────────────────────
+    # Bandcamp purchases/wishlists give deep underground/indie genre signal.
+    _bc_username = getattr(cfg, "BANDCAMP_USERNAME", "").strip()
+    if _bc_username:
+        try:
+            from core import bandcamp as _bc_mod
+            step(f"Fetching Bandcamp collection for {_bc_username}...", 70)
+            _bc_items = _bc_mod.fetch_collection(_bc_username)
+            if _bc_items:
+                _bc_artist_tags = _bc_mod.collection_to_artist_tags(_bc_items)
+                _bc_added = 0
+                for _bc_name, _bc_genres in _bc_artist_tags.items():
+                    for _t in all_tracks:
+                        for _a in _t.get("artists", []):
+                            if _a.get("name", "").lower() == _bc_name:
+                                _aid = _a.get("id", "")
+                                if _aid and not artist_genres_map.get(_aid):
+                                    artist_genres_map[_aid] = _bc_genres
+                                    _bc_added += 1
+                step(f"Bandcamp done — {len(_bc_items)} items, {_bc_added} artist genres added", 71)
+            else:
+                step("Bandcamp: no items found (collection may be private)", 71)
+        except Exception as _bc_err:
+            step(f"Bandcamp enrichment skipped: {_bc_err}", 71)
+
+    # ── beets library enrichment ──────────────────────────────────────────────
+    # beets tags are hand-curated — high confidence signal for local libraries.
+    _beets_db = getattr(cfg, "BEETS_DB_PATH", "").strip()
+    try:
+        from core import beets as _beets_mod
+        if _beets_mod.is_available(_beets_db or None):
+            step("Reading beets music library...", 71)
+            _beets_artist_tags, _beets_track_tags_raw = _beets_mod.read_library(_beets_db or None)
+            _beets_uri_tags = _beets_mod.match_to_spotify(_beets_track_tags_raw, all_tracks)
+            _beets_genre_added = 0
+            for _b_name, _b_genres in _beets_artist_tags.items():
+                for _t in all_tracks:
+                    for _a in _t.get("artists", []):
+                        if _a.get("name", "").lower() == _b_name:
+                            _aid = _a.get("id", "")
+                            if _aid and not artist_genres_map.get(_aid):
+                                artist_genres_map[_aid] = _b_genres
+                                _beets_genre_added += 1
+            _beets_tag_added = 0
+            for _uri, _btags in _beets_uri_tags.items():
+                if not _btags:
+                    continue
+                if _uri not in track_tags:
+                    track_tags[_uri] = _btags
+                    _beets_tag_added += 1
+                else:
+                    for _k, _v in _btags.items():
+                        track_tags[_uri].setdefault(_k, _v)
+            step(
+                f"beets done — {_beets_genre_added} artist genres · "
+                f"{_beets_tag_added} tracks tagged",
+                72,
+            )
+    except Exception as _beets_err:
+        step(f"beets enrichment skipped: {_beets_err}", 72)
+
+    # ── RYM export enrichment ─────────────────────────────────────────────────
+    # Rate Your Music genre/descriptor data — deepest taxonomy available.
+    _rym_path = getattr(cfg, "RYM_EXPORT_PATH", "").strip()
+    if _rym_path and os.path.exists(_rym_path):
+        try:
+            from core import rym as _rym_mod
+            step(f"Importing RYM export from {os.path.basename(_rym_path)}...", 73)
+            _rym_artist_genres, _rym_track_tags_raw = _rym_mod.parse_export(_rym_path)
+            _rym_genre_added = _rym_mod.match_artists_to_spotify(
+                _rym_artist_genres, artist_genres_map, all_tracks
+            )
+            _rym_uri_tags = _rym_mod.match_to_spotify(_rym_track_tags_raw, all_tracks)
+            _rym_tag_added = 0
+            for _uri, _rtags in _rym_uri_tags.items():
+                if not _rtags:
+                    continue
+                if _uri not in track_tags:
+                    track_tags[_uri] = _rtags
+                    _rym_tag_added += 1
+                else:
+                    for _k, _v in _rtags.items():
+                        track_tags[_uri].setdefault(_k, _v)
+            step(
+                f"RYM done — {_rym_genre_added} artist genres · "
+                f"{_rym_tag_added} tracks tagged",
+                74,
+            )
+        except Exception as _rym_err:
+            step(f"RYM import skipped: {_rym_err}", 74)
+
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 
@@ -988,6 +1118,7 @@ def execute_library_scan(
             "has_genres": _has_genres,
             "has_lyrics": _has_lyrics,
             "has_listenbrainz": _has_listenbrainz,
+            "has_maloja": _has_maloja,
             "has_discogs": _has_discogs,
             "has_genius": _has_genius,
             "weights": _weights,
