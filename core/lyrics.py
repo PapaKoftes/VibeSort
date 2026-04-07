@@ -188,6 +188,12 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "crying", "tears", "broken heart", "alone tonight", "miss you", "goodbye",
         "heartbreak", "heartbroken", "depression", "grief", "mourning", "lonely",
         "sobbing", "weeping", "shattered", "devastated", "miserable",
+        # Hollow / numb / apathetic (covers Hollow pack)
+        "numb", "numbness", "hollow", "empty inside", "nothing matters",
+        "what's the point", "can't feel", "apathetic", "flat affect",
+        "mechanical", "invisible", "unnoticed", "unheard",
+        "disappearing", "fading away", "shrinking", "withering",
+        "no one sees me", "background noise", "going through it",
         # Spanish
         "llorar", "lágrimas", "corazón roto", "soledad", "tristeza", "dolor",
         "perdido", "extrañar", "adiós", "depresión", "sufriendo", "llorando",
@@ -338,25 +344,55 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "josh", "jazba", "aag",
     ],
     "introspective": [
-        # English
+        # English — core introspection
         "wondering", "searching my soul", "asking myself", "reflecting on",
         "looking back", "memories flood", "who am i", "what am i", "question everything",
         "lost myself", "finding myself", "inner peace", "meditation",
+        "inner voice", "inner dialogue", "talking to myself", "sit with my thoughts",
+        "sitting with this", "processing this", "make sense of", "figure myself out",
+        "self-aware", "consciousness", "existential", "who have i become",
+        "where did i go", "where am i going", "chapter of my life",
+        "unpacking", "healing journey", "mental health", "therapy session",
+        "writing it down", "journal", "diary entry",
+        # Overthinking / thought-spiral (covers Overthinking pack)
+        "overthinking", "overanalyzing", "can't stop thinking", "thought spiral",
+        "spiraling", "ruminating", "replaying", "second guessing", "second-guess",
+        "what if i had", "what if i hadn't", "my mind won't stop", "in my head",
+        "my thoughts race", "keeping me up", "thoughts won't quiet", "mind is racing",
+        "stuck on this", "can't let it go", "going in circles", "looping thoughts",
+        # Liminal / threshold (covers Liminal pack)
+        "in between", "threshold", "neither here nor there", "drifting",
+        "transitional", "between worlds", "not quite", "half awake",
+        "standing at the edge", "on the verge", "somewhere between",
+        "no man's land", "waiting room feeling", "suspended",
+        # Hollow / disconnected (covers Hollow pack)
+        "going through motions", "autopilot", "numb inside", "detached",
+        "disconnected", "feels unreal", "surreal feeling", "spacing out",
+        "zoning out", "not really here", "hollow feeling", "empty feeling",
+        "dissociating", "lost in my mind",
         # Spanish
         "reflexionar", "preguntarme", "alma", "recuerdos", "quién soy",
-        "buscarme", "paz interior",
+        "buscarme", "paz interior", "perdido en mis pensamientos", "pensando demasiado",
+        "dando vueltas", "en mi cabeza",
         # French
         "me demander", "réfléchir", "l'âme", "souvenirs", "qui suis-je",
-        "chercher en moi",
+        "chercher en moi", "trop penser", "dans ma tête", "perdu dans mes pensées",
         # Portuguese
         "refletir", "perguntar", "alma", "memórias", "quem sou eu",
+        "pensando demais", "perdido em mim mesmo",
         # German
         "nachdenken", "mich fragen", "seele", "erinnerungen", "wer bin ich",
-        "in mich gehen",
+        "in mich gehen", "zu viel denken", "gedankenkarussell", "grübeln",
         # Italian
         "riflettere", "chiedermi", "anima", "ricordi", "chi sono",
+        "pensare troppo", "nella mia testa",
         # Dutch
         "nadenken", "mezelf afvragen", "ziel", "herinneringen", "wie ben ik",
+        "te veel denken", "piekeren",
+        # Korean native
+        "생각이 많아", "혼자 생각해", "내 안에서", "고민",
+        # Japanese native
+        "考えすぎ", "自分を見つめ", "内側から", "迷ってる",
     ],
     "euphoric": [
         # English
@@ -393,27 +429,47 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "khushi", "aanand", "masti",
     ],
     "dark": [
-        # English
+        # English — supernatural / gothic
         "darkness", "shadow", "haunted", "devil", "evil spirit", "demonic",
         "death comes", "bleed out", "hollow inside", "void inside", "sinister",
         "damnation", "cursed", "nightmare", "abyss", "torment",
+        "the shadows", "consumed by darkness", "pitch black", "swallowed whole",
+        "rotting", "decaying", "crumbling from within", "black hole",
+        # Hollow / numb / emptiness (covers Hollow pack)
+        "numb to everything", "feel nothing", "dead inside", "shell of myself",
+        "shell of who i", "hollow", "emptiness inside", "void in my chest",
+        "no feeling left", "can't feel anymore", "apathy", "apathetic",
+        "going numb", "losing feeling", "fading out", "erasing",
+        # Smoke & Mirrors / deception / illusion (covers Smoke & Mirrors pack)
+        "smoke and mirrors", "illusion", "behind a mask", "wearing a mask",
+        "facade", "pretending to be fine", "pretend everything's okay",
+        "nothing is real", "all a lie", "fabricated", "manipulation",
+        "gaslighting", "two-faced", "ulterior motive", "hidden agenda",
+        "never knew the real", "who you really are", "different face",
+        "lied to my face", "constructed reality", "false pretense",
+        # Anxiety / panic / intrusive thoughts
+        "intrusive thoughts", "panic attack", "anxiety spiral",
+        "suffocating", "trapped in my mind", "weight is crushing",
+        "heavy burden", "weight of the world", "consuming me",
         # Spanish
         "oscuridad", "sombra", "diablo", "maldito", "muerte", "tormento",
-        "tinieblas", "maldición",
+        "tinieblas", "maldición", "vacío por dentro", "sin sentir nada",
+        "detrás de una máscara",
         # French
         "obscurité", "ombre", "diable", "maudit", "mort", "tourment",
-        "ténèbres", "malédiction",
+        "ténèbres", "malédiction", "vide à l'intérieur", "ne rien sentir",
         # Portuguese
         "escuridão", "sombra", "diabo", "maldito", "morte", "tormento",
+        "vazio por dentro",
         # German
         "dunkelheit", "schatten", "teufel", "verdammt", "albtraum", "qual",
-        "finsternis", "verflucht",
+        "finsternis", "verflucht", "leer innen drin", "nichts fühlen",
         # Italian
         "oscurità", "ombra", "diavolo", "maledetto", "morte", "tormento",
-        "tenebre", "incubo",
+        "tenebre", "incubo", "vuoto dentro", "non sento nulla",
         # Dutch
         "duisternis", "schaduw", "duivel", "vervloekt", "dood", "kwelling",
-        "nachtmerrie",
+        "nachtmerrie", "leeg van binnen",
         # Japanese/anime transliterated
         "yami", "akuma", "shi no kage",
         # Japanese native
@@ -476,9 +532,20 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "i'm leaving", "moving on", "it's over", "waved goodbye", "end of us",
         "walk away", "gone for good", "final goodbye", "let you go", "letting go",
         "closed this chapter", "endings", "said our goodbyes", "one last time",
+        "this is it", "won't see you again", "had to leave", "had to go",
+        "couldn't stay", "didn't look back", "drove away", "flew away",
+        "door closing", "last chapter", "end of the road", "parting ways",
+        "we're through", "we're done", "it's finally done",
+        "the end of something", "something's ending", "closing time",
+        "put it behind me", "turned the page", "start again",
         # Multilingual
-        "adiós for good", "auf wiedersehen", "addio per sempre", "tot ziens",
-        "au revoir", "tchau", "xudaa haafiz",
+        "adiós para siempre", "auf wiedersehen", "addio per sempre", "tot ziens",
+        "au revoir", "adieu", "tchau para sempre", "adeus",
+        "xudaa haafiz", "alvida", "sayonara",
+        # Korean native
+        "잘 가", "이별", "작별", "다시는",
+        # Japanese native
+        "さようなら", "別れ", "もう会えない",
     ],
     "homesick": [
         # English
@@ -494,9 +561,24 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "remember when", "those days", "used to be", "way back when", "throwback",
         "memories of", "back then", "younger days", "old days", "miss those times",
         "golden days", "wish i could go back", "those summer nights",
+        "back in the day", "we were kids", "growing up", "childhood",
+        "feels like yesterday", "seems so long ago", "simpler times",
+        "things were different", "used to know", "before everything changed",
+        "who we used to be", "place i grew up", "old neighborhood",
+        "the house i grew up in", "hometown", "school days",
+        "friends i had back then", "people from before", "photos from when",
+        "looking at old pictures", "found an old photo", "old video",
+        "heard that song again", "song from back then", "our old song",
+        "takes me back", "transported me", "felt like i was there again",
         # Multilingual
-        "tempos antigos", "époque révolue", "früher war", "los viejos tiempos",
-        "bei no koro", "purane din",
+        "tempos antigos", "de volta ao passado", "saudade do passado",
+        "époque révolue", "le bon vieux temps", "autrefois",
+        "früher war alles anders", "frühere zeiten",
+        "los viejos tiempos", "de vuelta al pasado", "recuerdos de antes",
+        "bei no koro", "昔のことを思い出す", "あの頃",
+        "purane din", "wo waqt", "woh din yaad hain",
+        # Korean native
+        "그때가 좋았어", "추억", "옛날이 그리워",
     ],
     "hope": [
         # English
@@ -537,13 +619,37 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "bhagwan", "ishwar", "ram naam",
     ],
     "missing_you": [
-        # English
+        # English — core longing
         "wish you were here", "without you here", "thinking of you", "need you back",
         "come back to me", "read your messages", "still your side", "empty bed",
         "your side of", "ghost me", "left on read", "if you called",
+        # 3 AM / unsent messages (covers 3 AM Unsent Texts pack)
+        "unsent message", "unsent text", "draft i never sent", "typed and deleted",
+        "couldn't bring myself to send", "almost hit send", "phone in my hand",
+        "wanted to call", "almost called", "almost texted you", "scrolled to your name",
+        "still in my contacts", "didn't delete your number", "3am thinking of you",
+        "couldn't sleep thinking", "up at 3", "awake at 4am", "lying awake",
+        "couldn't bring myself to delete", "screenshots of us",
+        # Things / places / songs that remind
+        "our song came on", "heard a song", "reminded me of you",
+        "your hoodie", "smell of you", "see you in strangers",
+        "everywhere reminds me", "can't go there anymore", "your favorite place",
+        "our spot", "places we used to", "things you used to say",
+        "the way you laughed", "your laugh", "the way you'd",
+        # Absence / closure
+        "your absence", "everything's the same but you", "the silence where you were",
+        "still set two cups", "still sleep on my side", "your side empty",
+        "not over you", "closure never came", "never got to say goodbye",
+        "words i never said", "letter i wrote you", "things left unsaid",
+        "unfinished business between us",
         # Multilingual
-        "te extraño", "manque", "saudade de você", "ich vermisse dich",
-        "mi manchi", "ik mis jou", "tujhe yaad karta hoon",
+        "te extraño", "manque de toi", "tu me manques", "saudade de você",
+        "ich vermisse dich", "mi manchi", "ik mis jou",
+        "tujhe yaad karta hoon", "tujhe bhool nahi paya",
+        # Korean native
+        "보고싶어서", "네 생각이 나", "문자 못 보낸", "지우지 못했어",
+        # Japanese native
+        "会いたくて", "消せなかった", "送れなかったメッセージ",
     ],
     "revenge": [
         # English
@@ -572,13 +678,32 @@ MOOD_KEYWORDS: dict[str, list[str]] = {
         "azaadi", "mukti",
     ],
     "night_drive": [
-        # English
+        # English — driving / road imagery
         "dashboard lights", "city lights pass", "highway tonight", "3am on the",
         "empty road", "gas station glow", "rearview mirror", "neon blur",
         "driving nowhere", "passenger seat", "midnight miles",
+        "windows down at midnight", "streetlights blur", "late night highway",
+        "city quiet now", "alone on the road", "no one around me",
+        "radio static", "old playlist", "driving to nowhere",
+        "aimless drive", "night to myself", "long drive alone",
+        "empty streets", "passing lights", "shadows on the road",
+        "fog lights", "rain on windshield", "late night rain",
+        "city in the rain", "city at night", "after hours",
+        "after midnight", "2am", "4am drive",
+        # Sitting alone at night (covers 3 AM / Liminal pack)
+        "sitting in the parking lot", "sat in my car", "parked outside",
+        "didn't want to go home yet", "couldn't go inside",
+        "window cracked", "cigarette in the car", "sitting with the engine off",
+        "stared at the ceiling of my car", "stayed in the driveway",
+        "listening to the rain", "watching the city",
+        "night air", "cool night air", "breathing in the night",
+        "the night feels different", "hours pass", "time disappears",
+        "no destination", "wherever the road", "just drive",
         # Multilingual
-        "conducir de noche", "conduire la nuit", "nächtliche fahrt",
+        "conducir de noche", "manejando solo", "conduire la nuit",
+        "nächtliche fahrt", "nachts fahren",
         "guidare di notte", "rijden in de nacht",
+        "一人でドライブ", "深夜に走る",
     ],
     "family": [
         # English
