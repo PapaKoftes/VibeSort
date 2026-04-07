@@ -2,7 +2,7 @@
 
 **Status:** In progress
 **Target:** Fully working per-track signal system for any public user
-**Milestone count:** 3 phases, 11 milestones, 1 final validation gate
+**Milestone count:** 3 phases, 12 milestones + packs cleanup, 1 final validation gate
 
 ---
 
@@ -48,9 +48,9 @@ When this plan is complete, the system shall:
 6. **Make first-scan latency transparent.** Every slow enrichment step shall print what it is
    doing, why it is slow on first run, and that cached results will make future scans fast.
 
-7. **Respect caches across rescans.** Enrichment data that does not change (Last.fm tags,
-   Deezer BPM, AudioDB moods, lyrics, MusicBrainz tags) shall never be re-fetched unless the
-   user explicitly requests it. Only mood scoring (the final pipeline stage) re-runs on rescan.
+7. **Respect caches across rescans.** Enrichment data that does not change (lyrics, BPM, genre
+   tags, audio fingerprints) shall never be re-fetched unless the user explicitly requests it.
+   Only mood scoring (the final pipeline stage) re-runs on rescan.
 
 8. **Support three scan modes** with clear UX: Full Scan, Custom Scan, Local Library Scan.
 
@@ -71,7 +71,7 @@ INPUT SOURCES (what we fetch)
   └── User's own data  → named playlists, local files (AcoustID → MusicBrainz)
 
 SIGNAL EXTRACTION (what we derive per track)
-  ├── lyr_*            → mood tags from lyrics × NRC Emotion Lexicon × AFINN valence
+  ├── lyr_*            → mood tags from lyrics × NRC Emotion Lexicon × VADER valence
   ├── bpm_*            → tempo bucket from Deezer BPM (real data)
   ├── meta_*           → title keywords, duration bucket, explicit flag, track position, feat. artists
   ├── mood_*           → Last.fm tag.getTopTracks match (track is in human-curated mood list)
@@ -87,7 +87,7 @@ SCORING
   ├── tag_score        → expected_tags vs active_tags with confidence-weighted claimed dict
   ├── semantic_score   → mood semantic core match
   ├── genre_score      → macro genre alignment
-  └── audio_score      → proxy vector (BPM-anchored tempo, AFINN-informed valence)
+  └── audio_score      → proxy vector (BPM-anchored tempo, VADER-informed valence)
 
 OUTPUT
   └── mood_results     → ranked playlists, 20-50 tracks, max 3 per artist, std ≥ 0.05 target
@@ -101,28 +101,64 @@ OUTPUT
 acquisition, redesign scan UX.
 
 **Exit criteria:** A scan produces visibly different results per mood. Heartbreak does not consist
-of only one artist. Mining cache is non-empty.
+of only one artist. Mining cache is non-empty. packs.json cross-contamination removed.
 
 ---
 
-### M1.1 — Remove Dead Code and Dead Config
+### M1.0 — packs.json Mood Definition Cleanup
 
 **What:**
-- Delete `core/acoustid.py` (239 lines, never called; local library path will use a new
-  integrated approach instead of this orphan)
-- Remove `enrich.audio_features()` call from `core/enrich.py` — the Spotify `/audio-features`
-  endpoint returns 403 permanently. Replace with a one-line stub `return {}`.
-- Remove from `config.py`: `W_AUDIO`, `ACOUSTID_API_KEY`, `FPCALC_PATH`, `LOCAL_MUSIC_PATH`
-  (these controlled the dead signal only)
-- Remove AcoustID UI section from `pages/9_Settings.py`
-- Remove `W_AUDIO` branch from weight logic in `core/scan_pipeline.py`
+Fix cross-contamination between mood definitions that causes wrong scoring matches.
 
-**What to keep:**
+Confirmed bug: Heartbreak has `"angry"` in both `expected_tags` AND `semantic_core`.
+`"angry"` is also a core expected tag for Villain Arc. This causes Heartbreak to match
+heavily on angry tracks (they exist in Villain Arc playlists, not Heartbreak ones).
+
+Fix: Remove `"angry"` from Heartbreak `expected_tags` — it is already in `semantic_core`
+which is sufficient context. Remove any other expected_tags entries that clearly belong to
+a different mood and are causing phantom inflation.
+
+Full audit of all 87 moods:
+1. For each mood, check its `expected_tags` list against every other mood's `expected_tags`
+2. Flag any tag that appears in 3+ mood definitions (over-broad signal)
+3. Remove or weight-reduce these from secondary moods that shouldn't own them
+
+**Why first:** Mood definition bugs corrupt every downstream scoring step. This is a
+zero-cost fix (no API, no pipeline) and must happen before we add more signals on top of
+broken foundations.
+
+**Validation:** `"angry"` does not appear in Heartbreak's `expected_tags`.
+Heartbreak and Villain Arc top-10 track overlap < 40%.
+
+---
+
+### M1.1 — Remove Dead Code (Audio Features + W_AUDIO)
+
+**What:**
+Remove the Spotify `/audio-features` dependency and `W_AUDIO` weight entirely, across
+all files that reference them.
+
+Files to touch:
+- `core/enrich.py` — replace `audio_features()` call with `return {}` stub
+- `core/scan_pipeline.py` — remove `W_AUDIO` import and branch
+- `core/scorer.py` — remove `W_AUDIO` (5 references at lines 41, 99, 1074, 1161, 1666)
+- `core/audio_proxy.py` — remove `audio_features` parameter handling (lines 219, 223, 231, 236)
+- `core/audio_groups.py` — remove `audio_features` references (lines 303, 334, 368, 391, 416, 457)
+- `core/recommend.py` — stub out `audio_features` calls (lines 128, 136)
+- `core/profile.py` — stub out `audio_features` calls (lines 109, 128, 166, 174)
+- `config.py` — remove `W_AUDIO` constant
+- `pages/9_Settings.py` — remove the Spotify audio features UI toggle if it exists
+
+**What to keep / NOT touch:**
+- `core/acoustid.py` — DO NOT DELETE. It will be properly wired in M1.6.
+- `ACOUSTID_API_KEY`, `FPCALC_PATH`, `LOCAL_MUSIC_PATH` in config — DO NOT REMOVE. M1.6 uses them.
 - `core/rym.py` — active when user provides CSV export, works correctly
-- `core/beets.py` — active when beets DB found, wired correctly
-- The `audio_features_map` variable in the pipeline can remain as empty dict with no special handling
+- `core/beets.py` — wired and working, leave it alone
+- The `audio_features_map` variable can remain as an empty dict with no special handling
 
-**Validation:** `grep -r "acoustid\|W_AUDIO\|FPCALC" core/ config.py` returns zero results.
+**Validation:** `grep -r "W_AUDIO\|audio.features\(\)" core/ config.py` returns zero
+results. (Note: the string "audio_features" as a dict key reference in comments is OK —
+search for the actual function call pattern.)
 
 ---
 
@@ -139,8 +175,18 @@ Deezer /search?q=artist:"<name>" track:"<title>"&limit=5
   → extract contributors: [{name, role}] — feat. artists live here
 ```
 
+**Non-English matching strategy (critical for K-pop, Arabic, J-pop, etc.):**
+```
+Attempt 1: artist:"<original_name>" track:"<original_title>"
+Attempt 2: If 0 results → drop quotes: artist:<name> track:<title>
+Attempt 3: If 0 results → title only: track:"<title>" (if title is ASCII)
+Attempt 4: If still 0 → skip, log as "no Deezer match" in cache
+```
+Use `difflib.SequenceMatcher` for fuzzy title matching on returned results.
+Accept match if title similarity ≥ 0.8 AND artist similarity ≥ 0.7.
+
 Then add `get_artist_top_tracks(artist_name: str, limit: int = 50) -> list[dict]` using
-`/search?q=artist:"<name>"&limit=50` as a bulk approach for artists with many library tracks.
+`/search?q=artist:"<name>"&limit=50` for bulk BPM acquisition.
 
 Cache structure in `.deezer_cache.json`:
 ```json
@@ -152,11 +198,12 @@ Cache structure in `.deezer_cache.json`:
 
 Rate: keep 150ms gap. Tracks cached permanently (BPM doesn't change).
 
-First-run messaging: "Fetching per-track audio data from Deezer — this runs once and is cached
-permanently. Approx. [N] seconds for your library."
+First-run messaging: "Fetching per-track audio data from Deezer — this runs once and is
+cached permanently. Approx. [N] seconds for your library."
 
-**Validation:** `.deezer_cache.json` has a `"tracks"` key with entries. BPM is non-null for
-> 50% of mainstream artists.
+**Validation:** `.deezer_cache.json` has a `"tracks"` key with entries. BPM is non-null
+for > 50% of mainstream artists. K-pop or J-pop artists in library are attempted with
+fallback strategy and result logged.
 
 ---
 
@@ -166,21 +213,18 @@ permanently. Approx. [N] seconds for your library."
 Replace the dead Spotify public playlist mining path with Last.fm `tag.getTopTracks`.
 
 Last.fm's API: `tag.getTopTracks(tag="heartbreak", limit=100)` returns the 100 tracks
-the community has most associated with that tag. This is exactly what Spotify playlist mining
-was doing — finding tracks humans labelled with a mood — but via Last.fm's tagging system
-instead of named playlists.
+the community has most associated with that tag. This replaces Spotify playlist mining.
 
 Implementation in `core/playlist_mining.py`:
 1. For each mood, map its `seed_phrases` to Last.fm tag vocabulary
    (e.g., "heartbreak playlist" → tags: ["heartbreak", "breakup", "sad breakup"])
 2. Call `tag.getTopTracks` for each tag (up to 3 per mood, limit=100 each)
 3. Deduplicate, normalize (artist+title → lowercase)
-4. Cross-reference against the user's library: any library track matching a returned
-   artist+title gets a `mood_<moodname>` tag added to `track_tags`
-5. Tracks not in library but returned → stored as `track_context` for semantic reference
-6. Cache in `.mining_cache.json` with 30-day TTL (Last.fm tag charts are stable)
+4. Cross-reference against user's library: any matching track gets `mood_<moodname>` tag
+5. Tracks not in library → stored as `track_context` for semantic reference
+6. Cache in `.mining_cache.json` with 30-day TTL
 
-Also implement `lastfm.py:get_tag_top_tracks(tag: str, limit: int = 100) -> list[dict]`
+Implement `lastfm.py:get_tag_top_tracks(tag: str, limit: int = 100) -> list[dict]`
 returning `[{"artist": str, "title": str, "mbid": str|None}]`.
 
 Mood → Last.fm tag mapping lives in `data/mood_lastfm_tags.json`:
@@ -193,6 +237,15 @@ Mood → Last.fm tag mapping lives in `data/mood_lastfm_tags.json`:
 }
 ```
 
+For abstract moods with no direct Last.fm tag equivalent (e.g., "Liminal", "Smoke & Mirrors"):
+map to the closest emotional territory tags and accept lower match rate. These moods
+will rely more on anchor tracks and lyrics signals.
+
+**⚑ Intermediate validation gate:** After implementing M1.3, run a mini-scan before
+proceeding to M1.4. Verify `.mining_cache.json` size > 50KB and `observed_mood_tags`
+is non-empty. If the cache is still empty, the mining implementation has a bug that
+must be fixed before continuing.
+
 **Validation:** `mining_cache.json` size > 50KB. `observed_mood_tags` in snapshot is
 non-empty. At least 20 moods have `mood_*` tags on library tracks.
 
@@ -201,34 +254,40 @@ non-empty. At least 20 moods have `mood_*` tags on library tracks.
 ### M1.4 — Mood Anchors
 
 **What:**
-Bundle `data/mood_anchors.json` — a curated set of anchor tracks per mood that serve as
-permanent calibration points regardless of mining or API availability.
+Bundle `data/mood_anchors.json` — a set of anchor tracks per mood that serve as permanent
+calibration points regardless of mining or API availability.
+
+**Generation strategy (auto-seed + human review, not pure hand-curation):**
+1. Run `tag.getTopTracks` for each mood's primary Last.fm tag (already done in M1.3)
+2. Take the top 20 returned tracks per mood as seed candidates
+3. Deduplicate across moods (a track appearing in 3+ moods is too generic — reduce its weight)
+4. Filter to tracks that appear in at least one major streaming library (popularity signal)
+5. Human review pass: remove obvious mismatches, add known genre-diverse representatives
+   that Last.fm's chart may have missed (e.g., classical, jazz, non-English tracks)
+
+This reduces the work from ~2,610 fully hand-written entries to reviewing and pruning
+~1,740 auto-generated candidates + filling ~30 gaps per under-served mood.
 
 Format:
 ```json
 {
   "Heartbreak": [
-    { "artist": "Olivia Rodrigo",  "title": "good 4 u" },
-    { "artist": "Alanis Morissette", "title": "You Oughta Know" },
-    { "artist": "Taylor Swift",    "title": "Picture To Burn" },
-    { "artist": "Paramore",        "title": "Misery Business" },
-    { "artist": "Eminem",          "title": "Kim" },
-    { "artist": "Lorde",           "title": "Liability" },
+    { "artist": "Olivia Rodrigo",   "title": "drivers license" },
+    { "artist": "Alanis Morissette","title": "You Oughta Know" },
+    { "artist": "Lorde",            "title": "Liability" },
     ...
   ],
   ...
 }
 ```
 
-Coverage: all 87 moods × 15–30 tracks each. Tracks are universally agreed-upon
-representatives of the mood, spanning genres so the anchor set is broad.
-
-Any library track matching an anchor (artist + title, case-insensitive) gets
-`anchor_<moodname>: 1.0` added to its tags. Anchor match is the highest-confidence
-mood signal in the system.
+Coverage: all 87 moods × 10–20 tracks each (post-review).
 
 Anchor matching runs in `core/scan_pipeline.py` after all enrichment, before scoring.
-It is a zero-cost pass (no API calls, pure dict lookup).
+Zero-cost pass (no API calls, pure dict lookup). Any library track matching an anchor
+(artist + title, case-insensitive, strip "feat." suffixes) gets `anchor_<moodname>: 1.0`.
+
+Anchor match is the highest-confidence mood signal in the system.
 
 **Validation:** At least 5 library tracks match anchors across at least 10 moods.
 
@@ -280,11 +339,15 @@ This runs for 100% of library tracks, zero API calls, sub-second total.
 ### M1.6 — Local Library Scan (AcoustID + Beets Integration)
 
 **What:**
-Wire the local library scan path end-to-end.
+Wire the local library scan path end-to-end. `core/acoustid.py` already exists (239 lines)
+but is completely orphaned — this milestone properly integrates it.
 
-New UI button: **"Local Library Scan"** on `pages/2_Scan.py` opens a directory picker
-(via `st.text_input` with a Browse button using `tkinter.filedialog` on desktop, or manual
-path entry on web). User picks their music root directory.
+New UI button: **"Local Library Scan"** on `pages/2_Scan.py`.
+
+**Path entry:** Pure `st.text_input` — Streamlit is a web application and cannot open
+native OS file dialogs (tkinter.filedialog runs on the server, not the user's browser).
+The user types or pastes their music root directory path. Show a clear placeholder like
+`C:\Music` or `/home/user/Music`. Validate the path exists before proceeding.
 
 Pipeline when local path is set:
 1. Scan directory recursively for audio files (`.mp3`, `.flac`, `.aac`, `.ogg`, `.m4a`, `.wav`)
@@ -296,15 +359,15 @@ Pipeline when local path is set:
 
 Cache fingerprints permanently in `.acoustid_cache.json` — fingerprints never change.
 
-Config:
-- `LOCAL_MUSIC_PATH` restored but now actually used
-- `FPCALC_PATH` restored and documented
-- `ACOUSTID_API_KEY` restored (free registration at acoustid.org)
+Config (`config.py`) — these keys already exist; ensure they are documented and active:
+- `LOCAL_MUSIC_PATH` — user's music root
+- `FPCALC_PATH` — path to fpcalc binary (default: `fpcalc` on PATH)
+- `ACOUSTID_API_KEY` — free registration at acoustid.org
 
-If `fpcalc` not found: skip fingerprinting, show user a one-time notice with install instructions.
+If `fpcalc` not found: skip fingerprinting, show one-time notice with install instructions.
 If `ACOUSTID_API_KEY` not set: skip MBID lookup, still run beets if available.
 
-This entire path is gated — standard Spotify-only users never see it or wait for it.
+This path is gated — standard Spotify-only users never see it or wait for it.
 
 **Validation:** With `LOCAL_MUSIC_PATH` set to a test directory containing 5 audio files,
 `track_tags` receives MusicBrainz-sourced tags for matched tracks.
@@ -368,8 +431,8 @@ Expander with checkboxes per enrichment source:
 Each checkbox has a caption explaining what it does and how long it takes.
 
 #### Local Library Scan
-Opens a path input for music root directory. Runs AcoustID fingerprinting on local files,
-merges with existing Spotify scan. Does not replace it — additive.
+Path text input for music root directory (`st.text_input` — no OS file dialog).
+Runs AcoustID fingerprinting on local files, merges with existing Spotify scan. Additive.
 
 Shows: file count found, estimated fingerprinting time, fpcalc installation status.
 
@@ -419,7 +482,10 @@ Bundle `data/nrc_emotions.json` — the NRC Word-Emotion Association Lexicon pro
 to include only the emotionally significant words.
 
 Source: NRC EmoLex by Saif M. Mohammad & Peter D. Turney (National Research Council Canada).
-License: Free for research/non-commercial. Download from saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm
+License: **Free for research/educational use. For public commercial deployment, written
+permission from NRC is required.** If commercial licensing is a concern before go-live,
+this bundled file can be replaced with an equivalent open-licensed resource (e.g., a subset
+derived from WordNet Affect, which is MIT-compatible). The integration code does not change.
 
 Processing: From the full 14,182-word lexicon, keep only words with at least one
 emotion score > 0. Result: approximately 6,468 words. Stored as:
@@ -433,21 +499,20 @@ emotion score > 0. Result: approximately 6,468 words. Stored as:
 ```
 File size: ~280KB. Acceptable to bundle.
 
-Emotion → lyr_* mapping:
+Emotion → lyr_* mapping (mapped to lyrics.py's 25 existing categories only):
 ```
 anger       → lyr_angry
 fear        → lyr_dark
 sadness     → lyr_sad
-joy         → lyr_euphoric + lyr_happy
+joy         → lyr_euphoric          ← NOTE: lyr_happy does not exist; use lyr_euphoric
 anticipation → lyr_hope
 trust       → lyr_faith
 disgust     → lyr_dark + lyr_angry (0.5× weight)
-surprise    → no direct mapping (too ambiguous)
+surprise    → no mapping (too ambiguous)
 ```
 
 Integration in `core/lyrics.py`: after keyword matching, run NRC word lookup on
-tokenized lyrics. Any NRC word found adds to the corresponding lyr_* score.
-NRC words are weighted at 0.4× vs keyword matches at 1.0× (keywords are more specific).
+tokenized lyrics. NRC words are weighted at 0.4× vs keyword matches at 1.0×.
 
 No new pip dependencies. Pure JSON lookup.
 
@@ -456,26 +521,28 @@ but do not contain the explicit keyword list entries.
 
 ---
 
-### M2.2 — AFINN Valence Integration
+### M2.2 — VADER Valence Integration
 
 **What:**
-Bundle `data/afinn.json` — AFINN-111 sentiment lexicon by Finn Årup Nielsen.
-License: Open Database License (ODbL). 2,477 words rated -5 (most negative) to +5 (most positive).
+Replace the AFINN approach with **VADER** (Valence Aware Dictionary and sEntiment Reasoner).
 
-Format:
-```json
-{ "abandon": -2, "awesome": 4, "love": 3, "hate": -3, "murder": -2, ... }
-```
-File size: ~28KB.
+VADER advantages over AFINN:
+- MIT licensed (no commercial restriction)
+- 7,500+ lexicon entries vs AFINN's 2,477
+- Handles capitalization, punctuation emphasis, slang, and negation
+- Returns compound score [-1.0, +1.0] plus positive/negative/neutral ratios
+- Specifically designed for short social text (matches lyric style better than AFINN)
 
-Use in `core/audio_proxy.py`: after computing the heuristic energy/valence vector,
-if the track has lyrics cached, run AFINN on the lyric text and compute mean valence score.
-Map [-5, +5] → [0.0, 1.0]. Blend at 30% weight into the proxy valence dimension.
+Add `vaderSentiment` to `requirements.txt`. No data file needed — model is bundled with pip.
+
+Use in `core/audio_proxy.py`: if track has lyrics cached, run VADER on the lyric text.
+Map compound score [-1.0, +1.0] → [0.0, 1.0]. Blend at **12% weight** into proxy valence.
+(Starting conservative — tune upward after validation scan if valence variance improves.)
 
 This gives the audio proxy a real lyric-derived valence anchor instead of pure genre heuristics.
 
-**Validation:** Two tracks by the same artist — one with positive lyrics, one with negative —
-produce different valence values in their proxy audio vectors.
+**Validation:** Two tracks by the same artist — one with clearly positive lyrics, one
+with clearly negative — produce different valence values in their proxy audio vectors.
 
 ---
 
@@ -532,8 +599,8 @@ mood and genre terms at the individual track level — separate from artist/rele
 Add extraction of recording tags to the existing MusicBrainz enrichment pass.
 Map recording tags to `track_tags` using the existing tag normalization logic.
 
-If MBID not known (most tracks): attempt lookup by `recording/?query=artist:"X" AND recording:"Y"`
-— MusicBrainz's search API.
+If MBID not known (most tracks): attempt lookup via
+`recording/?query=artist:"X" AND recording:"Y"` — MusicBrainz's search API.
 
 **Validation:** Tracks with MusicBrainz MBIDs receive recording-level mood tags
 distinct from their artist-level tags.
@@ -548,8 +615,7 @@ Feed the Deezer BPM data (from M1.2) into `core/audio_proxy.py`.
 Currently: `tempo_norm` is a heuristic based on genre keywords (e.g., "metal" → 0.65 tempo band).
 With real BPM data: `tempo_norm = (bpm - 60) / (200 - 60)` clamped to [0, 1].
 
-Priority: Deezer BPM > heuristic estimate. If BPM is None (Deezer returned no data), fall back
-to existing keyword heuristic.
+Priority: Deezer BPM > heuristic estimate. If BPM is None, fall back to keyword heuristic.
 
 Also use BPM to refine energy estimate:
 - BPM > 160 → energy += 0.08
@@ -558,27 +624,27 @@ Also use BPM to refine energy estimate:
 Use contributor count from Deezer (feat. artists) to inform danceability slightly
 (more contributors → slightly higher danceability, typical of club/hip-hop tracks).
 
-**Validation:** Two Eminem tracks with different BPM values from Deezer produce
-different `tempo_norm` values in their proxy audio vectors.
+**Validation:** Two tracks by the same artist with different BPM values from Deezer
+produce different `tempo_norm` values in their proxy audio vectors.
 
 ---
 
 ### M2.7 — Last.fm getSimilar Mood Inference
 
 **What:**
-For tracks with confidence below 0.4 (no lyr_* tags, no anchor match, no mood_* tags),
+For tracks with signal confidence below 0.4 (no lyr_*, no anchor match, no mood_* tags),
 run `track.getSimilar(artist, title, limit=5)` on Last.fm.
 
 The 5 returned similar tracks are looked up in the library. If those similar tracks have
 existing mood tags (from any source), infer the uncovered track's moods from them:
 - For each similar track, take its top-scoring mood
-- Aggregate across 5 similar tracks: if 3/5 are tagged Hollow, add `inferred_hollow: 0.4`
+- Aggregate: if 3/5 are tagged Hollow, add `inferred_hollow: 0.4`
 
 This is a graph-based fallback — works well for mid-popularity tracks that Last.fm knows
 about but aren't tagged enough to have direct mood data.
 
 Run as a post-enrichment pass, only for tracks with zero per-track mood signal.
-Cache: store similar track results in `lastfm_cache.json` under `"similar"` key.
+Cache similar track results in `lastfm_cache.json` under `"similar"` key.
 
 **Validation:** At least 10% of previously-zero-signal tracks receive inferred mood tags.
 
@@ -607,7 +673,7 @@ Logic:
 
 In `tag_score()`: multiply each active_tag's weight by:
 - `1.0` if the tag is per-track (lyr_*, bpm_*, meta_*, mood_*, anchor_*)
-- `max(0.7, 1.0 - confidence)` if the tag is artist-level and the track already has per-track data
+- `max(0.7, 1.0 - confidence)` if the tag is artist-level and per-track data already exists
 
 Effect: for Eminem tracks with lyr_family and lyr_hype tags, those dominate. The artist-level
 "angry" tag is downweighted proportionally to how much per-track data already exists.
@@ -621,17 +687,22 @@ in at least 3 mood comparisons.
 
 **What:**
 The current `effective_denom = min(len(expected_tags), 8)` in `tag_score()` compresses
-variance. A mood with 27 expected tags uses denominator 8. A track hitting 4 tags scores
-0.5, one hitting 6 scores 0.75 — but the ACTUAL difference between candidates is smaller
-because most tracks hit 1–3 tags regardless.
+variance.
 
-Fix: compute `effective_denom` dynamically based on the 80th percentile of tags-hit
-across all scored tracks for this mood (computed once per mood, cached). This ensures
-the denominator reflects what's achievable in practice, not a static cap.
+**Fix:** Replace the static cap with a proportional formula:
+```python
+effective_denom = max(3, len(expected_tags) // 3)
+```
+This scales denominator with mood complexity — a mood with 6 expected tags uses denom=3,
+a mood with 27 expected tags uses denom=9. No pre-scoring pass required, no chicken-and-egg.
+
+The formula can be tuned per mood after the validation scan:
+- If a mood's top scores are too clustered → increase `// 3` to `// 4`
+- If too sparse → decrease to `// 2`
 
 Also: adjust the `ensure_minimum` backfill floor from `min_score * 0.7` to `min_score * 0.5`
-to allow more backfill candidates while maintaining the 2× re-enforcement of artist diversity
-after backfill (already in place from the previous fix).
+to allow more backfill candidates while maintaining the re-enforcement of artist diversity
+after backfill (already in place).
 
 **Validation:** std distribution improves. Run analysis script on new scan:
 `python3 -c "..."` (see validation checklist below).
@@ -667,13 +738,13 @@ Run a full scan and execute the validation checklist:
 # validation_check.py — run after each milestone
 checks = [
   ("Mining cache non-empty",          lambda s: len(s['mining_cache'].get('track_tags',{})) > 100),
-  ("Deezer BPM coverage ≥ 50%",      lambda s: bpm_coverage(s) >= 0.50),
-  ("lyr_* coverage ≥ 65%",           lambda s: lyr_coverage(s) >= 0.65),
+  ("Deezer BPM coverage >= 50%",      lambda s: bpm_coverage(s) >= 0.50),
+  ("lyr_* coverage >= 65%",           lambda s: lyr_coverage(s) >= 0.65),
   ("Artist cap enforced",             lambda s: max_artist_repeat(s) <= 3),
-  ("Score std ≥ 0.05 for 60% moods", lambda s: passing_std_fraction(s) >= 0.60),
-  ("≥ 65 moods populated",           lambda s: populated_moods(s) >= 65),
+  ("Score std >= 0.05 for 60% moods", lambda s: passing_std_fraction(s) >= 0.60),
+  (">= 65 moods populated",           lambda s: populated_moods(s) >= 65),
   ("No mood is single-artist",        lambda s: no_single_artist_mood(s)),
-  ("Heartbreak ≠ Villain Arc",       lambda s: mood_overlap(s, 'Heartbreak', 'Villain Arc') < 0.4),
+  ("Heartbreak != Villain Arc",       lambda s: mood_overlap(s, 'Heartbreak', 'Villain Arc') < 0.4),
 ]
 ```
 
@@ -700,9 +771,9 @@ For each: top 10 tracks listed, artist distribution checked, mood coherence asse
 | `.acoustid_cache.json` | NO | Optional | None | Fingerprints never change |
 | `.spotify_genres_cache.json` | NO | Optional | None | Genre data stable |
 
-**Rule:** If the underlying real-world data does not change (lyrics, BPM, genre tags, audio
-fingerprints), the cache is never cleared automatically. The user must explicitly request it
-via Custom Scan. Full Scan only clears the mood scoring output and the mining ground truth.
+**Rule:** If the underlying real-world data does not change, the cache is never cleared
+automatically. The user must explicitly request it via Custom Scan. Full Scan only clears
+the mood scoring output and the mining ground truth.
 
 ---
 
@@ -710,12 +781,17 @@ via Custom Scan. Full Scan only clears the mood scoring output and the mining gr
 
 | File | Source | Size | License |
 |---|---|---|---|
-| `data/nrc_emotions.json` | NRC EmoLex (Mohammad & Turney, NRC Canada) | ~280KB | Free non-commercial |
-| `data/afinn.json` | AFINN-111 (Finn Årup Nielsen) | ~28KB | ODbL (open) |
-| `data/mood_anchors.json` | Hand-curated | ~180KB | Original |
+| `data/nrc_emotions.json` | NRC EmoLex (Mohammad & Turney, NRC Canada) | ~280KB | Free research/educational; confirm for commercial |
+| `data/mood_anchors.json` | Last.fm-seeded + hand-reviewed | ~120KB | Original |
 | `data/mood_lastfm_tags.json` | Hand-curated | ~12KB | Original |
 
-Total new data: ~500KB. Acceptable to bundle in repository.
+**No AFINN file** — replaced by VADER pip package (MIT licensed, no bundle needed).
+
+Total new data: ~412KB. Acceptable to bundle in repository.
+
+Note on NRC license: before pushing public, confirm with NRC or replace the bundled
+file with a WordNet Affect subset. The integration code in lyrics.py does not change
+regardless of which emotion lexicon backs the JSON.
 
 ---
 
@@ -723,13 +799,14 @@ Total new data: ~500KB. Acceptable to bundle in repository.
 
 | Session | Milestones | Primary files changed |
 |---|---|---|
-| **Session 1** | M1.1 → M1.9 | deezer.py, playlist_mining.py, lastfm.py, scan_pipeline.py, enrich.py, pages/2_Scan.py, config.py, data/ |
-| **Session 2** | M2.1 → M2.7 | lyrics.py, audio_proxy.py, musicbrainz.py, audiodb.py, scorer.py (read-only in this session) |
+| **Session 1A** | M1.0, M1.1, M1.2, M1.3, M1.4 | packs.json, deezer.py, playlist_mining.py, lastfm.py, data/, config.py |
+| **Session 1B** | M1.5, M1.6, M1.7, M1.8, M1.9 | enrich.py, acoustid.py, scan_pipeline.py, pages/2_Scan.py, lyrics.py |
+| **Session 2** | M2.1 → M2.7 | lyrics.py, audio_proxy.py, musicbrainz.py, audiodb.py, requirements.txt |
 | **Session 3** | M3.1 → M3.4 | scorer.py, scan_pipeline.py, config.py, validation script |
 | **Session 4** | Validation passthrough, quality inspection, bug fixes | All |
 
 **Token budget per session:** ~150K–180K tokens
-**Total estimated:** ~600K–700K tokens across 4 sessions
+**Total estimated:** ~700K–800K tokens across 4-5 sessions (split of Session 1 adds ~100K)
 **Go-live gate:** User is satisfied with playlist quality on their actual library
 
 ---
@@ -739,6 +816,7 @@ Total new data: ~500KB. Acceptable to bundle in repository.
 Before pushing public:
 
 - [ ] All M1–M3 milestones validated
+- [ ] packs.json audit complete — no cross-contaminating expected_tags
 - [ ] Validation scan passes all automated checks
 - [ ] Manual inspection of 10 moods passes
 - [ ] No single-artist mood in any scan result
@@ -748,10 +826,15 @@ Before pushing public:
 - [ ] Connect page shows all services (fixed)
 - [ ] Taste Map ocean bug is fixed (done)
 - [ ] All tests pass (`pytest tests/`)
+- [ ] NRC license verified OR replaced with open-licensed alternative
+- [ ] VADER added to requirements.txt and confirmed in production
 - [ ] README updated to reflect new data sources and scan modes
 - [ ] `.env.example` updated with new config keys
 - [ ] `SETUP.md` updated with fpcalc installation instructions
 
 ---
 
-*Document version: 1.0 — Written pre-implementation. Update milestone status as work progresses.*
+*Document version: 1.1 — Pre-implementation review complete. 12 issues resolved.*
+*Corrections from v1.0: M1.1/M1.6 contradiction fixed, tkinter removed, effective_denom*
+*formula corrected, AFINN→VADER, lyr_happy mapping fixed, NRC license flagged, non-English*
+*Deezer strategy added, anchor auto-generation, Session 1 split, packs cleanup promoted to M1.0.*
