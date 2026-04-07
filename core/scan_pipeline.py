@@ -1103,6 +1103,12 @@ def execute_library_scan(
             profiles=profiles,
             backfill_expected_tags=_merged_expected,
         )
+        # Re-enforce artist cap after backfill — ensure_minimum pulls from all_scored
+        # without checking per-artist limits, causing single-artist dominance
+        # (e.g. Linkin Park x11 in Hard Reset, Kanye West x14 in Songs About Home).
+        _filtered_ranked = scorer.enforce_artist_diversity(
+            _filtered_ranked, profiles, max_per_artist=_max_artist
+        )
 
         _avg_sc = (
             sum(sc for _, sc in _filtered_ranked) / len(_filtered_ranked) if _filtered_ranked else 0.0

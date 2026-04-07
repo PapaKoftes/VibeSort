@@ -357,12 +357,17 @@ with tab_mine:
                     "city":          "🏙 City",
                     "ocean":         "🌊 Ocean",
                 }
-                max_val = max(lyr_totals.get(k, 0) / max(lyr_counts.get(k, 1), 1)
+                # Normalise by total library size so sparse tags (e.g. "ocean"
+                # appearing in only 37 tracks but scoring high per-track) don't
+                # hit 100% while "love" with 162 tracks looks tiny. Using
+                # total_weight / total_tracks gives a true library-wide prevalence.
+                _lyr_total_tracks = max(len(track_tags_all), 1)
+                max_val = max(lyr_totals.get(k, 0) / _lyr_total_tracks
                               for k in lyr_labels if k in lyr_totals) or 1
                 for mood_key, label in lyr_labels.items():
                     if mood_key not in lyr_totals:
                         continue
-                    avg = lyr_totals[mood_key] / max(lyr_counts[mood_key], 1)
+                    avg = lyr_totals[mood_key] / _lyr_total_tracks
                     pct = int((avg / max_val) * 100)
                     bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
                     st.markdown(

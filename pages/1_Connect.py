@@ -151,7 +151,7 @@ if st.session_state.get("spotify_token"):
             except OSError:
                 pass
         st.rerun()
-    st.stop()
+    # NOTE: do NOT st.stop() here — page continues to render service connections below
 
 
 # ── Handle OAuth callback ?code= ──────────────────────────────────────────────
@@ -238,8 +238,8 @@ st.title("Vibesort")
 st.caption("Your library, sorted by feeling.")
 st.divider()
 
-if USE_PKCE or USE_OAUTH:
-    # ── Auth is configured — show Connect button ──────────────────────────────
+if not st.session_state.get("spotify_token") and (USE_PKCE or USE_OAUTH):
+    # ── Auth is configured — show Connect button (only when not yet connected) ─
     st.subheader("Connect to Spotify")
     st.write(
         "Vibesort reads your liked songs, top tracks, and followed artists. "
@@ -289,7 +289,7 @@ if USE_PKCE or USE_OAUTH:
         "You'll be taken to Spotify to authorize, then returned here automatically."
     )
 
-else:
+elif not st.session_state.get("spotify_token"):
     # ── No credentials at all — show setup instructions ───────────────────────
     st.subheader("Setup — 3 steps, 5 minutes")
     st.write("")
