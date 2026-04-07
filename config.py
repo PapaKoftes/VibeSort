@@ -74,7 +74,7 @@ MINING_MAX_SEED_PHRASES = int(os.getenv("MINING_MAX_SEED_PHRASES", "2"))
 # Max anchor playlists processed per mood
 MINING_MAX_ANCHORS_PER_MOOD = int(os.getenv("MINING_MAX_ANCHORS_PER_MOOD", "4"))
 # Max owned playlists to pull items from per scan
-MINING_MAX_OWNED_PLAYLISTS = int(os.getenv("MINING_MAX_OWNED_PLAYLISTS", "48"))
+MINING_MAX_OWNED_PLAYLISTS = int(os.getenv("MINING_MAX_OWNED_PLAYLISTS", "200"))
 
 # ── ListenBrainz ──────────────────────────────────────────────────────────────
 LISTENBRAINZ_TOKEN    = os.getenv("LISTENBRAINZ_TOKEN", "")

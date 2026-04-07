@@ -594,12 +594,40 @@ def _mine_lastfm_tag_charts(
 
 # ── Owned-playlist fallback ───────────────────────────────────────────────────
 
+def _fuzzy_mood_match(text: str, mood_packs: dict) -> list:
+    """
+    Token overlap fuzzy match between playlist text and mood seed phrases.
+
+    Returns [(mood_name, score), ...] for all moods with score >= 0.6.
+    Uses token overlap: intersection / len(phrase_tokens).
+    Handles multi-word phrases ("late night drive") correctly.
+    """
+    text_tokens = set(re.sub(r"[^\w\s]", " ", text.lower()).split())
+    if not text_tokens:
+        return []
+    matches = []
+    for mood_name, pack in mood_packs.items():
+        seed_phrases = pack.get("seed_phrases") or [mood_name.lower()]
+        best = 0.0
+        for phrase in seed_phrases:
+            phrase_tokens = set(re.sub(r"[^\w\s]", " ", phrase.lower()).split())
+            if not phrase_tokens:
+                continue
+            overlap = len(text_tokens & phrase_tokens)
+            score   = overlap / max(len(phrase_tokens), 1)
+            best    = max(best, score)
+        if best >= 0.6:
+            matches.append((mood_name, best))
+    return matches
+
+
 def _mine_owned_playlists(
     sp: spotipy.Spotify,
     user_uris: set[str],
     *,
-    max_playlist_fetches: int = 48,
+    max_playlist_fetches: int = 200,
     items_batch_gap: float = 0.12,
+    mood_packs: dict = None,
 ) -> dict:
     """
     Mine the current user's OWN playlists for track→tag context.
@@ -654,6 +682,8 @@ def _mine_owned_playlists(
     enriched_pl = 0
     _items_blocked = [False]   # out-param: set True on first 403
     _fetch_count = 0
+    # uri → set[mood_name] from fuzzy playlist→mood matching (M1.9)
+    uri_mood_matches: dict = collections.defaultdict(set)
 
     for pl in owned:
         if _fetch_count >= max_playlist_fetches:
@@ -661,9 +691,16 @@ def _mine_owned_playlists(
             break
         pid     = pl.get("id", "")
         pl_name = pl.get("name") or ""
-        tags    = extract_tags(pl_name)
+        pl_desc = (pl.get("description") or "").strip()
+
+        # Combine name + description for richer tag extraction (M1.9)
+        full_text = f"{pl_name} {pl_desc}".strip()
+        tags      = extract_tags(full_text) or extract_tags(pl_name)
         if not tags:
-            continue   # playlist name has no useful words — skip
+            continue   # playlist name + description have no useful words — skip
+
+        # Fuzzy match against mood seed phrases (M1.9)
+        mood_hits = _fuzzy_mood_match(full_text, mood_packs) if mood_packs else []
 
         _fetch_count += 1
         uris = _playlist_track_uris(
@@ -683,6 +720,8 @@ def _mine_owned_playlists(
                     "mood":        None,
                     "tags":        tags,
                 })
+                for mood_name, _ in mood_hits:
+                    uri_mood_matches[uri].add(mood_name)
                 matched += 1
         if matched:
             enriched_pl += 1
@@ -710,6 +749,19 @@ def _mine_owned_playlists(
             if uri not in tag_index[tag]:
                 tag_index[tag].append(uri)
 
+    # Inject mood_<slug>: 0.9 for tracks in fuzzy-matched playlists (M1.9)
+    # Weight 0.9 = slightly below anchor (1.0) but above Last.fm chart (0.75)
+    _mood_injected = 0
+    for uri, moods in uri_mood_matches.items():
+        if uri not in track_tags:
+            track_tags[uri] = {}
+        for mood_name in moods:
+            _slug = mood_name.lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+            tag_key = f"mood_{_slug}"
+            if track_tags[uri].get(tag_key, 0.0) < 0.9:
+                track_tags[uri][tag_key] = 0.9
+                _mood_injected += 1
+
     total_tagged = sum(1 for t in track_tags.values() if t)
     if _items_blocked[0]:
         print(
@@ -717,9 +769,10 @@ def _mine_owned_playlists(
             f"— 0 tracks tagged from {len(owned)} playlists]"
         )
     else:
+        _mood_str = f" · {_mood_injected} mood tags injected" if _mood_injected else ""
         print(
             f"  Own playlists mined   {total_tagged} tracks tagged "
-            f"from {enriched_pl}/{len(owned)} playlists"
+            f"from {enriched_pl}/{len(owned)} playlists{_mood_str}"
         )
 
     return {
@@ -792,6 +845,7 @@ def mine(
         user_uris,
         max_playlist_fetches=_max_owned,
         items_batch_gap=_batch_gap,
+        mood_packs=mood_packs,   # M1.9: fuzzy mood matching
     )
     owned_context: dict = own.get("track_context", {})
 
