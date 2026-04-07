@@ -281,7 +281,7 @@ def enrich_library(
     existing_genres: dict | None = None,
     existing_tags: dict | None = None,
     max_artists: int = 150,
-    max_tracks: int = 100,
+    max_tracks: int | None = None,
     progress_fn=None,
 ) -> tuple[dict[str, list[str]], dict[str, dict[str, float]]]:
     """
@@ -292,8 +292,9 @@ def enrich_library(
       - Genres go into artist_genres result
       - Mood tags are broadcast to all tracks by that artist
 
-    Then for tracks still missing tags (up to max_tracks):
+    Then for tracks still missing tags (no cap when max_tracks is None):
       - 1 API call per track → track-level mood/genre tags
+      - Cache is permanent so previously-fetched tracks cost 0 API calls.
 
     Returns:
       (artist_genres_result, track_tags_result)
@@ -344,7 +345,7 @@ def enrich_library(
 
     # ── Pass 2: Track-level tags for top tracks still missing signal ──────────
     # Only run if we haven't already gotten signal from artist mood broadcast
-    track_candidates = sorted(
+    _all_candidates = sorted(
         [
             t for t in all_tracks
             if t.get("uri")
@@ -352,7 +353,9 @@ def enrich_library(
             and t["uri"] not in track_tags_result
         ],
         key=lambda t: -t.get("popularity", 0),
-    )[:max_tracks]
+    )
+    # max_tracks=None → no cap; cache is permanent so re-runs cost 0 API calls.
+    track_candidates = _all_candidates if max_tracks is None else _all_candidates[:max_tracks]
 
     for i, track in enumerate(track_candidates):
         uri = track.get("uri", "")

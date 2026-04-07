@@ -385,7 +385,8 @@ def execute_library_scan(
             existing_genres=artist_genres_map,
             existing_tags=track_tags,
             max_artists=min(380, int(150 * _enrich_mult)),
-            max_tracks=min(250, int(100 * _enrich_mult)),
+            # max_tracks omitted → None (no cap); cache is permanent so
+            # previously-fetched tracks cost 0 API calls on re-runs.
             progress_fn=lambda m: step(m, 67),
         )
 
