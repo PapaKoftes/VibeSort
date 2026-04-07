@@ -396,11 +396,23 @@ def cohesion_signal_weights(profiles: dict[str, dict]) -> tuple[float, float, fl
     """
     Return (audio_weight, tag_weight, semantic_weight) for cohesion_filter.
 
-    When almost all vectors are neutral, drop audio weight and rely on tag +
-    semantic cohesion (post-rank trimming without misleading audio centroids).
+    Real Spotify audio features → full 0.40 audio weight.
+    Metadata proxy vectors     → 0.20 audio weight (heuristic, not ground truth).
+    Neutral / no vectors       → 0.0 audio weight, pure tag+semantic.
     """
-    if library_real_audio_fraction(profiles) >= 0.05:
+    real_frac = library_real_audio_fraction(profiles)
+    if real_frac >= 0.05:
         return (0.40, 0.30, 0.30)
+    # Check if proxy vectors are present (non-neutral)
+    proxy_count = sum(
+        1 for p in list(profiles.values())[:500]
+        if p.get("audio_vector_source") == "metadata_proxy"
+        and not _is_neutral_vector(p.get("audio_vector") or _NEUTRAL)
+    )
+    sample = min(500, len(profiles))
+    if proxy_count / max(sample, 1) >= 0.20:
+        # Proxy vectors exist — use partial audio weight
+        return (0.20, 0.45, 0.35)
     return (0.0, 0.50, 0.50)
 
 
@@ -863,18 +875,24 @@ def tag_score(profile: dict, expected_tags: list[str]) -> float:
         return 0.0
     total = 0.0
     for tag in expected_tags:
+        # lyr_* tags are per-track signals (lyrics engine) — they receive a
+        # 1.5× multiplier because they are the only tags guaranteed to differ
+        # track-by-track even within the same artist when audio features are
+        # unavailable.  Artist-level tags (genre, style) get standard weight.
+        _lyr_boost = 1.5 if tag.startswith("lyr_") else 1.0
         # Tier 1 — exact match
         if tag in active_tags:
-            total += active_tags[tag]
+            total += active_tags[tag] * _lyr_boost
             continue
         best = 0.0
         for mined_tag, weight in active_tags.items():
+            _mb = 1.5 if mined_tag.startswith("lyr_") else 1.0
             # Tier 2 — substring match
             if tag in mined_tag or mined_tag in tag:
-                best = max(best, weight * 0.6)
+                best = max(best, weight * _mb * 0.6)
             # Tier 3 — synonym cluster match
             elif _synonym_match(tag, mined_tag):
-                best = max(best, weight * 0.45)
+                best = max(best, weight * _mb * 0.45)
         total += best
     # Cap the denominator so that 2-3 strong tag matches are meaningfully visible
     # even when expected_tags contains many playlist-mining-specific phrases.
