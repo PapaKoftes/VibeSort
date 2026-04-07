@@ -107,6 +107,7 @@ def execute_library_scan(
         playlists_per_seed=cfg.PLAYLISTS_PER_SEED,
         force_refresh=force_refresh or cfg.MINING_FORCE_REFRESH,
         max_tracks_per_playlist=getattr(cfg, "MINING_MAX_TRACKS_PER_PLAYLIST", 100),
+        user_tracks=all_tracks,
     )
     track_tags = mining.get("track_tags", {})
     mood_fit_playlists = mining.get("mood_fit_playlists", {})

@@ -43,7 +43,7 @@ from core.profile import collapse_tags as _collapse_tags
 
 _ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_PATH = os.path.join(_ROOT, "outputs", ".mining_cache.json")
-CACHE_TTL_DAYS = 7
+CACHE_TTL_DAYS = 30  # tag.getTopTracks results are stable; 7-day was too aggressive
 
 # Stopwords to remove when extracting tags from playlist names
 STOPWORDS = {
@@ -481,6 +481,117 @@ def _save_cache(data: dict) -> None:
         pass
 
 
+# ── Last.fm tag chart mining (M1.3 — mood ground truth) ──────────────────────
+
+def _load_mood_lastfm_tags() -> dict:
+    """Load data/mood_lastfm_tags.json — mood → [last.fm tag, ...] mapping."""
+    path = os.path.join(_ROOT, "data", "mood_lastfm_tags.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _mine_lastfm_tag_charts(
+    user_tracks: list,
+    user_uris: set,
+    mood_packs: dict,
+    api_key: str,
+    mood_lastfm_tags: dict,
+) -> dict:
+    """
+    Mine Last.fm tag.getTopTracks for each mood and cross-reference against the
+    user's library.  Returns additions to track_context.
+
+    Strategy:
+      1. Build (artist_lower, title_lower) -> uri lookup from user library.
+      2. For each mood in mood_lastfm_tags (up to 3 tags per mood):
+           - Call lastfm.get_tag_top_tracks(tag, limit=100)
+           - For each returned track: look up uri in library lookup
+           - Matched track → add context entry with mood + tag signal
+      3. Return {uri: [context_entry, ...]} for all matched library tracks.
+
+    Unmatched tag-chart tracks are not stored — they provide no immediate signal
+    but the matched ones lift the scored tracks to Top-N across that mood.
+
+    Rate: ~210ms gap (enforced inside lastfm._api_get).
+    First run for 87 moods × 3 tags: ~260 API calls ≈ 55s.
+    All results cached in .lastfm_cache.json (no TTL — tag charts are stable).
+    """
+    if not api_key or not api_key.strip() or not mood_lastfm_tags:
+        return {}
+
+    try:
+        import core.lastfm as _lf
+    except ImportError:
+        return {}
+
+    # Build library lookup: (artist_lower, title_lower) -> uri
+    lib_lookup: dict = {}
+    for t in (user_tracks or []):
+        uri    = t.get("uri", "")
+        title  = (t.get("name") or "").lower().strip()
+        arts   = t.get("artists") or []
+        artist = (arts[0].get("name") or "").lower().strip() if arts else ""
+        if uri and title and artist:
+            lib_lookup[(artist, title)] = uri
+
+    if not lib_lookup:
+        return {}
+
+    lf_cache    = _lf._load_cache()
+    additions: dict = collections.defaultdict(list)
+    fetched_tags: dict = {}          # tag_str -> [track dicts] — skip re-fetch
+    tags_to_fetch_total = sum(min(len(v), 3) for v in mood_lastfm_tags.values())
+    done = 0
+
+    print(
+        f"\n  Last.fm tag charts   fetching {tags_to_fetch_total} tags across"
+        f" {len(mood_lastfm_tags)} moods (first run ~55s, then cached)"
+    )
+
+    for mood_name, tags in mood_lastfm_tags.items():
+        if mood_name not in mood_packs:
+            continue
+
+        for tag in tags[:3]:   # cap at 3 tags per mood
+            if tag not in fetched_tags:
+                top = _lf.get_tag_top_tracks(
+                    tag, limit=100, api_key=api_key, cache=lf_cache,
+                )
+                fetched_tags[tag] = top
+                done += 1
+                if done % 15 == 0 or done == tags_to_fetch_total:
+                    print(f"  Last.fm tag charts   {done}/{tags_to_fetch_total} tags fetched")
+            else:
+                top = fetched_tags[tag]
+
+            # Normalised tag string used as the track_context "tag" token.
+            # This directly matches PHRASE_BOOST / BASIC_MAP vocabulary and
+            # feeds into tag_score via the same semantic expansion pipeline.
+            ctx_tag = tag.lower().replace(" ", "_")
+
+            for track in top:
+                a_low = (track.get("artist") or "").lower().strip()
+                t_low = (track.get("title")  or "").lower().strip()
+                uri   = lib_lookup.get((a_low, t_low))
+                if uri and uri in user_uris:
+                    additions[uri].append({
+                        "playlist_id": f"lastfm:tag:{tag}",
+                        "playlist":    f"Last.fm: {tag}",
+                        "followers":   max(track.get("playcount", 1000), 1000),
+                        "mood":        mood_name,
+                        "tags":        [ctx_tag],
+                    })
+
+    _lf._save_cache(lf_cache)
+
+    matched = len(additions)
+    print(f"  Last.fm tag charts   {matched}/{len(user_uris)} library tracks matched")
+    return dict(additions)
+
+
 # ── Owned-playlist fallback ───────────────────────────────────────────────────
 
 def _mine_owned_playlists(
@@ -630,6 +741,7 @@ def mine(
     playlists_per_seed: int = 6,
     max_tracks_per_playlist: int | None = None,
     force_refresh: bool = False,
+    user_tracks: list | None = None,
 ) -> dict:
     """
     Mine public Spotify playlists for track context.
@@ -688,6 +800,28 @@ def mine(
     for uri, ctxs in owned_context.items():
         for ctx in ctxs:
             track_context[uri].append(ctx)
+
+    # ── STEP 1.5: Last.fm tag.getTopTracks mood ground truth (M1.3) ──────────
+    # Cross-reference Last.fm's community-curated mood playlists against the
+    # user's library.  Matched tracks receive high-authority tag context that
+    # feeds directly into tag_score.  Works even when Spotify Dev Mode blocks
+    # all public playlist_items calls.
+    _lf_api_key = (
+        getattr(_cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+        or getattr(_cfg, "LASTFM_API_KEY", "").strip()
+    )
+    _mood_lastfm_tags = _load_mood_lastfm_tags()
+    if _lf_api_key and _mood_lastfm_tags and user_tracks:
+        _chart_additions = _mine_lastfm_tag_charts(
+            user_tracks, user_uris, mood_packs, _lf_api_key, _mood_lastfm_tags,
+        )
+        for uri, ctxs in _chart_additions.items():
+            for ctx in ctxs:
+                track_context[uri].append(ctx)
+    elif not _lf_api_key:
+        print("  Last.fm tag charts   skipped (no API key configured)")
+    elif not user_tracks:
+        print("  Last.fm tag charts   skipped (user_tracks not passed to mine())")
 
     # ── STEP 2: Probe whether public playlist_items is accessible ─────────────
     # Spotify Dev Mode restricts playlist_items for playlists not owned by users

@@ -75,12 +75,13 @@ def _load_cache() -> dict:
             with open(CACHE_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if isinstance(data, dict):
-                data.setdefault("artists", {})
-                data.setdefault("tracks",  {})
+                data.setdefault("artists",    {})
+                data.setdefault("tracks",     {})
+                data.setdefault("tag_charts", {})
                 return data
         except Exception:
             pass
-    return {"artists": {}, "tracks": {}}
+    return {"artists": {}, "tracks": {}, "tag_charts": {}}
 
 
 def _save_cache(cache: dict) -> None:
@@ -242,6 +243,73 @@ def get_track_tags(artist_name: str, track_title: str,
     return result
 
 
+# ---- Tag chart lookup (M1.3 — mood ground truth) ----------------------------
+
+def get_tag_top_tracks(
+    tag: str,
+    limit: int = 100,
+    api_key: str = "",
+    cache: dict = None,
+) -> list[dict]:
+    """
+    Fetch the top tracks for a Last.fm tag (human-curated mood ground truth).
+
+    Uses tag.getTopTracks API endpoint.  These are the tracks the Last.fm
+    community has most strongly associated with a given tag (e.g. "heartbreak",
+    "late night drive", "workout").
+
+    Args:
+        tag:     Last.fm tag string (lowercase, spaces OK — e.g. "heartbreak")
+        limit:   Number of tracks to fetch (max 1000; 100 is the useful ceiling)
+        api_key: Last.fm API key.  Returns [] if empty.
+        cache:   In-memory cache dict (modified in place, must call _save_cache)
+
+    Returns:
+        [{"artist": str, "title": str, "mbid": str|None, "playcount": int}, ...]
+        List ordered by Last.fm playcount rank for that tag.
+    """
+    if not api_key or not api_key.strip():
+        return []
+
+    cache_key = f"{tag.lower().strip()}:{limit}"
+    if cache is not None and cache_key in cache.get("tag_charts", {}):
+        return cache["tag_charts"][cache_key]
+
+    data = _api_get("tag.getTopTracks", {"tag": tag, "limit": limit}, api_key)
+    if data is None:
+        return []  # transient failure — do not cache, retry next scan
+
+    raw_tracks = (data.get("tracks") or {}).get("track") or []
+    if isinstance(raw_tracks, dict):
+        raw_tracks = [raw_tracks]  # Last.fm returns dict when only 1 result
+
+    result: list[dict] = []
+    for t in raw_tracks:
+        artist_obj = t.get("artist") or {}
+        artist_name = (
+            artist_obj.get("name", "") if isinstance(artist_obj, dict) else str(artist_obj)
+        ).strip()
+        title = (t.get("name") or "").strip()
+        mbid  = (t.get("mbid") or "").strip() or None
+        try:
+            playcount = int(t.get("playcount") or 0)
+        except (ValueError, TypeError):
+            playcount = 0
+
+        if artist_name and title:
+            result.append({
+                "artist":    artist_name,
+                "title":     title,
+                "mbid":      mbid,
+                "playcount": playcount,
+            })
+
+    if cache is not None and result:
+        cache.setdefault("tag_charts", {})[cache_key] = result
+
+    return result
+
+
 # ---- Library enrichment (main entry point) ----------------------------------
 
 def enrich_library(
@@ -373,9 +441,10 @@ def cache_stats() -> dict:
     """Return info about the current cache state (for debug / scan display)."""
     c = _load_cache()
     return {
-        "artists_cached": len(c.get("artists", {})),
-        "tracks_cached":  len(c.get("tracks",  {})),
-        "cache_path":     CACHE_PATH,
+        "artists_cached":    len(c.get("artists",    {})),
+        "tracks_cached":     len(c.get("tracks",     {})),
+        "tag_charts_cached": len(c.get("tag_charts", {})),
+        "cache_path":        CACHE_PATH,
     }
 
 
