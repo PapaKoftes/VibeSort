@@ -140,13 +140,19 @@ constant, and correctly wire the proxy weight into the scorer.
 
 **Background (important — read before touching scorer.py):**
 `config.py` already has TWO audio weight constants:
-- `W_AUDIO = 0.0` — the dead Spotify audio features weight (zombie, never contributes)
-- `W_METADATA_AUDIO = 0.10` — the active metadata proxy weight (already exists, already used)
+- `W_AUDIO = 0.0` — the dead Spotify audio features weight (zombie constant, remove it)
+- `W_METADATA_AUDIO = 0.10` — the active metadata proxy weight (keep this, it works)
 
-`scorer.py`'s main weight tuple is `(W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)` = `(0.0, 0.46, 0.26, 0.18)`.
-`W_METADATA_AUDIO` is applied separately outside this tuple — meaning the proxy score only
-partially enters the final scoring. The fix is to replace `W_AUDIO` with `W_METADATA_AUDIO`
-in the tuple, so the proxy gets its proper weight slot.
+`scorer.py`'s `effective_score_weights()` (lines 356–374) already handles the proxy case:
+when `audio_vector_source == "metadata_proxy"`, it **overrides** the incoming `w_audio` slot
+with `W_METADATA_AUDIO = 0.10` and rescales the remaining 3 weights proportionally.
+This means **the proxy audio score is already contributing 10% to all track scores** today.
+The M1.1 change to scorer.py is therefore **cleanup only** — not a scoring fix.
+
+`scan_pipeline.py` lines 917–937 build `_weights = (0.0, _w_tags, _w_sem, _w_gen)` hardcoded
+with `0.0` for the audio slot. After removing `W_AUDIO` from config, replace these `0.0`
+literals with `cfg.W_METADATA_AUDIO` for clarity — behavior is unchanged (effective_score_weights
+handles proxy override regardless), but the code now correctly expresses intent.
 
 **Files and exact changes:**
 
@@ -266,7 +272,7 @@ Implementation in `core/playlist_mining.py`:
 2. Call `tag.getTopTracks` for each tag (up to 3 per mood, limit=100 each)
 3. Deduplicate, normalize (artist+title → lowercase)
 4. Cross-reference against user's library: any matching track gets `mood_<moodname>` tag
-5. Tracks not in library → stored as `track_context` for semantic reference
+5. Tracks not in library → stored in `track_context` for the `combine_expected_tags` feedback loop
 6. Cache in `.mining_cache.json` with **30-day TTL** — explicitly set `CACHE_TTL_DAYS = 30`
    in `playlist_mining.py` (current code has 7-day TTL; tag.getTopTracks results are stable
    and fetching 87 moods × 3 tags × 100 tracks on every 7-day expire is too aggressive)
@@ -288,6 +294,24 @@ For abstract moods with no direct Last.fm tag equivalent (e.g., "Liminal", "Smok
 map to the closest emotional territory tags and accept lower match rate. These moods
 will rely more on anchor tracks and lyrics signals.
 
+**track_context schema (required for `combine_expected_tags` feedback loop):**
+`mood_observed_tag_weights(track_context, mood_name)` expects this exact format:
+```python
+track_context = {
+    "<spotify_uri>": [
+        {
+            "mood": "Heartbreak",          # must match mood name exactly
+            "tags": ["heartbreak", "sad"], # vocabulary tags for this mood
+            "followers": 85000,            # authority weight; use Last.fm playcount
+        }
+    ]
+}
+```
+For Last.fm-sourced mining: when a library track matches a tag chart result, populate
+`track_context[uri]` with the matched mood, the Last.fm tag as vocabulary, and the
+track's Last.fm playcount (from the `tag.getTopTracks` response field `playcount`) as
+the follower proxy. Use `playcount` if available, else default to 10000.
+
 **⚑ Intermediate validation gate:** After implementing M1.3, run a mini-scan before
 proceeding to M1.4. Verify `.mining_cache.json` size > 50KB and `observed_mood_tags`
 is non-empty. If the cache is still empty, the mining implementation has a bug that
@@ -304,13 +328,29 @@ non-empty. At least 20 moods have `mood_*` tags on library tracks.
 Bundle `data/mood_anchors.json` — a set of anchor tracks per mood that serve as permanent
 calibration points regardless of mining or API availability.
 
-**Generation strategy (auto-seed + human review, not pure hand-curation):**
-1. Run `tag.getTopTracks` for each mood's primary Last.fm tag (already done in M1.3)
-2. Take the top 20 returned tracks per mood as seed candidates
-3. Deduplicate across moods (a track appearing in 3+ moods is too generic — reduce its weight)
-4. Filter to tracks that appear in at least one major streaming library (popularity signal)
-5. Human review pass: remove obvious mismatches, add known genre-diverse representatives
-   that Last.fm's chart may have missed (e.g., classical, jazz, non-English tracks)
+**Generation strategy — one-time development script + human review:**
+
+`mood_anchors.json` is a **bundled static file** committed to the repo. It is generated
+once by a developer-side script and then treated as curated data. It is NOT generated at
+runtime during user scans.
+
+**Step 1 — Run `scripts/generate_anchors.py` (create this script as part of M1.4):**
+```python
+# scripts/generate_anchors.py
+# Reads data/mood_lastfm_tags.json, calls tag.getTopTracks for each mood's primary tag,
+# writes top 25 results per mood to data/mood_anchors_candidates.json for review.
+```
+The script calls `lastfm.get_tag_top_tracks()` (implemented in M1.3) for each mood's
+first tag in `mood_lastfm_tags.json`, takes top 25 results, and writes them to
+`data/mood_anchors_candidates.json` as a review file.
+
+**Step 2 — Human review of candidates:**
+1. Take the top 25 returned tracks per mood as seed candidates
+2. Deduplicate cross-mood (a track appearing in 3+ moods → reduce to the single most
+   appropriate mood, remove from others)
+3. Remove obvious mismatches
+4. Add genre-diverse representatives Last.fm's chart missed (classical, jazz, non-English)
+5. Write final reviewed set to `data/mood_anchors.json`
 
 This reduces the work from ~2,610 fully hand-written entries to reviewing and pruning
 ~1,740 auto-generated candidates + filling ~30 gaps per under-served mood.
@@ -586,11 +626,26 @@ VADER advantages over AFINN:
 
 Add `vaderSentiment` to `requirements.txt`. No data file needed — model is bundled with pip.
 
-Use in `core/audio_proxy.py`: if track has lyrics cached, run VADER on the lyric text.
-Map compound score [-1.0, +1.0] → [0.0, 1.0]. Blend at **12% weight** into proxy valence.
-(Starting conservative — tune upward after validation scan if valence variance improves.)
+**Integration path — VADER result flows through track_tags into audio_proxy:**
+
+`audio_proxy.py` receives `(track, artist_genres_map, track_tags)` — no direct lyrics access.
+The path is:
+
+1. In `core/lyrics.py`, after computing mood keyword scores for a track, run VADER on the
+   full lyric text. Store the compound score as a numeric tag:
+   ```python
+   track_tags[uri]["vader_valence"] = (compound + 1.0) / 2.0  # map [-1,1] → [0,1]
+   ```
+
+2. In `core/audio_proxy.py`, `build_proxy_feature_dict()` reads `track_tags` already.
+   Add: if `track_tags.get(uri, {}).get("vader_valence") is not None`, blend it into
+   the proxy valence dimension at **12% weight**:
+   ```python
+   proxy_valence = 0.88 * heuristic_valence + 0.12 * track_tags[uri]["vader_valence"]
+   ```
 
 This gives the audio proxy a real lyric-derived valence anchor instead of pure genre heuristics.
+The 12% is conservative — tune upward after validation scan if valence variance improves.
 
 **Validation:** Two tracks by the same artist — one with clearly positive lyrics, one
 with clearly negative — produce different valence values in their proxy audio vectors.
@@ -886,10 +941,12 @@ Before pushing public:
 
 ---
 
-*Document version: 1.2 — Final pre-implementation review. All known issues resolved.*
+*Document version: 1.3 — Deep source audit complete. All known issues resolved.*
 *v1.0→v1.1: M1.1/M1.6 contradiction, tkinter, effective_denom, AFINN→VADER, lyr_happy,*
 *NRC license, Deezer non-English, anchor auto-gen, Session 1 split, packs cleanup to M1.0.*
-*v1.1→v1.2: W_AUDIO rename clarified (not delete, replace with W_METADATA_AUDIO in scorer*
-*weight tuple), audio_groups.py correctly excluded from M1.1, recommend.py/profile.py*
-*excluded (already handle missing audio gracefully), mining cache TTL corrected 7→30 days,*
-*Full Scan no longer clears mining_cache (TTL-driven only), cache rules table updated.*
+*v1.1→v1.2: W_AUDIO not deleted but renamed; audio_groups/recommend/profile excluded from*
+*M1.1 (handle empty data gracefully); mining TTL 7→30 days; Full Scan respects TTL.*
+*v1.2→v1.3: W_AUDIO description corrected (effective_score_weights already handles proxy;*
+*change is cleanup only); scan_pipeline 0.0 literals → cfg.W_METADATA_AUDIO; track_context*
+*schema explicitly specified for M1.3; VADER integration path specified (track_tags bridge);*
+*anchor generation workflow specified (scripts/generate_anchors.py one-time dev tool).*
