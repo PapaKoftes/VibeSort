@@ -914,7 +914,6 @@
       ],
       "expected_tags": [
         "melancholic",
-        "introspective",
         "sad",
         "bittersweet",
         "lyr_introspective",
@@ -993,9 +992,7 @@
       ],
       "expected_tags": [
         "acoustic",
-        "introspective",
         "sad",
-        "melancholic",
         "lyr_introspective",
         "lyr_sad",
         "acoustic_guitar",
@@ -1069,7 +1066,6 @@
         "introspective",
         "sad",
         "anxious",
-        "melancholic",
         "lyr_introspective",
         "lyr_sad",
         "cant_sleep",
@@ -1144,7 +1140,6 @@
       "expected_tags": [
         "dark",
         "chill",
-        "introspective",
         "atmospheric",
         "lyr_dark",
         "slow_burn",
@@ -1520,9 +1515,7 @@
       ],
       "expected_tags": [
         "sad",
-        "angry",
         "intense",
-        "emotional",
         "lyr_sad",
         "lyr_angry",
         "cathartic_release",
@@ -1742,9 +1735,7 @@
         "Electronic / Drum & Bass"
       ],
       "expected_tags": [
-        "introspective",
         "chill",
-        "melancholic",
         "atmospheric",
         "lyr_introspective",
         "wind_down",
@@ -1816,7 +1807,6 @@
       "expected_tags": [
         "energetic",
         "confident",
-        "hype",
         "aggressive",
         "lyr_hype",
         "drip",
@@ -1972,7 +1962,6 @@
         "dark",
         "sad",
         "melancholic",
-        "introspective",
         "lyr_dark",
         "lyr_sad",
         "dark_pop",
@@ -2121,9 +2110,7 @@
       ],
       "expected_tags": [
         "sad",
-        "angry",
         "emo",
-        "emotional",
         "intense",
         "lyr_sad",
         "lyr_angry",
@@ -2201,7 +2188,6 @@
       "expected_tags": [
         "chill",
         "atmospheric",
-        "introspective",
         "night",
         "lyr_introspective",
         "smoky_bar",
@@ -2361,7 +2347,6 @@
         "soulful",
         "love",
         "chill",
-        "introspective",
         "lyr_love",
         "lyr_introspective",
         "neo_soul",
@@ -2431,7 +2416,6 @@
       ],
       "expected_tags": [
         "atmospheric",
-        "introspective",
         "ambient",
         "trippy",
         "lyr_euphoric",
@@ -2510,9 +2494,7 @@
       "expected_tags": [
         "sad",
         "melancholic",
-        "emotional",
         "emo",
-        "angry",
         "lyr_sad",
         "lyr_angry",
         "bitter_heartbreak",
@@ -2586,7 +2568,6 @@
         "K-Pop / J-Pop"
       ],
       "expected_tags": [
-        "introspective",
         "chill",
         "acoustic",
         "love",
@@ -2661,7 +2642,6 @@
         "K-Pop / J-Pop"
       ],
       "expected_tags": [
-        "introspective",
         "acoustic",
         "love",
         "nostalgic",
@@ -3114,7 +3094,6 @@
         "energetic",
         "chaotic",
         "electronic",
-        "hype",
         "lyr_euphoric",
         "lyr_hype",
         "hyperpop",
@@ -3190,7 +3169,6 @@
       "expected_tags": [
         "dark",
         "atmospheric",
-        "melancholic",
         "cold",
         "lyr_dark",
         "lyr_sad",
@@ -3335,14 +3313,12 @@
       "expected_tags": [
         "rain",
         "rainy",
-        "melancholic",
         "sad",
         "cozy",
         "grey",
         "storm",
         "window",
         "tea",
-        "introspective",
         "soft",
         "acoustic",
         "indie",
@@ -3515,7 +3491,7 @@
         "danceability": 0.22,
         "acousticness": 0.78,
         "instrumentalness": 0.88,
-        "tempo_norm": 0.40
+        "tempo_norm": 0.4
       },
       "audio_constraints": {
         "energy_max": 0.68
@@ -3597,7 +3573,6 @@
         "gym",
         "rage",
         "beast_mode",
-        "hype",
         "metal",
         "rap",
         "trap",
@@ -3673,7 +3648,6 @@
         "uplift",
         "love",
         "peaceful",
-        "emotional",
         "growth",
         "kind"
       ],
@@ -3862,7 +3836,6 @@
         "distortion",
         "anthem",
         "youth",
-        "angry",
         "energy",
         "live",
         "circle_pit",
@@ -4052,8 +4025,6 @@
         "jpop",
         "battle",
         "orchestral",
-        "hype",
-        "emotional",
         "weeb",
         "otaku",
         "cinematic",
@@ -4399,7 +4370,6 @@
         "shonen",
         "jrock",
         "jpop",
-        "hype",
         "cinematic",
         "epic"
       ],
@@ -4444,8 +4414,6 @@
         "anime",
         "ending",
         "ed",
-        "melancholic",
-        "emotional",
         "jpop",
         "ballad",
         "cathartic"
@@ -5150,7 +5118,6 @@
         "brass",
         "marching",
         "stadium",
-        "hype",
         "anthemic"
       ],
       "preferred_macro_genres": [
@@ -5277,7 +5244,6 @@
         "cloudy",
         "hazy",
         "dreamy",
-        "introspective",
         "late_night"
       ],
       "preferred_macro_genres": [
@@ -5411,7 +5377,6 @@
       "expected_tags": [
         "hyperpop",
         "glitchy",
-        "emotional",
         "chaotic",
         "lyr_sad"
       ],
@@ -5541,8 +5506,7 @@
         "kawaii",
         "idol",
         "metal",
-        "playful",
-        "hype"
+        "playful"
       ],
       "preferred_macro_genres": [
         "Metal",
