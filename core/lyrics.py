@@ -32,6 +32,8 @@ Step 4 — NRC Emotion Lexicon overlay (0.4× weight, English tokens only)
            joy→lyr_euphoric  anticipation→lyr_hope  trust→lyr_faith
            disgust→lyr_dark(1.0×)+lyr_angry(0.5×)
          NRC scores are additive — they raise but never lower keyword scores.
+Step 5 — VADER sentiment valence: compound→[0,1] stored as vader_valence.
+         Blended into audio_proxy.py at 12% weight for the proxy valence axis.
 
 LANGUAGE COVERAGE
 =================
@@ -98,6 +100,23 @@ _NRC_EMOTION_MAP: dict[str, list[tuple[str, float]]] = {
 _NRC_WEIGHT = 0.4
 
 _nrc_data: dict[str, list[str]] | None = None
+
+# ── VADER Sentiment ────────────────────────────────────────────────────────────
+
+_vader_analyzer = None   # SentimentIntensityAnalyzer or False if unavailable
+
+
+def _get_vader():
+    """Lazy-load VADER SentimentIntensityAnalyzer; returns None if not installed."""
+    global _vader_analyzer
+    if _vader_analyzer is not None:
+        return _vader_analyzer if _vader_analyzer is not False else None
+    try:
+        from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer  # type: ignore
+        _vader_analyzer = SentimentIntensityAnalyzer()
+    except ImportError:
+        _vader_analyzer = False   # sentinel so we don't retry every call
+    return _vader_analyzer if _vader_analyzer is not False else None
 
 
 def _load_nrc() -> dict[str, list[str]]:
@@ -962,13 +981,30 @@ def analyze_lyrics(lyrics: str | None) -> dict:
                     current = mood_scores.get(lyr_tag, 0.0)
                     mood_scores[lyr_tag] = round(min(current + contribution, 1.0), 4)
 
+    # ── Step 5: VADER sentiment valence ──────────────────────────────────────
+    # VADER is English-optimised; for non-English tracks the compound score
+    # will be near 0, contributing ~0.5 × 0.12 ≈ 0.06 to proxy valence —
+    # negligible and safe.  The score is stored in the analysis result and
+    # blended into audio_proxy at 12% weight (audio_proxy.py).
+    vader_valence: float | None = None
+    vader = _get_vader()
+    if vader is not None:
+        try:
+            compound = vader.polarity_scores(deduped)["compound"]  # [-1, 1]
+            vader_valence = round((compound + 1.0) / 2.0, 4)       # → [0, 1]
+        except Exception:
+            pass
+
     explicit_words = {"fuck", "shit", "bitch", "nigga", "nigger", "ass"}
-    return {
+    result: dict = {
         "language":    _detect_language(lyrics),
         "mood_scores": mood_scores,
         "word_count":  len(words),
         "explicit":    bool(set(words) & explicit_words),
     }
+    if vader_valence is not None:
+        result["vader_valence"] = vader_valence
+    return result
 
 
 def track_analysis(
@@ -1050,6 +1086,11 @@ def enrich_library(
         analysis = track_analysis(artist, name, genius_api_key=genius_api_key)
         tags = {f"lyr_{m}": s for m, s in analysis.get("mood_scores", {}).items()}
         lang = analysis.get("language", "unknown")
+        # Expose VADER valence for audio_proxy.py blending (12% weight).
+        # Stored without lyr_ prefix so it isn't mistaken for a mood tag.
+        vader_val = analysis.get("vader_valence")
+        if vader_val is not None:
+            tags["vader_valence"] = vader_val
 
         tags_map[uri] = tags
         lang_map[uri] = lang

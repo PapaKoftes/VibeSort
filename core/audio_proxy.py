@@ -24,7 +24,12 @@ _BAND_CENTER_BPM: dict[str, float] = {
 
 
 def _tag_blob(tags: dict[str, float]) -> str:
-    parts = [k.lower() for k in tags if k and not str(k).lower().startswith("lyr_")]
+    parts = [
+        k.lower() for k in tags
+        if k
+        and not str(k).lower().startswith("lyr_")
+        and k != "vader_valence"   # numeric signal — not a style tag
+    ]
     return " ".join(parts)
 
 
@@ -198,6 +203,13 @@ def build_proxy_feature_dict(
     }
     energy, valence, dance = _heuristic_energy_valence_dance(tags, lyric_mood)
     acoustic, instrumental = _heuristic_acoustic_instrumental(tags, macros)
+
+    # ── VADER valence blend (12%) ─────────────────────────────────────────────
+    # VADER's compound→[0,1] score from lyrics.py adds a data-driven valence
+    # signal at low weight so heuristic signals remain dominant.
+    vader_val = tags.get("vader_valence")
+    if vader_val is not None:
+        valence = round(0.88 * valence + 0.12 * float(vader_val), 4)
 
     return {
         "energy": energy,
