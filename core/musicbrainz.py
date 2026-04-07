@@ -91,6 +91,28 @@ def _tags_to_weights(tags: list[dict]) -> dict[str, float]:
     return {tag: round(count / max_count, 4) for tag, count in counts.items()}
 
 
+def _merge_genre_list(weights: dict[str, float], genre_list: list[dict]) -> dict[str, float]:
+    """
+    Merge MusicBrainz genre-list (editor-curated) into an existing tag-weights dict.
+
+    Genre-list format mirrors tag-list: [{name, count}, ...].
+    For keys present in both, take the higher weight (genres are authoritative).
+    Genres with no count are assigned weight 1.0 (editor-confirmed = high confidence).
+    """
+    if not genre_list:
+        return weights
+    out = dict(weights)
+    for g in genre_list:
+        name = g.get("name", "").lower().replace(" ", "_")
+        if not name:
+            continue
+        count = int(g.get("count", 0))
+        # count=0 means editor-confirmed without votes → treat as full weight
+        w = 1.0 if count == 0 else round(min(count / max(count, 1), 1.0), 4)
+        out[name] = max(out.get(name, 0.0), w)
+    return out
+
+
 def recording_tags(artist: str, title: str) -> dict[str, float]:
     """
     Fetch genre/mood tags for a recording from MusicBrainz.
@@ -139,15 +161,17 @@ def recording_tags(artist: str, title: str) -> dict[str, float]:
             _save_cache()
             return {}
 
-        # Fetch full recording with tags
+        # Fetch full recording with tags + editor-curated genres (M2.5)
         _rate_limit()
         rec_result = musicbrainzngs.get_recording_by_id(
             rec_id,
-            includes=["tags", "artist-credits", "releases"],
+            includes=["tags", "genres", "artist-credits", "releases"],
         )
         recording = rec_result.get("recording", {})
         tags = recording.get("tag-list", [])
         weights = _tags_to_weights(tags)
+        # Merge editor-curated genres on top of crowd-sourced tags
+        weights = _merge_genre_list(weights, recording.get("genre-list", []))
 
         # If recording has no tags, try the release group tags
         if not weights and recording.get("release-list"):
@@ -157,10 +181,12 @@ def recording_tags(artist: str, title: str) -> dict[str, float]:
             if rg_id:
                 _rate_limit()
                 rg_result = musicbrainzngs.get_release_group_by_id(
-                    rg_id, includes=["tags"]
+                    rg_id, includes=["tags", "genres"]
                 )
-                rg_tags = rg_result.get("release-group", {}).get("tag-list", [])
+                rg = rg_result.get("release-group", {})
+                rg_tags = rg.get("tag-list", [])
                 weights = _tags_to_weights(rg_tags)
+                weights = _merge_genre_list(weights, rg.get("genre-list", []))
 
         cache[key] = weights
         _save_cache()
@@ -251,7 +277,7 @@ def recording_tags_by_isrc(isrc: str) -> dict[str, float]:
 
     try:
         _rate_limit()
-        result = musicbrainzngs.get_recordings_by_isrc(isrc, includes=["tags"])
+        result = musicbrainzngs.get_recordings_by_isrc(isrc, includes=["tags", "genres"])
         recordings = result.get("isrc", {}).get("recording-list", [])
         if not recordings:
             cache[key] = {}
@@ -262,6 +288,8 @@ def recording_tags_by_isrc(isrc: str) -> dict[str, float]:
         best = max(recordings, key=lambda r: len(r.get("tag-list", [])), default=recordings[0])
         tags = best.get("tag-list", [])
         weights = _tags_to_weights(tags)
+        # Merge editor-curated genres (M2.5)
+        weights = _merge_genre_list(weights, best.get("genre-list", []))
 
         cache[key] = weights
         _save_cache()
