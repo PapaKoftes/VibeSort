@@ -22,6 +22,17 @@ lyr_* mood tags per track, matching packs.json expected_tags via substring:
   lyr_missing_you · lyr_revenge · lyr_money · lyr_freedom · lyr_night_drive
   lyr_family · lyr_friends · lyr_jealousy · lyr_summer · lyr_city · lyr_ocean
 
+SIGNAL PIPELINE (per track)
+============================
+Step 1 — De-duplicate repeated stanzas (chorus, bridge)
+Step 2 — Tokenise for word_count (all scripts)
+Step 3 — Negation-aware MOOD_KEYWORDS scoring (1.0× weight, cap 60 keywords)
+Step 4 — NRC Emotion Lexicon overlay (0.4× weight, English tokens only)
+           anger→lyr_angry  fear→lyr_dark   sadness→lyr_sad
+           joy→lyr_euphoric  anticipation→lyr_hope  trust→lyr_faith
+           disgust→lyr_dark(1.0×)+lyr_angry(0.5×)
+         NRC scores are additive — they raise but never lower keyword scores.
+
 LANGUAGE COVERAGE
 =================
 Keyword matching covers:
@@ -65,6 +76,43 @@ _RATE_GAP      = 0.35   # ~2.8 req/s — stay under provider limits on long scan
 
 _last_request_time: float = 0.0
 _cache: dict | None = None
+
+# ── NRC Emotion Lexicon ────────────────────────────────────────────────────────
+
+_NRC_PATH = os.path.join(_ROOT, "data", "nrc_emotions.json")
+
+# emotion → (lyr_tag, weight) pairs — disgust maps to two tags
+_NRC_EMOTION_MAP: dict[str, list[tuple[str, float]]] = {
+    "anger":       [("angry",    1.0)],
+    "fear":        [("dark",     1.0)],
+    "sadness":     [("sad",      1.0)],
+    "joy":         [("euphoric", 1.0)],  # lyr_happy does not exist in packs
+    "anticipation":[("hope",     1.0)],
+    "trust":       [("faith",    1.0)],
+    "disgust":     [("dark",     1.0), ("angry", 0.5)],
+    # "surprise" intentionally omitted — no clean lyr_* mapping
+}
+
+# NRC words are weighted at 0.4x relative to direct keyword matches (1.0x).
+# This preserves keyword precedence while letting the lexicon add signal.
+_NRC_WEIGHT = 0.4
+
+_nrc_data: dict[str, list[str]] | None = None
+
+
+def _load_nrc() -> dict[str, list[str]]:
+    """Load NRC emotion word lists (lazy, cached in process memory)."""
+    global _nrc_data
+    if _nrc_data is not None:
+        return _nrc_data
+    try:
+        with open(_NRC_PATH, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        # Strip the _meta key; keep only emotion→[words] entries
+        _nrc_data = {k: v for k, v in raw.items() if not k.startswith("_")}
+    except (OSError, json.JSONDecodeError):
+        _nrc_data = {}
+    return _nrc_data
 
 
 # ── Rate limiter ───────────────────────────────────────────────────────────────
@@ -888,6 +936,31 @@ def analyze_lyrics(lyrics: str | None) -> dict:
         if hits:
             _denom = min(len(keywords), 60)
             mood_scores[mood] = round(min(hits / max(_denom, 1), 1.0), 4)
+
+    # ── Step 4: NRC Emotion Lexicon overlay ───────────────────────────────────
+    # Token set from the de-duped, lowercased lyric text (Latin tokens only;
+    # NRC is an English lexicon).  We split on non-word chars for speed.
+    # NRC hits are weighted at _NRC_WEIGHT (0.4x) relative to keyword hits
+    # so they add signal without overriding higher-confidence keyword matches.
+    nrc = _load_nrc()
+    if nrc:
+        latin_tokens: set[str] = set(re.findall(r"[a-z']+", text))
+        for emotion, lyr_mappings in _NRC_EMOTION_MAP.items():
+            word_list = nrc.get(emotion, [])
+            if not word_list:
+                continue
+            # Count how many distinct NRC words for this emotion appear in lyrics
+            hit_count = sum(1 for w in word_list if w in latin_tokens)
+            if not hit_count:
+                continue
+            nrc_score = min(hit_count / max(len(word_list), 1), 1.0) * _NRC_WEIGHT
+            for lyr_tag, weight in lyr_mappings:
+                contribution = round(nrc_score * weight, 4)
+                if contribution > 0:
+                    # Add to existing keyword score; cap at 1.0.
+                    # Only increase — never reduce a stronger keyword signal.
+                    current = mood_scores.get(lyr_tag, 0.0)
+                    mood_scores[lyr_tag] = round(min(current + contribution, 1.0), 4)
 
     explicit_words = {"fuck", "shit", "bitch", "nigga", "nigger", "ass"}
     return {
