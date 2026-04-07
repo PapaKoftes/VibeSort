@@ -912,9 +912,9 @@ def execute_library_scan(
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 
-    _w_tags = float(getattr(cfg, "W_TAGS", 0.48))
-    _w_sem = float(getattr(cfg, "W_SEMANTIC", 0.22))
-    _w_gen = float(getattr(cfg, "W_GENRE", 0.20))
+    _w_tags = float(getattr(cfg, "W_TAGS", 0.46))
+    _w_sem = float(getattr(cfg, "W_SEMANTIC", 0.26))
+    _w_gen = float(getattr(cfg, "W_GENRE", 0.18))
     if _has_genres and _has_tags:
         _weights = (0.0, _w_tags, _w_sem, _w_gen)
     elif _has_tags:
@@ -936,22 +936,35 @@ def execute_library_scan(
 
     _weights = scorer.resolved_score_weights(_weights)
 
-    from core import audio_proxy as _audio_proxy_mod
+    # ── Semantic expansion pass (enrichment-only tracks) ──────────────────────
+    # Mining tracks already went through _apply_semantic_expansion in
+    # playlist_mining.mine().  Tracks enriched ONLY via Last.fm/AudioDB/Discogs
+    # skipped that pass, so a track tagged "metal" never got implied dims
+    # ["anger", "hype", "dark"] added.  Run a final expansion over ALL track_tags
+    # now — the function is idempotent (implied tags not set if already stronger).
+    from core.playlist_mining import _apply_semantic_expansion as _sem_expand
+    from core.profile import collapse_tags as _collapse_for_expansion
 
-    _proxy_n = _audio_proxy_mod.merge_proxy_into_audio_map(
-        all_tracks,
-        artist_genres_map,
-        track_tags,
-        audio_features_map,
-    )
-    if _proxy_n:
-        step(f"Metadata audio proxy — {_proxy_n} tracks (tags/genres heuristics)", 61)
+    _expanded_n = 0
+    for _exp_uri, _exp_tags in track_tags.items():
+        if not _exp_tags:
+            continue
+        _exp_result = _sem_expand(_exp_tags)
+        if len(_exp_result) > len(_exp_tags):
+            # New implied dims were added — merge cluster names too
+            _exp_clusters = _collapse_for_expansion(_exp_result)
+            track_tags[_exp_uri] = {**_exp_result, **_exp_clusters} if _exp_clusters else _exp_result
+            _expanded_n += 1
+    if _expanded_n:
+        step(f"Semantic expansion — {_expanded_n} track tag sets enriched with implied dims", 61)
 
     # ── Tag-derived genre backfill ───────────────────────────────────────────────
     # Artists with no genre data (Spotify/Deezer/Discogs/AudioDB all missed them)
     # often have genre-like tags from Last.fm / AudioDB tags (e.g. "hip-hop", "pop",
     # "rock").  Add those tag keys to artist_genres_map so to_macro() can categorise
     # them, shrinking the "Other" bucket on the Genres/Stats pages.
+    # NOTE: This must run BEFORE the audio proxy so the proxy has the correct
+    # macro genres for artists that only have tag-derived genre data.
     _artists_without_genres: dict[str, set] = {}
     for _bt in all_tracks:
         _buri = _bt.get("uri", "")
@@ -972,6 +985,18 @@ def execute_library_scan(
             _backfilled_n += 1
     if _backfilled_n:
         step(f"Genre backfill — {_backfilled_n} artists enriched from tags (reduces 'Other')", 62)
+
+    # ── Audio proxy (runs AFTER genre backfill so proxy has correct macro genres)
+    from core import audio_proxy as _audio_proxy_mod
+
+    _proxy_n = _audio_proxy_mod.merge_proxy_into_audio_map(
+        all_tracks,
+        artist_genres_map,
+        track_tags,
+        audio_features_map,
+    )
+    if _proxy_n:
+        step(f"Metadata audio proxy — {_proxy_n} tracks (tags/genres heuristics)", 61)
 
     step("Building track profiles...", 62)
     profiles = profile_mod.build_all(all_tracks, artist_genres_map, audio_features_map, track_tags)

@@ -428,10 +428,21 @@ def passes_hard_filters(profile: dict, mood_name: str) -> bool:
 
     If audio features are unavailable (empty ``_features``), the track passes
     automatically — we cannot reject what we cannot measure.
+
+    IMPORTANT: metadata_proxy features are heuristic estimates derived from
+    genre/tag keywords, not real audio measurements.  We do NOT hard-filter on
+    proxy values — a track tagged "metal" gets proxy energy=0.85+ but the actual
+    song may be a slow, low-energy ballad.  Hard rejection based on heuristics
+    would silently discard genuine mood-fits.  Proxy values only influence the
+    soft scoring layer (audio_score with W_METADATA_AUDIO weight).
     """
     features = profile.get("_features") or {}
     if not features:
         return True  # no data → cannot filter
+
+    # Metadata proxy is heuristic — do not hard-reject based on estimated values.
+    if features.get("_source") == "metadata_proxy":
+        return True
 
     constraints = mood_audio_constraints(mood_name)
     if not constraints:
