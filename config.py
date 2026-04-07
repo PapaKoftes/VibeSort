@@ -134,6 +134,10 @@ LOCAL_MUSIC_PATH  = os.getenv("LOCAL_MUSIC_PATH", "")
 # ── MusicBrainz ───────────────────────────────────────────────────────────────
 MUSICBRAINZ_ENRICH = os.getenv("MUSICBRAINZ_ENRICH", "false").lower() == "true"
 
+# Max tracks from the same artist in any generated playlist (default 3).
+# Lower = more diverse; higher = allows deep-dives into one artist.
+MAX_TRACKS_PER_ARTIST = int(os.getenv("MAX_TRACKS_PER_ARTIST", "3"))
+
 # ── Navidrome / Jellyfin (OpenSubsonic API) ────────────────────────────────────
 # https://www.navidrome.org/ — starred tracks + local genre tags.
 # Both Navidrome and Jellyfin (with OpenSubsonic plugin) are supported.

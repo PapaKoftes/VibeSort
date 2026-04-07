@@ -1046,10 +1046,15 @@ def execute_library_scan(
 
         if len(cohesion_pass) >= 5:
             trimmed = cohesion_pass[:_max_tracks_cap]
-            c_raw = cohesion_mod.cohesion_score([u for u, _ in trimmed], profiles)
         else:
             trimmed = ranked[:_max_tracks_cap]
-            c_raw = cohesion_mod.cohesion_score([u for u, _ in trimmed], profiles)
+
+        # Artist diversity — without audio features tags are artist-level signals,
+        # so one artist dominates. Cap at 3 tracks per artist per playlist.
+        _max_artist = int(getattr(cfg, "MAX_TRACKS_PER_ARTIST", 3))
+        trimmed = scorer.enforce_artist_diversity(trimmed, profiles, max_per_artist=_max_artist)
+
+        c_raw = cohesion_mod.cohesion_score([u for u, _ in trimmed], profiles)
 
         if len(trimmed) < 5:
             continue

@@ -1666,6 +1666,68 @@ def refine_playlist(
     return result
 
 
+def enforce_artist_diversity(
+    ranked: list[tuple[str, float]],
+    profiles: dict[str, dict],
+    max_per_artist: int = 3,
+    hard_cap: int | None = None,
+) -> list[tuple[str, float]]:
+    """
+    Enforce per-artist track cap on a scored playlist.
+
+    Without audio features, tag-based scoring gives every track from the same
+    artist nearly identical scores, causing a single artist to dominate.
+    This function spreads the playlist across more artists by capping each
+    artist at ``max_per_artist`` slots, cycling through overflow tracks only
+    once all other artists are represented.
+
+    Args:
+        ranked:         [(uri, score), ...] sorted descending by score.
+        profiles:       Full profile dict {uri: profile_dict}.
+        max_per_artist: Max tracks per artist in the first pass (default 3).
+        hard_cap:       If set, absolute max tracks per artist (used in second
+                        pass backfill).  Defaults to max_per_artist + 1.
+
+    Returns:
+        Reordered [(uri, score), ...] with diversity enforced.
+    """
+    if not ranked or max_per_artist <= 0:
+        return ranked
+
+    _hard = hard_cap if hard_cap is not None else max_per_artist + 1
+
+    artist_counts: dict[str, int] = {}
+    overflow: list[tuple[str, float]] = []
+    result: list[tuple[str, float]] = []
+
+    def _artist_key(uri: str) -> str:
+        p = profiles.get(uri, {})
+        artists = p.get("artists") or []
+        if artists:
+            a = artists[0]
+            # profiles store artists as strings (names) after build_all
+            return str(a).lower() if a else uri
+        return uri
+
+    for uri, sc in ranked:
+        key = _artist_key(uri)
+        cnt = artist_counts.get(key, 0)
+        if cnt < max_per_artist:
+            artist_counts[key] = cnt + 1
+            result.append((uri, sc))
+        else:
+            overflow.append((uri, sc))
+
+    # Second pass: add overflow tracks up to hard_cap per artist
+    for uri, sc in overflow:
+        key = _artist_key(uri)
+        if artist_counts.get(key, 0) < _hard:
+            artist_counts[key] = artist_counts.get(key, 0) + 1
+            result.append((uri, sc))
+
+    return result
+
+
 def ensure_minimum(
     ranked: list[tuple[str, float]],
     all_ranked: list[tuple[str, float]],

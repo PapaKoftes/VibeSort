@@ -602,11 +602,222 @@ st.code(env_template, language="bash")
 st.divider()
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 7. Cache management
+# 7. Custom Playlist Builder
+# ═════════════════════════════════════════════════════════════════════════════
+
+st.markdown("## 🎛️ Custom Playlist Builder")
+st.caption(
+    "Build one specific playlist by combining a vibe, a lyrical theme, and an energy level. "
+    "E.g. 'Heartbreak vibes, upbeat energy, songs about goodbye' — "
+    "great for a workout after a breakup."
+)
+
+_vibe_scan = st.session_state.get("vibesort")
+
+if not _vibe_scan:
+    st.info("Run a library scan first (Scan page) — the builder uses your scored results.")
+else:
+    _all_tracks   = _vibe_scan.get("all_tracks", [])
+    _track_tags   = _vibe_scan.get("track_tags", {})
+    _profiles     = _vibe_scan.get("profiles", {})
+    _mood_results = _vibe_scan.get("mood_results", {})
+    _uri_to_track = {t["uri"]: t for t in _all_tracks if t.get("uri")}
+
+    # ── Available lyric tags ──────────────────────────────────────────────────
+    import collections as _col
+    _all_tag_counts = _col.Counter()
+    for _tv in _track_tags.values():
+        for _tg in _tv:
+            _all_tag_counts[_tg] += 1
+
+    _lyr_available = sorted(
+        [(t.replace("lyr_", ""), t, c) for t, c in _all_tag_counts.items() if t.startswith("lyr_")],
+        key=lambda x: -x[2],
+    )
+
+    _energy_tags = ["energetic", "chill", "intense", "mellow", "dance", "calm", "aggressive", "soothing"]
+    _energy_available = [(t, t.replace("_", " ").title(), _all_tag_counts.get(t, 0)) for t in _energy_tags if _all_tag_counts.get(t, 0) > 0]
+
+    # ── Controls ──────────────────────────────────────────────────────────────
+    _cb1, _cb2, _cb3 = st.columns([2, 2, 2])
+
+    with _cb1:
+        _base_mood = st.selectbox(
+            "Base vibe",
+            options=["(none — use whole library)"] + sorted(_mood_results.keys()),
+            help="Starting point: all tracks scored for this mood. Pick '(none)' to search the full library.",
+        )
+
+    with _cb2:
+        _lyr_labels  = [f"{label} ({c} tracks)" for label, tag, c in _lyr_available]
+        _lyr_choices = st.multiselect(
+            "Lyrical theme (any match)",
+            options=[f"{label} ({c} tracks)" for label, tag, c in _lyr_available],
+            help="Filter to tracks whose lyrics match at least one chosen theme.",
+        )
+        _chosen_lyr_tags = {
+            _lyr_available[i][1]
+            for i, lbl in enumerate(_lyr_labels)
+            if lbl in _lyr_choices
+        }
+
+    with _cb3:
+        _energy_labels  = [f"{label} ({c} tracks)" for tag, label, c in _energy_available]
+        _energy_choices = st.multiselect(
+            "Energy / mood tags (any match)",
+            options=_energy_labels,
+            help="Filter to tracks tagged with at least one energy level.",
+        )
+        _chosen_energy_tags = {
+            _energy_available[i][0]
+            for i, lbl in enumerate(_energy_labels)
+            if lbl in _energy_choices
+        }
+
+    _cb4, _cb5, _cb6 = st.columns([2, 1, 1])
+    with _cb4:
+        _extra_tags_raw = st.text_input(
+            "Extra tags to require (comma-separated)",
+            placeholder="e.g. rap, dark, lyr_revenge",
+            help="All listed tags must be present — AND filter. Leave blank to skip.",
+        )
+        _extra_tags = {t.strip().lower() for t in _extra_tags_raw.split(",") if t.strip()} if _extra_tags_raw else set()
+
+    with _cb5:
+        _playlist_size = st.slider("Playlist size", min_value=10, max_value=50, value=25, step=5)
+
+    with _cb6:
+        _artist_cap = st.slider("Max per artist", min_value=1, max_value=10, value=3, step=1,
+                                help="Hard cap on how many tracks from one artist appear.")
+
+    _playlist_name = st.text_input(
+        "Playlist name",
+        value=f"Custom — {_base_mood}" if _base_mood and _base_mood != "(none — use whole library)" else "My Custom Mix",
+        placeholder="Give it a name",
+    )
+
+    if st.button("Build Playlist", type="primary", use_container_width=True):
+        # ── Step 1: candidate pool ────────────────────────────────────────────
+        if _base_mood and _base_mood != "(none — use whole library)":
+            _md = _mood_results.get(_base_mood, {})
+            _pool_uris = _md.get("uris", [])
+            _pool_scored = {uri: sc for uri, sc in _md.get("ranked", [])}
+        else:
+            # Use all tracks, scored 1.0 each (no base mood signal)
+            _pool_uris = [t["uri"] for t in _all_tracks if t.get("uri")]
+            _pool_scored = {u: 1.0 for u in _pool_uris}
+
+        # ── Step 2: lyrical filter (OR logic — any lyr tag matches) ──────────
+        if _chosen_lyr_tags:
+            _pool_uris = [
+                u for u in _pool_uris
+                if any(t in _track_tags.get(u, {}) for t in _chosen_lyr_tags)
+            ]
+
+        # ── Step 3: energy filter (OR logic) ─────────────────────────────────
+        if _chosen_energy_tags:
+            _pool_uris = [
+                u for u in _pool_uris
+                if any(t in _track_tags.get(u, {}) for t in _chosen_energy_tags)
+            ]
+
+        # ── Step 4: extra required tags (AND logic) ───────────────────────────
+        if _extra_tags:
+            _pool_uris = [
+                u for u in _pool_uris
+                if all(t in _track_tags.get(u, {}) for t in _extra_tags)
+            ]
+
+        # ── Step 5: sort by base mood score, then apply artist diversity cap ──
+        _scored_pool = sorted(
+            [(u, _pool_scored.get(u, 0.5)) for u in _pool_uris],
+            key=lambda x: -x[1],
+        )
+
+        # Enforce artist diversity
+        _seen_artists: dict = {}
+        _diverse: list = []
+        _overflow: list = []
+        for u, sc in _scored_pool:
+            prof = _profiles.get(u, {})
+            artists = prof.get("artists") or []
+            akey = str(artists[0]).lower() if artists else u
+            if _seen_artists.get(akey, 0) < _artist_cap:
+                _seen_artists[akey] = _seen_artists.get(akey, 0) + 1
+                _diverse.append((u, sc))
+            else:
+                _overflow.append((u, sc))
+
+        # Backfill from overflow if needed
+        for u, sc in _overflow:
+            if len(_diverse) >= _playlist_size:
+                break
+            prof = _profiles.get(u, {})
+            artists = prof.get("artists") or []
+            akey = str(artists[0]).lower() if artists else u
+            if _seen_artists.get(akey, 0) < (_artist_cap + 2):
+                _seen_artists[akey] = _seen_artists.get(akey, 0) + 1
+                _diverse.append((u, sc))
+
+        _final = _diverse[:_playlist_size]
+
+        if not _final:
+            st.warning(
+                f"No tracks matched your filters. "
+                f"{'Try removing some filters' if (_chosen_lyr_tags or _chosen_energy_tags or _extra_tags) else 'Try a different base vibe'}."
+            )
+        else:
+            st.success(f"Built **{len(_final)} tracks** matching your criteria.")
+
+            # Show playlist preview
+            with st.expander(f"Preview — {_playlist_name}", expanded=True):
+                for _i, (u, sc) in enumerate(_final, 1):
+                    t = _uri_to_track.get(u, {})
+                    _a = (t.get("artists") or [{}])[0].get("name", "?") if isinstance((t.get("artists") or [{}])[0], dict) else (t.get("artists") or ["?"])[0]
+                    _ttitle = t.get("name", "?")
+                    _ttags  = [tg for tg in list(_track_tags.get(u, {}).keys())[:6]]
+                    st.markdown(
+                        f"`{_i:2d}.` **{_ttitle}** — {_a}  "
+                        f"<span style='color:#888;font-size:0.8em'>{', '.join(_ttags)}</span>",
+                        unsafe_allow_html=True,
+                    )
+
+            # Stage or deploy buttons
+            _sp = st.session_state.get("sp")
+            _sc1, _sc2 = st.columns(2)
+            with _sc1:
+                if st.button("Stage it →", use_container_width=True, key="custom_stage"):
+                    _staged = st.session_state.setdefault("staged_playlists", {})
+                    _staged[_playlist_name] = {
+                        "name":  _playlist_name,
+                        "uris":  [u for u, _ in _final],
+                        "count": len(_final),
+                    }
+                    st.success(f"Staged as **{_playlist_name}** — deploy from the Staging page.")
+            with _sc2:
+                if _sp and st.button("Deploy to Spotify now →", use_container_width=True, key="custom_deploy"):
+                    try:
+                        _me = st.session_state.get("me", {})
+                        _uid = _me.get("id", "")
+                        with st.spinner("Creating playlist on Spotify..."):
+                            _new = _sp.user_playlist_create(
+                                _uid, _playlist_name, public=False,
+                                description=f"Custom mix by Vibesort | {len(_final)} tracks"
+                            )
+                            _pid = _new["id"]
+                            _uris_only = [u for u, _ in _final]
+                            for _chunk in range(0, len(_uris_only), 100):
+                                _sp.playlist_add_items(_pid, _uris_only[_chunk:_chunk+100])
+                        st.success(f"✅ **{_playlist_name}** deployed — {len(_final)} tracks added to Spotify.")
+                    except Exception as _de:
+                        st.error(f"Deploy failed: {_de}")
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 8. Cache management
 # ═════════════════════════════════════════════════════════════════════════════
 
 st.markdown("## Cache")
-st.caption("Caches avoid re-downloading data on every scan. Clear only if you think a cache is stale.")
+st.caption("Caches speed up re-scans by storing API responses. Clear only if you think a cache is stale.")
 
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 cache_files = {
