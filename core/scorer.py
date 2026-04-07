@@ -411,8 +411,8 @@ def cohesion_signal_weights(profiles: dict[str, dict]) -> tuple[float, float, fl
     )
     sample = min(500, len(profiles))
     if proxy_count / max(sample, 1) >= 0.20:
-        # Proxy vectors exist — use partial audio weight
-        return (0.20, 0.45, 0.35)
+        # Proxy vectors exist but are heuristic — use small audio weight
+        return (0.15, 0.47, 0.38)
     return (0.0, 0.50, 0.50)
 
 
@@ -876,17 +876,17 @@ def tag_score(profile: dict, expected_tags: list[str]) -> float:
     total = 0.0
     for tag in expected_tags:
         # lyr_* tags are per-track signals (lyrics engine) — they receive a
-        # 1.5× multiplier because they are the only tags guaranteed to differ
-        # track-by-track even within the same artist when audio features are
-        # unavailable.  Artist-level tags (genre, style) get standard weight.
-        _lyr_boost = 1.5 if tag.startswith("lyr_") else 1.0
+        # modest 1.2× multiplier because they are the only tags guaranteed to
+        # differ track-by-track within the same artist when audio features are
+        # unavailable.  Kept small so artist-level signals still anchor the mood.
+        _lyr_boost = 1.2 if tag.startswith("lyr_") else 1.0
         # Tier 1 — exact match
         if tag in active_tags:
             total += active_tags[tag] * _lyr_boost
             continue
         best = 0.0
         for mined_tag, weight in active_tags.items():
-            _mb = 1.5 if mined_tag.startswith("lyr_") else 1.0
+            _mb = 1.2 if mined_tag.startswith("lyr_") else 1.0
             # Tier 2 — substring match
             if tag in mined_tag or mined_tag in tag:
                 best = max(best, weight * _mb * 0.6)
@@ -1691,59 +1691,57 @@ def enforce_artist_diversity(
     hard_cap: int | None = None,
 ) -> list[tuple[str, float]]:
     """
-    Enforce per-artist track cap on a scored playlist.
+    Apply score decay to repeated artists rather than hard-capping.
 
     Without audio features, tag-based scoring gives every track from the same
-    artist nearly identical scores, causing a single artist to dominate.
-    This function spreads the playlist across more artists by capping each
-    artist at ``max_per_artist`` slots, cycling through overflow tracks only
-    once all other artists are represented.
+    artist nearly identical scores. A hard cap forces in off-mood tracks from
+    other artists. Score decay instead penalises repeated tracks enough for
+    better-fitting alternatives to surface naturally, while the best mood-
+    matching tracks from any artist still earn their position.
 
-    Args:
-        ranked:         [(uri, score), ...] sorted descending by score.
-        profiles:       Full profile dict {uri: profile_dict}.
-        max_per_artist: Max tracks per artist in the first pass (default 3).
-        hard_cap:       If set, absolute max tracks per artist (used in second
-                        pass backfill).  Defaults to max_per_artist + 1.
+    Decay schedule (applied on top of original score, then re-sorted):
+      appearance 1-max_per_artist  → no decay
+      appearance max_per_artist+1  → ×0.75
+      appearance max_per_artist+2  → ×0.55
+      appearance max_per_artist+3+ → ×0.38
 
-    Returns:
-        Reordered [(uri, score), ...] with diversity enforced.
+    hard_cap: absolute ceiling per artist regardless of score (default 6).
     """
     if not ranked or max_per_artist <= 0:
         return ranked
 
-    _hard = hard_cap if hard_cap is not None else max_per_artist + 1
-
-    artist_counts: dict[str, int] = {}
-    overflow: list[tuple[str, float]] = []
-    result: list[tuple[str, float]] = []
+    _hard = hard_cap if hard_cap is not None else max(6, max_per_artist * 2)
 
     def _artist_key(uri: str) -> str:
         p = profiles.get(uri, {})
         artists = p.get("artists") or []
         if artists:
             a = artists[0]
-            # profiles store artists as strings (names) after build_all
             return str(a).lower() if a else uri
         return uri
+
+    artist_counts: dict[str, int] = {}
+    decayed: list[tuple[str, float]] = []
 
     for uri, sc in ranked:
         key = _artist_key(uri)
         cnt = artist_counts.get(key, 0)
-        if cnt < max_per_artist:
-            artist_counts[key] = cnt + 1
-            result.append((uri, sc))
+        if cnt >= _hard:
+            continue  # hard ceiling only
+        artist_counts[key] = cnt + 1
+        overflow = cnt - (max_per_artist - 1)
+        if overflow <= 0:
+            decayed.append((uri, sc))
+        elif overflow == 1:
+            decayed.append((uri, sc * 0.75))
+        elif overflow == 2:
+            decayed.append((uri, sc * 0.55))
         else:
-            overflow.append((uri, sc))
+            decayed.append((uri, sc * 0.38))
 
-    # Second pass: add overflow tracks up to hard_cap per artist
-    for uri, sc in overflow:
-        key = _artist_key(uri)
-        if artist_counts.get(key, 0) < _hard:
-            artist_counts[key] = artist_counts.get(key, 0) + 1
-            result.append((uri, sc))
-
-    return result
+    # Re-sort after decay so the best mood-fit track wins regardless of artist
+    decayed.sort(key=lambda x: -x[1])
+    return decayed
 
 
 def ensure_minimum(

@@ -67,11 +67,13 @@ def _macro_genres_for_track(track: dict, artist_genres_map: dict[str, list[str]]
 def _heuristic_energy_valence_dance(tags: dict[str, float], lyric_mood: dict[str, float]) -> tuple[float, float, float]:
     """Return (energy, valence, danceability) in [0,1].
 
-    Two-pass design:
-      Pass 1 — artist-level genre/style tags set the baseline (moderate shifts).
-      Pass 2 — per-track lyr_* tags override with strong corrections.
-               lyr_* are the only signals guaranteed to differ track-by-track
-               even within the same artist, so they get priority.
+    Two-pass additive design:
+      Pass 1 — genre/style tags (artist-level) shift the baseline.
+      Pass 2 — per-track lyr_* tags apply additional signed shifts.
+               Multiple signals accumulate — a track with both lyr_sad and
+               lyr_love lands in the middle (bittersweet), which is correct.
+               lyr_* shifts are larger than genre shifts to give them
+               appropriate per-track weight without overriding each other.
     """
     blob = _tag_blob(tags)
     energy = 0.5
@@ -102,67 +104,40 @@ def _heuristic_energy_valence_dance(tags: dict[str, float], lyric_mood: dict[str
         if kw in blob:
             dance = min(1.0, dance + 0.12)
 
-    # ── Pass 2: per-track lyr_* overrides (strong, per-track signal) ──────────
-    # These intentionally override the Pass-1 baseline so two tracks from the
-    # same artist can end up with very different audio vectors if their lyrics
-    # convey a different emotion.  This is the primary intra-artist differentiator
-    # when Spotify audio-features are unavailable.
-    #
-    # Strategy: use min/max to enforce hard ceilings/floors rather than additive
-    # shifts — prevents repeated lyr_ stacking from pushing vectors to extremes.
-
-    # Valence pullers (negative)
-    if "sad" in lyric_mood:
-        valence = min(valence, 0.30)
-    if "dark" in lyric_mood:
-        valence = min(valence, 0.35)
-    if "angry" in lyric_mood:
-        valence = min(valence, 0.38)
-        energy  = max(energy,  0.72)
-    if "goodbye" in lyric_mood:
-        valence = min(valence, max(valence - 0.12, 0.25))
-    if "nostalgic" in lyric_mood:
-        valence = max(0.0, valence - 0.10)
-    if "homesick" in lyric_mood:
-        valence = max(0.0, valence - 0.12)
-    if "struggle" in lyric_mood:
-        valence = max(0.0, valence - 0.10)
-    if "revenge" in lyric_mood:
-        valence = min(valence, 0.35)
-        energy  = max(energy,  0.70)
-    if "jealousy" in lyric_mood:
-        valence = max(0.0, valence - 0.08)
-
-    # Valence boosters (positive)
-    if "love" in lyric_mood:
-        valence = max(valence, 0.58)
-    if "euphoric" in lyric_mood:
-        valence = max(valence, 0.75)
-        energy  = max(energy,  0.70)
-    if "hope" in lyric_mood:
-        valence = max(valence, 0.55)
-    if "freedom" in lyric_mood:
-        valence = max(valence, 0.60)
-    if "summer" in lyric_mood:
-        valence = max(valence, 0.62)
-
-    # Energy + danceability boosters
-    if "hype" in lyric_mood:
-        energy = max(energy, 0.78)
-        dance  = max(dance,  0.68)
-    if "party" in lyric_mood:
-        energy = max(energy, 0.72)
-        dance  = max(dance,  0.75)
-        valence = max(valence, 0.60)
-    if "city" in lyric_mood:
-        energy = max(energy, 0.60)
-
-    # Introspective / quiet signal
-    if "introspective" in lyric_mood:
-        energy = min(energy, 0.50)
-    if "missing_you" in lyric_mood:
-        valence = min(valence, 0.35)
-        energy  = min(energy,  0.45)
+    # ── Pass 2: per-track lyr_* additive shifts ────────────────────────────────
+    # Signed shifts — opposing signals cancel, giving bittersweet/mixed vectors.
+    # Stronger than Pass-1 shifts to differentiate tracks within the same artist.
+    lyr_shifts = {
+        # (valence_delta, energy_delta, dance_delta)
+        "sad":           (-0.18,  0.00,  0.00),
+        "dark":          (-0.14,  0.05,  0.00),
+        "angry":         (-0.12,  0.18,  0.00),
+        "goodbye":       (-0.12,  0.00,  0.00),
+        "nostalgic":     (-0.10,  0.00,  0.00),
+        "homesick":      (-0.12, -0.05,  0.00),
+        "struggle":      (-0.10,  0.08,  0.00),
+        "revenge":       (-0.10,  0.15,  0.00),
+        "jealousy":      (-0.08,  0.06,  0.00),
+        "missing_you":   (-0.14, -0.08,  0.00),
+        "introspective": (-0.04, -0.10,  0.00),
+        "love":          ( 0.16,  0.00,  0.05),
+        "euphoric":      ( 0.20,  0.15,  0.12),
+        "hope":          ( 0.12,  0.05,  0.00),
+        "freedom":       ( 0.14,  0.10,  0.00),
+        "summer":        ( 0.14,  0.08,  0.08),
+        "hype":          ( 0.08,  0.22,  0.18),
+        "party":         ( 0.12,  0.18,  0.22),
+        "city":          ( 0.00,  0.08,  0.05),
+        "family":        ( 0.06,  0.00,  0.00),
+        "faith":         ( 0.06, -0.04,  0.00),
+        "ocean":         (-0.04, -0.06,  0.00),
+    }
+    for mood_k, (vd, ed, dd) in lyr_shifts.items():
+        w = lyric_mood.get(mood_k, 0.0)
+        if w > 0:
+            valence = max(0.0, min(1.0, valence + vd * min(w, 1.0)))
+            energy  = max(0.0, min(1.0, energy  + ed * min(w, 1.0)))
+            dance   = max(0.0, min(1.0, dance   + dd * min(w, 1.0)))
 
     return round(energy, 4), round(valence, 4), round(dance, 4)
 

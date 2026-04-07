@@ -51,7 +51,7 @@ MVP_SCORE_FLOOR        = float(os.getenv("MVP_SCORE_FLOOR", "0.15"))
 # Defaults bias slightly toward meaning (semantic) over strict macro genre — pairs with
 # cross-genre rescue in scorer.effective_genre_score. Override via .env or outputs/.user_model.json.
 W_AUDIO            = 0.0    # Spotify API audio — do not re-enable
-W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.15"))
+W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.10"))
 W_TAGS             = float(os.getenv("W_TAGS",             "0.46"))
 W_SEMANTIC         = float(os.getenv("W_SEMANTIC",         "0.26"))
 W_GENRE            = float(os.getenv("W_GENRE",            "0.18"))
