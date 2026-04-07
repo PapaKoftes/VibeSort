@@ -37,8 +37,7 @@ from core.mood_graph import (
 )
 
 
-# Scoring weights from config (.env). See config.py for W_METADATA_AUDIO.
-W_AUDIO            = _cfg.W_AUDIO
+# Scoring weights from config (.env). W_AUDIO removed — deprecated endpoint.
 W_METADATA_AUDIO   = _cfg.W_METADATA_AUDIO
 W_TAGS             = _cfg.W_TAGS
 W_SEMANTIC         = _cfg.W_SEMANTIC
@@ -96,7 +95,7 @@ def resolved_score_weights(
     (from ml.train_weights). Normalises to sum 1.0. Keys: w_audio, w_tags,
     w_semantic, w_genre.
     """
-    b = base if base is not None else (W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)
+    b = base if base is not None else (W_METADATA_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)
     model = _load_user_model()
     sw = model.get("score_weights") if isinstance(model, dict) else None
     if not sw or not isinstance(sw, dict):
@@ -1071,7 +1070,7 @@ def score_track(
     mood_name: str,
     user_audio_mean: list[float] | None = None,
     user_tag_prefs: dict[str, float] | None = None,
-    weights: tuple[float, float, float, float] = (W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE),
+    weights: tuple[float, float, float, float] = (W_METADATA_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE),
     penalty_cap: float = 0.75,
     merged_expected_tags: list[str] | None = None,
 ) -> float:
@@ -1158,7 +1157,7 @@ def rank_tracks(
     user_audio_mean: list[float] | None = None,
     user_tag_prefs: dict[str, float] | None = None,
     min_score: float = 0.25,
-    weights: tuple[float, float, float, float] = (W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE),
+    weights: tuple[float, float, float, float] = (W_METADATA_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE),
     min_playlist_size: int = 15,
     allow_mvp_fallback: bool = True,
     mvp_score_floor: float | None = None,
@@ -1663,7 +1662,7 @@ def explain(profile: dict, mood_name: str) -> dict:
         return {"fits": [], "flags": flags, "penalty": penalty, "score": 0.0, "rejected": rejection}
 
     w_a, w_t, w_s, w_g = effective_score_weights(
-        profile, resolved_score_weights((W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)),
+        profile, resolved_score_weights((W_METADATA_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)),
     )
     final_score = round(
         (w_a * a_score + w_t * t_score + w_s * s_score + w_g * g_score)

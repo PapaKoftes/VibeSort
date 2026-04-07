@@ -232,35 +232,10 @@ def artist_genres(
 
 def audio_features(sp: spotipy.Spotify, track_uris: list[str]) -> dict[str, dict]:
     """
-    Returns {uri: feature_dict} for all given track URIs (batched, 100 at a time).
-    Returns an empty dict silently on 403 — Spotify deprecated this endpoint
-    in Nov 2024; profile.py falls back to a neutral [0.5]*6 audio vector.
+    Spotify deprecated GET /audio-features in Nov 2024 — always returns 403.
+    Stub returns empty dict. Scoring falls back to metadata proxy (W_METADATA_AUDIO).
     """
-    features: dict[str, dict] = {}
-    ids = [u.split(":")[-1] for u in track_uris if u.startswith("spotify:track:")]
-
-    # Suppress the 403 log spam — this endpoint is deprecated and always 403s;
-    # the exception is caught below and the code continues with no audio features.
-    _prev = _sp_log.level
-    _sp_log.setLevel(logging.CRITICAL)
-
-    for i in range(0, len(ids), 100):
-        try:
-            batch = sp.audio_features(ids[i:i+100]) or []
-            for f in batch:
-                if f:
-                    features[f"spotify:track:{f['id']}"] = f
-        except spotipy.SpotifyException as exc:
-            if exc.http_status in (403, 429):
-                print(f"\n  [warn] audio features skipped ({exc.http_status}) — "
-                      "Spotify deprecated this endpoint; scoring on tags/genres only")
-                break
-            _sp_log.setLevel(_prev)
-            raise
-        time.sleep(0.08)
-
-    _sp_log.setLevel(_prev)
-    return features
+    return {}
 
 
 def gather(
@@ -328,9 +303,7 @@ def gather(
     _print(f"  Genre data            {nonempty}/{len(genres)} artists have genres ({source})")
 
     uris = [t["uri"] for t in tracks if t.get("uri")]
-    _print(f"  Fetching audio features ({len(uris)} tracks)...")
+    _print(f"  Audio features skipped (deprecated endpoint — {len(uris)} tracks use metadata proxy)")
     feats = audio_features(sp, uris)
-    _print(f"  Audio features        {len(feats)} tracks"
-           f"{' (unavailable — deprecated)' if not feats else ''}")
 
     return genres, feats

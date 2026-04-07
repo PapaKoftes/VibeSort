@@ -85,7 +85,7 @@ def execute_library_scan(
     _nonempty_seeds = sum(1 for g in seed_genres.values() if g)
     print(f"  Genre seed            {len(seed_genres)} artists ({_nonempty_seeds} with genres)")
 
-    step(f"Fetching genre and audio data for {len(all_tracks)} tracks...", 22)
+    step(f"Fetching genre data for {len(all_tracks)} tracks...", 22)
     artist_genres_map, audio_features_map = enrich.gather(sp, all_tracks, seed_genres=seed_genres)
 
     _has_audio = bool(
@@ -915,24 +915,25 @@ def execute_library_scan(
     _w_tags = float(getattr(cfg, "W_TAGS", 0.46))
     _w_sem = float(getattr(cfg, "W_SEMANTIC", 0.26))
     _w_gen = float(getattr(cfg, "W_GENRE", 0.18))
+    _w_proxy = float(getattr(cfg, "W_METADATA_AUDIO", 0.10))
     if _has_genres and _has_tags:
-        _weights = (0.0, _w_tags, _w_sem, _w_gen)
+        _weights = (_w_proxy, _w_tags, _w_sem, _w_gen)
     elif _has_tags:
         _s = _w_tags + _w_sem
         if _s > 0:
             _k = 1.0 / _s
-            _weights = (0.0, _w_tags * _k, _w_sem * _k, 0.0)
+            _weights = (_w_proxy, _w_tags * _k, _w_sem * _k, 0.0)
         else:
-            _weights = (0.0, 0.70, 0.30, 0.0)
+            _weights = (_w_proxy, 0.70, 0.30, 0.0)
     elif _has_genres:
-        _weights = (0.0, 0.0, 0.0, 1.0)
+        _weights = (_w_proxy, 0.0, 0.0, 1.0)
     else:
         _s2 = _w_tags + _w_sem
         if _s2 > 0:
             _k2 = 1.0 / _s2
-            _weights = (0.0, _w_tags * _k2, _w_sem * _k2, 0.0)
+            _weights = (_w_proxy, _w_tags * _k2, _w_sem * _k2, 0.0)
         else:
-            _weights = (0.0, 0.50, 0.50, 0.0)
+            _weights = (_w_proxy, 0.50, 0.50, 0.0)
 
     _weights = scorer.resolved_score_weights(_weights)
 

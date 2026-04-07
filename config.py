@@ -45,12 +45,10 @@ ALLOW_MVP_FALLBACK     = os.getenv("ALLOW_MVP_FALLBACK", "true").lower() == "tru
 # Floor for MVP pass scores (also scaled from min_score when unset in code).
 MVP_SCORE_FLOOR        = float(os.getenv("MVP_SCORE_FLOOR", "0.15"))
 
-# Scoring weights (must sum to 1.0 with W_METADATA_AUDIO when proxy is used)
-# W_AUDIO: Spotify GET /audio-features (deprecated; kept at 0).
+# Scoring weights (must sum to 1.0). Override via .env or outputs/.user_model.json.
 # W_METADATA_AUDIO: weight for metadata-derived proxy vectors (tags/genres/BPM heuristics).
 # Defaults bias slightly toward meaning (semantic) over strict macro genre — pairs with
-# cross-genre rescue in scorer.effective_genre_score. Override via .env or outputs/.user_model.json.
-W_AUDIO            = 0.0    # Spotify API audio — do not re-enable
+# cross-genre rescue in scorer.effective_genre_score.
 W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.10"))
 W_TAGS             = float(os.getenv("W_TAGS",             "0.46"))
 W_SEMANTIC         = float(os.getenv("W_SEMANTIC",         "0.26"))
