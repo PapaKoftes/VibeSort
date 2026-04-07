@@ -127,8 +127,26 @@ Full audit of all 87 moods:
 zero-cost fix (no API, no pipeline) and must happen before we add more signals on top of
 broken foundations.
 
+**Scope — this is larger than it looks.** A full audit of packs.json reveals:
+- 63 tags appear in 3+ mood definitions (severely diluted signal)
+- `"introspective"` in 17 moods — too broad, removes differentiation
+- `"dark"` in 13 moods — three incompatible meanings: atmospheric, aggressive, heavy
+- `"melancholic"` in 12 moods — incorrectly used in cozy/anxious/bittersweet moods
+- `"angry"` in 9 moods — belongs in Villain Arc / Adrenaline / Rage Lift / Drill / Hard Reset;
+  must be removed from Heartbreak, Emo Hour, Raw Emotion, Punk Sprint
+- `"hype"` in 9 moods — contradictory in Rage Lift and all Anime moods
+
+**Priority fixes (directly causes wrong playlist output):**
+1. Remove `"angry"` from: Heartbreak, Emo Hour, Raw Emotion, Punk Sprint
+2. Remove `"hype"` from: Rage Lift, Anime OST Energy, Anime Openings, Kawaii Metal Sparkle
+3. Remove `"melancholic"` from: Acoustic Corner, Overthinking, Rainy Window, Goth/Darkwave, Sundown
+   (it fits: Heartbreak, Hollow, Dark Pop, Shoegaze Breakups, Nostalgia — bittersweet only)
+4. Audit all moods with 4+ of the diluted-signal tags and remove the least-specific ones
+
+**Time estimate:** This is a ~2–3 hour careful audit, not a quick fix.
+
 **Validation:** `"angry"` does not appear in Heartbreak's `expected_tags`.
-Heartbreak and Villain Arc top-10 track overlap < 40%.
+Heartbreak and Villain Arc top-10 track overlap < 40%. No tag appears in more than 6 moods.
 
 ---
 
@@ -239,6 +257,12 @@ Accept match if title similarity ≥ 0.8 AND artist similarity ≥ 0.7.
 Then add `get_artist_top_tracks(artist_name: str, limit: int = 50) -> list[dict]` using
 `/search?q=artist:"<name>"&limit=50` for bulk BPM acquisition.
 
+**`_load_cache()` must be updated** — currently only initializes `{"artists": {}}`.
+Add `"tracks": {}` to the default so per-track cache writes don't fail silently:
+```python
+return {"artists": {}, "tracks": {}}  # was: {"artists": {}} only
+```
+
 Cache structure in `.deezer_cache.json`:
 ```json
 {
@@ -278,7 +302,20 @@ Implementation in `core/playlist_mining.py`:
    and fetching 87 moods × 3 tags × 100 tracks on every 7-day expire is too aggressive)
 
 Implement `lastfm.py:get_tag_top_tracks(tag: str, limit: int = 100) -> list[dict]`
-returning `[{"artist": str, "title": str, "mbid": str|None}]`.
+returning `[{"artist": str, "title": str, "mbid": str|None, "playcount": int}]`.
+
+**This function does NOT exist yet** — add it to lastfm.py using the existing `_api_get()`
+infrastructure (rate limiter + error handling already built). API call:
+`tag.getTopTracks` with params `{"tag": tag, "limit": limit}`.
+
+**`_load_cache()` must be updated** — currently initializes `{"artists": {}, "tracks": {}}` only.
+Add `"tag_charts": {}` so chart results have a home in the cache:
+```python
+return {"artists": {}, "tracks": {}, "tag_charts": {}}
+```
+Cache key: `"tag_charts": {"heartbreak": [{"artist":..., "title":..., "playcount":...}], ...}`
+TTL: tag chart cache entries are stable — store with the mining cache's 30-day TTL (in
+`.mining_cache.json`), NOT in lastfm_cache.json (which has no TTL).
 
 Mood → Last.fm tag mapping lives in `data/mood_lastfm_tags.json`:
 ```json
@@ -461,22 +498,31 @@ This path is gated — standard Spotify-only users never see it or wait for it.
 
 ---
 
-### M1.7 — Lyrics: Full Library Coverage
+### M1.7 — Full Library Coverage: Lyrics + Last.fm Per-Track Tags
 
 **What:**
-Remove the `min(600, int(350 * _enrich_mult))` cap from the lyrics enrichment call
-in `core/scan_pipeline.py`.
+Remove both enrichment caps that artificially limit per-track signal coverage:
 
+**Cap 1 — Lyrics (`core/scan_pipeline.py`):**
+Remove `min(600, int(350 * _enrich_mult))` from the lyrics max_tracks argument.
 Replace with: fetch lyrics for all tracks, rate-limited at 0.25s/request.
-Cache is permanent (lyrics don't change). On rescan, only uncached tracks are fetched.
+Cache is permanent. On rescan, only uncached tracks are fetched.
 
-First-run messaging: "Fetching lyrics — [N] tracks, approx. [T] minutes. This runs
-once and is cached permanently. Future scans are instant."
+**Cap 2 — Last.fm per-track tags (`core/scan_pipeline.py` lines 159–166):**
+Currently: `_lf_cap = max(300, min(1000, len(all_tracks)))` — caps per-track Last.fm
+lookup at 1,000 tracks. With a 2,612-track library, 1,612 tracks only get artist-level
+tags at 55% weight. Replace with: `_lf_cap = len(all_tracks)` (no cap; cache prevents
+re-fetching). The existing cache in `.lastfm_cache.json` makes rescans instant.
+
+First-run messaging for both:
+- "Fetching lyrics — [N] tracks, approx. [T] minutes. Cached permanently."
+- "Fetching Last.fm track tags — [N] tracks. Cached permanently."
 
 Show per-language breakdown in scan summary (already partially implemented).
 
-**Validation:** After first scan, `.lyrics_cache.json` size grows proportionally to
-library size. Second scan skips all previously fetched tracks.
+**Validation:** After first scan, `.lyrics_cache.json` and `.lastfm_cache.json` contain
+entries for all library tracks. Second scan skips all previously fetched tracks.
+Last.fm track entries in cache ≈ library size.
 
 ---
 
@@ -941,12 +987,16 @@ Before pushing public:
 
 ---
 
-*Document version: 1.3 — Deep source audit complete. All known issues resolved.*
+*Document version: 1.4 — Full source verification complete. All files read. Final.*
 *v1.0→v1.1: M1.1/M1.6 contradiction, tkinter, effective_denom, AFINN→VADER, lyr_happy,*
 *NRC license, Deezer non-English, anchor auto-gen, Session 1 split, packs cleanup to M1.0.*
 *v1.1→v1.2: W_AUDIO not deleted but renamed; audio_groups/recommend/profile excluded from*
-*M1.1 (handle empty data gracefully); mining TTL 7→30 days; Full Scan respects TTL.*
-*v1.2→v1.3: W_AUDIO description corrected (effective_score_weights already handles proxy;*
-*change is cleanup only); scan_pipeline 0.0 literals → cfg.W_METADATA_AUDIO; track_context*
-*schema explicitly specified for M1.3; VADER integration path specified (track_tags bridge);*
-*anchor generation workflow specified (scripts/generate_anchors.py one-time dev tool).*
+*M1.1; mining TTL 7→30 days; Full Scan respects TTL.*
+*v1.2→v1.3: effective_score_weights already handles proxy (M1.1 is cleanup only);*
+*scan_pipeline 0.0 literals → cfg.W_METADATA_AUDIO; track_context schema specified;*
+*VADER integration path specified; anchor generation script specified.*
+*v1.3→v1.4: packs.json full audit — 63 over-broad tags found, specific removals listed,*
+*M1.0 re-scoped to ~3hr audit (was 30min); deezer._load_cache needs tracks key (M1.2);*
+*lastfm._load_cache needs tag_charts key + get_tag_top_tracks doesn't exist yet (M1.3);*
+*passes_hard_filters already skips proxy tracks — no change needed; config verified;*
+*M1.7 expanded to also remove Last.fm per-track cap (was only lyrics cap).*
