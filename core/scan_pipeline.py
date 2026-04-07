@@ -994,6 +994,44 @@ def execute_library_scan(
     except Exception as _meta_err:
         step(f"Metadata signals skipped: {_meta_err}", 81)
 
+    # ── Last.fm getSimilar mood inference (M2.7) ─────────────────────────────
+    # For tracks still without any tags after all enrichment passes, infer mood
+    # from similar tracks' Last.fm top tags.  Only runs when a Last.fm API key
+    # is available.  Similar-inferred tags are weighted at 0.55× so they rank
+    # below direct track lookups (1.0×) and tag-chart anchors (0.75×).
+    if _lf_key:
+        _sim_candidates = [
+            t for t in all_tracks
+            if t.get("uri") and not track_tags.get(t.get("uri", ""))
+        ]
+        if _sim_candidates:
+            try:
+                from core import lastfm as _lf_sim
+                _sim_cache = _lf_sim._load_cache()
+                _sim_added = 0
+                _sim_total = len(_sim_candidates)
+                step(f"Last.fm getSimilar — inferring mood for {_sim_total} untagged tracks...", 82)
+                for _si, _st in enumerate(_sim_candidates):
+                    _s_uri = _st.get("uri", "")
+                    _s_artist = (((_st.get("artists") or [{}])[0]) or {}).get("name", "")
+                    _s_title  = _st.get("name", "")
+                    if not (_s_uri and _s_artist and _s_title):
+                        continue
+                    if _si % 20 == 0:
+                        step(f"Last.fm getSimilar  {_si}/{_sim_total}", 82)
+                    _sim_tags = _lf_sim.get_similar_track_tags(
+                        _s_artist, _s_title, _lf_key,
+                        limit=5,
+                        cache=_sim_cache,
+                    )
+                    if _sim_tags:
+                        track_tags[_s_uri] = _sim_tags
+                        _sim_added += 1
+                _lf_sim._save_cache(_sim_cache)
+                step(f"getSimilar — {_sim_added}/{_sim_total} previously-untagged tracks inferred", 83)
+            except Exception as _sim_err:
+                step(f"getSimilar inference skipped: {_sim_err}", 83)
+
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 

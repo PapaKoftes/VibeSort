@@ -78,10 +78,11 @@ def _load_cache() -> dict:
                 data.setdefault("artists",    {})
                 data.setdefault("tracks",     {})
                 data.setdefault("tag_charts", {})
+                data.setdefault("similar",    {})   # M2.7: getSimilar results
                 return data
         except Exception:
             pass
-    return {"artists": {}, "tracks": {}, "tag_charts": {}}
+    return {"artists": {}, "tracks": {}, "tag_charts": {}, "similar": {}}
 
 
 def _save_cache(cache: dict) -> None:
@@ -310,6 +311,103 @@ def get_tag_top_tracks(
     return result
 
 
+# ---- Similar-track mood inference (M2.7) ------------------------------------
+
+# Confidence multiplier for similar-inferred tags.
+# Below direct track tags (1.0×) and tag-chart anchor tags (0.75×).
+_SIMILAR_CONFIDENCE = 0.55
+
+
+def get_similar_track_tags(
+    artist: str,
+    title: str,
+    api_key: str,
+    limit: int = 5,
+    cache: dict | None = None,
+) -> dict[str, float]:
+    """
+    Infer mood tags for a low-confidence track via track.getSimilar.
+
+    Algorithm:
+      1. Call track.getSimilar (cached permanently under "similar" sub-cache).
+      2. For each similar track (up to `limit`, sorted by match score):
+         look up or fetch its top tags via get_track_tags().
+      3. Blend tags weighted by match score, normalise, scale to
+         _SIMILAR_CONFIDENCE (0.55×) so they rank below direct lookups.
+
+    Args:
+        artist:  Artist name.
+        title:   Track title.
+        api_key: Last.fm API key.
+        limit:   Max similar tracks to use (default 5).
+        cache:   Shared in-memory cache dict (caller should call _save_cache).
+
+    Returns:
+        {tag: weight} or {} if no similar tracks could be resolved.
+    """
+    if not api_key or not artist or not title:
+        return {}
+
+    # ── Step 1: fetch similar tracks ─────────────────────────────────────────
+    sim_key = f"sim|||{_normalize_tag(artist)}|||{_normalize_tag(title)}"
+    if cache is not None and sim_key in cache.get("similar", {}):
+        similar = cache["similar"][sim_key]
+    else:
+        data = _api_get(
+            "track.getSimilar",
+            {"artist": artist, "track": title, "limit": limit},
+            api_key,
+        )
+        if data is None:
+            return {}   # transient failure — don't cache
+        raw = (data.get("similartracks") or {}).get("track") or []
+        if isinstance(raw, dict):
+            raw = [raw]  # Last.fm single-result edge case
+
+        similar: list[dict] = []
+        for t in raw:
+            name = (t.get("name") or "").strip()
+            art_obj  = t.get("artist") or {}
+            art_name = (
+                art_obj.get("name", "") if isinstance(art_obj, dict) else str(art_obj)
+            ).strip()
+            try:
+                match = float(t.get("match") or 0)
+            except (ValueError, TypeError):
+                match = 0.0
+            if name and art_name and match > 0:
+                similar.append({"artist": art_name, "title": name, "match": match})
+
+        if cache is not None:
+            cache.setdefault("similar", {})[sim_key] = similar
+
+    if not similar:
+        return {}
+
+    # ── Step 2: blend similar-track tag scores weighted by match ─────────────
+    blended: dict[str, float] = {}
+    total_match = 0.0
+
+    for sim in similar:
+        sim_tags = get_track_tags(sim["artist"], sim["title"], api_key, cache=cache)
+        if not sim_tags:
+            continue
+        m = sim["match"]
+        total_match += m
+        for tag, w in sim_tags.items():
+            blended[tag] = blended.get(tag, 0.0) + w * m
+
+    if not blended or total_match <= 0:
+        return {}
+
+    # Normalise by total match, then apply confidence discount
+    return {
+        tag: round(min(1.0, (s / total_match) * _SIMILAR_CONFIDENCE), 4)
+        for tag, s in blended.items()
+        if s > 0
+    }
+
+
 # ---- Library enrichment (main entry point) ----------------------------------
 
 def enrich_library(
@@ -444,6 +542,7 @@ def cache_stats() -> dict:
         "artists_cached":    len(c.get("artists",    {})),
         "tracks_cached":     len(c.get("tracks",     {})),
         "tag_charts_cached": len(c.get("tag_charts", {})),
+        "similar_cached":    len(c.get("similar",    {})),
         "cache_path":        CACHE_PATH,
     }
 
