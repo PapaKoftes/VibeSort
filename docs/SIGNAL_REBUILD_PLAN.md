@@ -135,30 +135,75 @@ Heartbreak and Villain Arc top-10 track overlap < 40%.
 ### M1.1 — Remove Dead Code (Audio Features + W_AUDIO)
 
 **What:**
-Remove the Spotify `/audio-features` dependency and `W_AUDIO` weight entirely, across
-all files that reference them.
+Remove the Spotify `/audio-features` dead API dependency and the zombie `W_AUDIO = 0.0`
+constant, and correctly wire the proxy weight into the scorer.
 
-Files to touch:
-- `core/enrich.py` — replace `audio_features()` call with `return {}` stub
-- `core/scan_pipeline.py` — remove `W_AUDIO` import and branch
-- `core/scorer.py` — remove `W_AUDIO` (5 references at lines 41, 99, 1074, 1161, 1666)
-- `core/audio_proxy.py` — remove `audio_features` parameter handling (lines 219, 223, 231, 236)
-- `core/audio_groups.py` — remove `audio_features` references (lines 303, 334, 368, 391, 416, 457)
-- `core/recommend.py` — stub out `audio_features` calls (lines 128, 136)
-- `core/profile.py` — stub out `audio_features` calls (lines 109, 128, 166, 174)
-- `config.py` — remove `W_AUDIO` constant
-- `pages/9_Settings.py` — remove the Spotify audio features UI toggle if it exists
+**Background (important — read before touching scorer.py):**
+`config.py` already has TWO audio weight constants:
+- `W_AUDIO = 0.0` — the dead Spotify audio features weight (zombie, never contributes)
+- `W_METADATA_AUDIO = 0.10` — the active metadata proxy weight (already exists, already used)
+
+`scorer.py`'s main weight tuple is `(W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)` = `(0.0, 0.46, 0.26, 0.18)`.
+`W_METADATA_AUDIO` is applied separately outside this tuple — meaning the proxy score only
+partially enters the final scoring. The fix is to replace `W_AUDIO` with `W_METADATA_AUDIO`
+in the tuple, so the proxy gets its proper weight slot.
+
+**Files and exact changes:**
+
+`config.py`:
+- Remove the line `W_AUDIO = 0.0` and its comment. `W_METADATA_AUDIO` stays unchanged.
+
+`core/scorer.py` (5 references):
+- Line 41: `W_AUDIO = _cfg.W_AUDIO` → `W_METADATA_AUDIO = _cfg.W_METADATA_AUDIO`
+- Lines 99, 1074, 1161, 1666: Replace `W_AUDIO` in each weight tuple with `W_METADATA_AUDIO`
+- The 4-tuple `(W_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)` becomes
+  `(W_METADATA_AUDIO, W_TAGS, W_SEMANTIC, W_GENRE)` — a rename of the audio slot, not a deletion.
+  The total still sums to 1.0 (0.10 + 0.46 + 0.26 + 0.18).
+
+`core/enrich.py`:
+- Replace `audio_features()` function body with `return {}` stub.
+- Keep the function signature (callers pass through cleanly, return empty dict, no 403 call).
+
+`core/scan_pipeline.py`:
+- Remove `W_AUDIO` import. Keep `W_METADATA_AUDIO` import.
+- The `audio_features_map` variable stays as an empty dict — no callers break.
+
+`core/audio_proxy.py`:
+- The parameter `audio_features_map` is still passed in (from profile.py and scan_pipeline.py).
+  With real Spotify features gone, the function already falls back to metadata_proxy for all tracks.
+  No logic changes needed — the parameter just receives an empty dict.
+
+`core/audio_groups.py` — **NO CHANGES NEEDED**:
+- `has_real_audio()` already returns `False` (all tracks use metadata_proxy).
+- The code already runs the `genre_inference` fallback path for every track.
+- The string literals `"source": "audio_features"` are unreachable dead labels — harmless.
+- Touching this file risks breaking the working fallback path. Leave it alone.
+
+`core/recommend.py` — **NO CHANGES NEEDED**:
+- The `sp.audio_features(batch)` call already catches 403 gracefully (line 136) and continues.
+- Returns empty dict for candidates, recommend path still works without audio data.
+
+`core/profile.py` — **NO CHANGES NEEDED**:
+- `audio_features_map.get(uri, {})` returns `{}` → `_audio_vector({})` returns neutral sentinel.
+- Already fully handles missing audio data. No changes required.
+
+`pages/8_Stats.py`, `pages/3_Vibes.py`, `run.py`:
+- These read `"audio_features"` from the snapshot dict. Verify each uses `.get("audio_features", {})`
+  (they do). No changes needed — they display nothing when the key is empty.
+
+`pages/9_Settings.py`:
+- Remove the Spotify audio features UI toggle if it exists.
 
 **What to keep / NOT touch:**
 - `core/acoustid.py` — DO NOT DELETE. It will be properly wired in M1.6.
 - `ACOUSTID_API_KEY`, `FPCALC_PATH`, `LOCAL_MUSIC_PATH` in config — DO NOT REMOVE. M1.6 uses them.
 - `core/rym.py` — active when user provides CSV export, works correctly
 - `core/beets.py` — wired and working, leave it alone
-- The `audio_features_map` variable can remain as an empty dict with no special handling
+- `W_METADATA_AUDIO` in config — DO NOT REMOVE. It is the active proxy weight.
 
-**Validation:** `grep -r "W_AUDIO\|audio.features\(\)" core/ config.py` returns zero
-results. (Note: the string "audio_features" as a dict key reference in comments is OK —
-search for the actual function call pattern.)
+**Validation:** `grep -rn "W_AUDIO" core/ config.py pages/` returns zero results.
+`grep -rn "\.audio_features(" core/` returns zero results (the stub function itself is OK).
+Running `python -c "from core import scorer, config; print(sum([config.W_METADATA_AUDIO, config.W_TAGS, config.W_SEMANTIC, config.W_GENRE]))"` prints `1.0`.
 
 ---
 
@@ -222,7 +267,9 @@ Implementation in `core/playlist_mining.py`:
 3. Deduplicate, normalize (artist+title → lowercase)
 4. Cross-reference against user's library: any matching track gets `mood_<moodname>` tag
 5. Tracks not in library → stored as `track_context` for semantic reference
-6. Cache in `.mining_cache.json` with 30-day TTL
+6. Cache in `.mining_cache.json` with **30-day TTL** — explicitly set `CACHE_TTL_DAYS = 30`
+   in `playlist_mining.py` (current code has 7-day TTL; tag.getTopTracks results are stable
+   and fetching 87 moods × 3 tags × 100 tracks on every 7-day expire is too aggressive)
 
 Implement `lastfm.py:get_tag_top_tracks(tag: str, limit: int = 100) -> list[dict]`
 returning `[{"artist": str, "title": str, "mbid": str|None}]`.
@@ -403,10 +450,13 @@ scan modes:
 Clears and re-runs mood scoring from scratch. Does NOT re-fetch API data that is cached.
 
 Clears:
-- `.mining_cache.json` (mood ground truth — re-mines from Last.fm)
-- `.last_scan_snapshot.json` (scoring results)
+- `.last_scan_snapshot.json` (scoring results — always regenerated)
 
-Keeps (these don't change when you rescan):
+Respects TTL (re-fetches only if expired):
+- `.mining_cache.json` — 30-day TTL. If expired, re-mines Last.fm tag charts before scoring.
+  If not expired, reuses existing mining data. User can force re-mine via Custom Scan.
+
+Keeps unconditionally (data does not change):
 - `.lastfm_cache.json`
 - `.deezer_cache.json`
 - `.mb_cache.json`
@@ -416,7 +466,8 @@ Keeps (these don't change when you rescan):
 - `.acoustid_cache.json`
 - `.spotify_genres_cache.json`
 
-UI: One large primary button. Caption explains what gets cleared and why.
+UI: One large primary button. Caption: "Re-scores your library using all cached enrichment
+data. Re-fetches mood playlists if older than 30 days."
 
 #### Custom Scan
 Expander with checkboxes per enrichment source:
@@ -760,7 +811,7 @@ For each: top 10 tracks listed, artist distribution checked, mood coherence asse
 
 | Cache file | Cleared by Full Scan | Cleared by Custom | TTL | Notes |
 |---|---|---|---|---|
-| `.mining_cache.json` | YES | Optional | 30 days | Re-mined from Last.fm |
+| `.mining_cache.json` | TTL only (30d) | Optional | 30 days | Auto-refreshes when expired |
 | `.last_scan_snapshot.json` | YES | YES | None | Scoring output |
 | `.lastfm_cache.json` | NO | Optional | None | Tags don't change |
 | `.deezer_cache.json` | NO | Optional | None | BPM doesn't change |
@@ -773,7 +824,8 @@ For each: top 10 tracks listed, artist distribution checked, mood coherence asse
 
 **Rule:** If the underlying real-world data does not change, the cache is never cleared
 automatically. The user must explicitly request it via Custom Scan. Full Scan only clears
-the mood scoring output and the mining ground truth.
+the mood scoring output. Mining cache is TTL-driven (30 days) — Full Scan triggers
+re-mining only when the cache has expired, not unconditionally.
 
 ---
 
@@ -834,7 +886,10 @@ Before pushing public:
 
 ---
 
-*Document version: 1.1 — Pre-implementation review complete. 12 issues resolved.*
-*Corrections from v1.0: M1.1/M1.6 contradiction fixed, tkinter removed, effective_denom*
-*formula corrected, AFINN→VADER, lyr_happy mapping fixed, NRC license flagged, non-English*
-*Deezer strategy added, anchor auto-generation, Session 1 split, packs cleanup promoted to M1.0.*
+*Document version: 1.2 — Final pre-implementation review. All known issues resolved.*
+*v1.0→v1.1: M1.1/M1.6 contradiction, tkinter, effective_denom, AFINN→VADER, lyr_happy,*
+*NRC license, Deezer non-English, anchor auto-gen, Session 1 split, packs cleanup to M1.0.*
+*v1.1→v1.2: W_AUDIO rename clarified (not delete, replace with W_METADATA_AUDIO in scorer*
+*weight tuple), audio_groups.py correctly excluded from M1.1, recommend.py/profile.py*
+*excluded (already handle missing audio gracefully), mining cache TTL corrected 7→30 days,*
+*Full Scan no longer clears mining_cache (TTL-driven only), cache rules table updated.*
