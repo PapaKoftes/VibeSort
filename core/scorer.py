@@ -864,39 +864,60 @@ def audio_score(profile: dict, target_vector: list[float]) -> float:
 def tag_score(profile: dict, expected_tags: list[str]) -> float:
     """
     Weighted overlap between track's mined tags and mood's expected tags.
-    Three tiers:
+
+    Three tiers per expected_tag:
       1. Exact match            → full weight
       2. Substring match        → 0.60×
       3. Synonym cluster match  → 0.45×
-    Score is in [0, 1]: how much of the expected tag set the track matches.
+
+    IMPORTANT — each active_tag may satisfy AT MOST ONE expected_tag (the
+    highest-scoring one).  Without this guard, a single common tag like
+    "angry" would substring-match every mining-generated compound tag
+    ("lyr_angry", "angry_sad", "moving_on_angry", "goodbye_angry"…) and
+    inflate the score far beyond what that one signal warrants.  Mining
+    tags that have no real match in the library become phantom denominators
+    that compress all scores into a flat plateau where every track from the
+    same genre-artist cluster looks identical.
+
+    lyr_* tags (per-track lyric signals) receive 1.2× weight so they
+    differentiate within the same artist when audio features are absent.
     """
     active_tags = get_active_tags(profile)
     if not expected_tags or not active_tags:
         return 0.0
+
+    # Track which active_tags have already been consumed (best-match wins).
+    # Key: active_tag name.  Value: best contribution claimed so far.
+    claimed: dict[str, float] = {}
     total = 0.0
+
     for tag in expected_tags:
-        # lyr_* tags are per-track signals (lyrics engine) — they receive a
-        # modest 1.2× multiplier because they are the only tags guaranteed to
-        # differ track-by-track within the same artist when audio features are
-        # unavailable.  Kept small so artist-level signals still anchor the mood.
         _lyr_boost = 1.2 if tag.startswith("lyr_") else 1.0
-        # Tier 1 — exact match
+        # Tier 1 — exact match (doesn't consume; direct value)
         if tag in active_tags:
             total += active_tags[tag] * _lyr_boost
             continue
+        # Tiers 2 + 3 — find the best unclaimed active_tag for this expected_tag
         best = 0.0
+        best_key = ""
         for mined_tag, weight in active_tags.items():
             _mb = 1.2 if mined_tag.startswith("lyr_") else 1.0
-            # Tier 2 — substring match
+            candidate = 0.0
             if tag in mined_tag or mined_tag in tag:
-                best = max(best, weight * _mb * 0.6)
-            # Tier 3 — synonym cluster match
+                candidate = weight * _mb * 0.6
             elif _synonym_match(tag, mined_tag):
-                best = max(best, weight * _mb * 0.45)
-        total += best
-    # Cap the denominator so that 2-3 strong tag matches are meaningfully visible
-    # even when expected_tags contains many playlist-mining-specific phrases.
-    # Without this, hitting 2/29 expected tags (0.055) is indistinguishable from noise.
+                candidate = weight * _mb * 0.45
+            # Only consider if better than current best AND better than
+            # whatever this active_tag has already contributed elsewhere.
+            if candidate > best and candidate > claimed.get(mined_tag, 0.0):
+                best = candidate
+                best_key = mined_tag
+        if best > 0.0:
+            claimed[best_key] = best
+            total += best
+
+    # Cap denominator at 8 so 2-3 strong real matches score meaningfully
+    # even when expected_tags contains many mining-generated phrases.
     effective_denom = min(len(expected_tags), 8)
     return min(total / effective_denom, 1.0)
 
