@@ -910,6 +910,23 @@ def execute_library_scan(
     except Exception as _am_err:
         step(f"Apple Music enrichment skipped: {_am_err}", 79)
 
+    # ── Mood anchor matching (M1.4) — zero-cost, pure dict lookup ────────────
+    # data/mood_anchors.json contains curated known tracks per mood.
+    # Any library track matching an anchor (artist + title, case-insensitive,
+    # feat.-stripped) gets anchor_<moodname>: 1.0 — highest-confidence signal.
+    try:
+        from core.anchors import load_mood_anchors, build_anchor_lookup, apply_anchor_tags
+        _mood_anchors = load_mood_anchors()
+        if _mood_anchors:
+            _anchor_lookup = build_anchor_lookup(_mood_anchors)
+            _anchor_matched = apply_anchor_tags(all_tracks, track_tags, _anchor_lookup)
+            if _anchor_matched:
+                step(f"Anchor tags applied — {_anchor_matched} (track, mood) matches", 80)
+        else:
+            step("Mood anchors not yet populated (run scripts/generate_anchors.py)", 80)
+    except Exception as _anc_err:
+        step(f"Anchor matching skipped: {_anc_err}", 80)
+
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 
