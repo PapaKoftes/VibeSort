@@ -18,6 +18,7 @@ import collections
 import json
 import logging
 import os
+import re
 import sys
 import time
 import spotipy
@@ -236,6 +237,110 @@ def audio_features(sp: spotipy.Spotify, track_uris: list[str]) -> dict[str, dict
     Stub returns empty dict. Scoring falls back to metadata proxy (W_METADATA_AUDIO).
     """
     return {}
+
+
+# ── Track metadata signals (M1.5) ─────────────────────────────────────────────
+
+# Title keyword patterns → (tag_name, weight)
+_TITLE_PATTERNS: list[tuple] = [
+    (re.compile(r"\b(midnight|3\s?am|2\s?am|night)\b",    re.I), "night",   0.4),
+    (re.compile(r"\b(morning|sunrise|dawn|wake\s?up)\b",  re.I), "morning", 0.4),
+    (re.compile(r"\b(love|heart|darling|baby|babe)\b",    re.I), "love",    0.3),
+    (re.compile(r"\b(rage|fury|war|fight|battle)\b",      re.I), "angry",   0.3),
+    (re.compile(r"\b(drive|road|highway|car|cruise)\b",   re.I), "drive",   0.3),
+    (re.compile(r"\b(rain|storm|cloud|grey|gray|fog)\b",  re.I), "moody",   0.3),
+    (re.compile(r"\b(intro|opening|prelude)\b",           re.I), None,      0.0),  # meta_intro
+    (re.compile(r"\b(outro|finale|end|closing)\b",        re.I), None,      0.0),  # meta_outro
+    (re.compile(r"\b(skit|interlude|reprise)\b",          re.I), None,      0.0),  # meta_interlude
+]
+
+
+def _extract_metadata_signals(track: dict) -> dict[str, float]:
+    """
+    Extract zero-cost mood signals from a Spotify track dict.
+
+    Runs for 100% of library tracks — no API calls, sub-second total.
+    All inputs come from the existing Spotify track object already in snapshot.
+
+    Returns {tag: weight} dict of signals. Tags prefixed with "meta_" are
+    structural signals; others (night, morning, love, etc.) align directly
+    with packs.json expected_tags vocabulary.
+    """
+    signals: dict[str, float] = {}
+    name       = (track.get("name") or "").strip()
+    duration   = track.get("duration_ms") or 0
+    explicit   = track.get("explicit", False)
+    track_num  = track.get("track_number") or 0
+    artists    = track.get("artists") or []
+    album      = track.get("album") or {}
+    album_type = (album.get("album_type") or "").lower()
+    total_trk  = album.get("total_tracks") or 0
+
+    # Structural / positional signals
+    if explicit:
+        signals["meta_explicit"] = 0.4
+
+    if album_type == "single":
+        signals["meta_single"] = 0.3
+
+    if album_type == "album" and track_num == 1:
+        signals["meta_opener"] = 0.4
+
+    if album_type == "album" and total_trk > 1 and track_num == total_trk:
+        signals["meta_closer"] = 0.4
+
+    if duration > 0:
+        if duration > 480_000:   # > 8 minutes
+            signals["meta_epic"] = 0.5
+        if duration < 90_000:    # < 90 seconds
+            signals["meta_interlude"] = 0.7
+
+    # Featuring artist detection
+    feat_pattern = re.compile(r"\b(feat\.?|ft\.?|featuring|with)\s+\S", re.I)
+    has_feat = (
+        len(artists) > 1
+        or bool(feat_pattern.search(name))
+        or bool(feat_pattern.search(album.get("name") or ""))
+    )
+    if has_feat:
+        signals["meta_feature"] = 0.3
+
+    # Title keyword patterns
+    title_lower = name.lower()
+    if re.search(r"\b(intro|opening|prelude)\b", title_lower):
+        signals["meta_intro"] = 0.6
+    if re.search(r"\b(outro|finale|closing)\b", title_lower):
+        signals["meta_outro"] = 0.6
+    if re.search(r"\b(skit|interlude|reprise)\b", title_lower) or (
+        0 < duration < 90_000
+    ):
+        signals.setdefault("meta_interlude", 0.7)
+
+    # Vocabulary signals (align with packs.json expected_tags)
+    for _pattern, tag, weight in _TITLE_PATTERNS:
+        if tag and tag not in signals and _pattern.search(name):
+            signals[tag] = weight
+
+    return signals
+
+
+def enrich_metadata(tracks: list[dict]) -> dict[str, dict[str, float]]:
+    """
+    Run _extract_metadata_signals for all tracks. Zero API calls.
+
+    Returns:
+        {uri: {tag: weight}} for all tracks that have a URI.
+        Only tracks with at least one signal are included.
+    """
+    result: dict[str, dict] = {}
+    for track in tracks:
+        uri = track.get("uri", "")
+        if not uri:
+            continue
+        sigs = _extract_metadata_signals(track)
+        if sigs:
+            result[uri] = sigs
+    return result
 
 
 def gather(

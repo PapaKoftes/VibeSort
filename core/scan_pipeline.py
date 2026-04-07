@@ -157,9 +157,23 @@ def execute_library_scan(
             def _lf_progress(msg: str):
                 step(msg, 55)
 
-            _lf_cap = max(300, min(1000, len(all_tracks)))
-            if _mining_degraded:
-                _lf_cap = max(500, min(1800, len(all_tracks)))
+            # M1.7: removed per-track cap — full library enriched; cache makes
+            # rescans instant (only uncached tracks incur API calls).
+            _lf_cap = len(all_tracks)   # no cap; was max(300, min(1000, N))
+            _n_tracks = len(all_tracks)
+            _est_first = max(1, _n_tracks - len(
+                [t for t in all_tracks
+                 if _lf_mod._load_cache().get("tracks", {}).get(
+                     f"{('_'.join((t.get('artists') or [{}])[0].get('name','').lower().split()))}|||"
+                     f"{'_'.join(t.get('name','').lower().split())}"
+                 )]
+            ))
+            if _est_first > 0:
+                _est_min = max(1, (_est_first * 21) // 60)
+                step(
+                    f"Last.fm track tags   {_est_first} uncached tracks (~{_est_min} min"
+                    f" first run; cached permanently after)", 55
+                )
             _lf_artist_tags, _lf_track_tags = _lf_mod.enrich_library(
                 all_tracks,
                 _lf_key,
@@ -504,8 +518,10 @@ def execute_library_scan(
     try:
         from core import lyrics as _lyr_mod
         _lyr_tracks = sorted(all_tracks, key=lambda t: -t.get("popularity", 0))
-        _lyr_base = int(os.getenv("LYRICS_MAX_TRACKS", "0")) or max(200, min(800, len(all_tracks)))
-        _lyr_max = min(1200, int(_lyr_base * _enrich_mult)) if _mining_degraded else _lyr_base
+        # M1.7: removed lyrics cap — full library covered; lrclib has no rate limit.
+        # Cache is permanent — only uncached tracks incur network calls on rescan.
+        _lyr_base = len(all_tracks)   # no cap; was max(200, min(800, N))
+        _lyr_max = _lyr_base
         _lyr_cached = sum(
             1
             for t in _lyr_tracks
@@ -518,9 +534,15 @@ def execute_library_scan(
                 )
             )
         )
-        _lyr_note = (
-            f" ({_lyr_cached} cached, fetching rest)" if _lyr_cached else " (first run — this may take a few minutes)"
-        )
+        _lyr_uncached = len(_lyr_tracks) - _lyr_cached
+        if _lyr_cached:
+            _lyr_note = f" ({_lyr_cached} cached, {_lyr_uncached} to fetch)"
+        else:
+            _lyr_est_min = max(1, (len(_lyr_tracks) * 25) // 6000)
+            _lyr_note = (
+                f" (first run — {len(_lyr_tracks)} tracks, ~{_lyr_est_min} min;"
+                f" cached permanently after)"
+            )
         _lyr_src = (
             "lrclib + lyrics.ovh + Genius"
             if _genius_key
@@ -926,6 +948,24 @@ def execute_library_scan(
             step("Mood anchors not yet populated (run scripts/generate_anchors.py)", 80)
     except Exception as _anc_err:
         step(f"Anchor matching skipped: {_anc_err}", 80)
+
+    # ── Track metadata signals (M1.5) — zero API calls, 100% coverage ───────
+    # Extract structural and title-keyword signals from the Spotify track object.
+    # Runs in under 1s for any library size. Fills gaps where no enrichment hit.
+    try:
+        _meta_tags = enrich.enrich_metadata(all_tracks)
+        _meta_added = 0
+        for _uri, _msigs in _meta_tags.items():
+            if _msigs:
+                if _uri not in track_tags:
+                    track_tags[_uri] = _msigs
+                    _meta_added += 1
+                else:
+                    for _mtag, _mw in _msigs.items():
+                        track_tags[_uri].setdefault(_mtag, _mw)
+        step(f"Metadata signals applied — {_meta_added} tracks gained first coverage", 81)
+    except Exception as _meta_err:
+        step(f"Metadata signals skipped: {_meta_err}", 81)
 
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
