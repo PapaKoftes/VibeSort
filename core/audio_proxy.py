@@ -28,7 +28,7 @@ def _tag_blob(tags: dict[str, float]) -> str:
         k.lower() for k in tags
         if k
         and not str(k).lower().startswith("lyr_")
-        and k != "vader_valence"   # numeric signal — not a style tag
+        and k not in ("vader_valence", "dz_bpm")  # numeric signals — not style tags
     ]
     return " ".join(parts)
 
@@ -196,6 +196,13 @@ def build_proxy_feature_dict(
     band = _tempo_band_from_tags(tags) or _tempo_band_from_macros(macros)
     bpm = _BAND_CENTER_BPM.get(band, 120.0)
 
+    # ── Deezer real BPM override ─────────────────────────────────────────────
+    # If scan_pipeline injected a real Deezer BPM, use it directly for tempo
+    # and apply energy corrections for very fast / very slow tracks.
+    dz_bpm = tags.get("dz_bpm")
+    if dz_bpm and isinstance(dz_bpm, (int, float)) and dz_bpm > 0:
+        bpm = float(dz_bpm)
+
     lyric_mood = {
         k[4:]: v
         for k, v in tags.items()
@@ -203,6 +210,15 @@ def build_proxy_feature_dict(
     }
     energy, valence, dance = _heuristic_energy_valence_dance(tags, lyric_mood)
     acoustic, instrumental = _heuristic_acoustic_instrumental(tags, macros)
+
+    # ── Deezer BPM energy correction ─────────────────────────────────────────
+    # Real BPM from Deezer provides tempo accuracy beyond band heuristics.
+    # High-BPM tracks (>160) get an energy bump; low-BPM tracks (<75) a cut.
+    if dz_bpm and isinstance(dz_bpm, (int, float)) and dz_bpm > 0:
+        if dz_bpm > 160:
+            energy = round(min(1.0, energy + 0.08), 4)
+        elif dz_bpm < 75:
+            energy = round(max(0.0, energy - 0.08), 4)
 
     # ── VADER valence blend (12%) ─────────────────────────────────────────────
     # VADER's compound→[0,1] score from lyrics.py adds a data-driven valence

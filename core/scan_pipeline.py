@@ -287,6 +287,32 @@ def execute_library_scan(
         except Exception as _dz_gerr:
             step(f"Deezer gap-fill skipped: {_dz_gerr}", 62)
 
+    # ── Deezer per-track BPM injection ────────────────────────────────────────
+    # Fetches real BPM (and explicit/rank/gain/contributors) for all library
+    # tracks from Deezer. Results are cached permanently so only the first run
+    # is slow. BPM is injected as dz_bpm into track_tags for audio_proxy.py.
+    try:
+        from core import deezer as _dz_track_mod
+        _dz_track_cached = _dz_track_mod.cache_stats().get("tracks_cached", 0)
+        _dz_track_note = (
+            f"{_dz_track_cached} cached" if _dz_track_cached
+            else "first run — building cache"
+        )
+        step(f"Deezer per-track BPM ({_dz_track_note})...", 63)
+        _dz_track_result = _dz_track_mod.get_track_data_batch(
+            all_tracks,
+            progress_fn=lambda m: step(m, 63),
+        )
+        _dz_bpm_added = 0
+        for _dz_uri, _dz_data in _dz_track_result.items():
+            _bpm = _dz_data.get("bpm")
+            if _bpm and isinstance(_bpm, (int, float)) and _bpm > 0:
+                track_tags.setdefault(_dz_uri, {})["dz_bpm"] = float(_bpm)
+                _dz_bpm_added += 1
+        step(f"Deezer BPM — {_dz_bpm_added}/{len(all_tracks)} tracks with real BPM", 64)
+    except Exception as _dz_bpm_err:
+        step(f"Deezer per-track BPM skipped: {_dz_bpm_err}", 64)
+
     # ── MusicBrainz track-tag gap-fill (universal) ────────────────────────────
     # Runs regardless of Last.fm key, for any tracks still missing tags.
     # Conditions: either MUSICBRAINZ_ENRICH flag is set, OR coverage is very low
