@@ -198,7 +198,7 @@ if code:
 
 
 # ── Check for cached/valid existing token ─────────────────────────────────────
-if USE_PKCE:
+if USE_PKCE and not st.session_state.get("spotify_token"):
     from core.pkce import make_spotify, refresh_access_token, load_token, save_token
     # Session first, then disk cache (survives restarts)
     cached = st.session_state.get("pkce_token") or load_token()
@@ -217,7 +217,7 @@ if USE_PKCE:
         except Exception:
             pass
 
-elif USE_OAUTH:
+elif USE_OAUTH and not st.session_state.get("spotify_token"):
     try:
         auth = _make_oauth(USER_ID, USER_SEC)
         cached = auth.get_cached_token()

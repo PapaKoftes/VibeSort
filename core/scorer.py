@@ -1793,7 +1793,7 @@ def enforce_artist_diversity(
     if not ranked or max_per_artist <= 0:
         return ranked
 
-    _hard = hard_cap if hard_cap is not None else max(6, max_per_artist * 2)
+    _hard = hard_cap if hard_cap is not None else max_per_artist + 1
 
     def _artist_key(uri: str) -> str:
         p = profiles.get(uri, {})

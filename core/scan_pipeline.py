@@ -1210,10 +1210,17 @@ def execute_library_scan(
 
         _uri_to_score = {uri: sc for uri, sc in ranked}
         _seen: set = set()
+        _seen_song: set = set()  # (artist_lower, title_lower) dedup — catches same song on different albums
         _filtered_ranked = []
         for uri, sc in trimmed:
             if uri not in _seen:
+                _p = profiles.get(uri, {})
+                _a0 = (_p.get("artists") or [""])[0]
+                _song_key = (str(_a0).lower(), str(_p.get("name", "")).lower())
+                if _song_key[1] and _song_key in _seen_song:
+                    continue  # duplicate song, different album URI — skip
                 _seen.add(uri)
+                _seen_song.add(_song_key)
                 _filtered_ranked.append((uri, _uri_to_score.get(uri, sc)))
 
         _filtered_ranked = scorer.refine_playlist(_filtered_ranked, drop_ratio=_drop_ratio)
