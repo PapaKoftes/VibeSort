@@ -2478,13 +2478,15 @@
         "tempo_norm": 0.55
       },
       "audio_constraints": {
-        "valence_max": 0.7
+        "valence_max": 0.7,
+        "energy_max": 0.80
       },
       "forbidden_tags": [
         "morning",
         "summer",
         "party",
-        "worship"
+        "worship",
+        "hype"
       ],
       "forbidden_genres": [
         "K-Pop / J-Pop",
@@ -4609,18 +4611,28 @@
         "instrumentalness": 0.1,
         "tempo_norm": 0.42
       },
+      "audio_constraints": {
+        "energy_max": 0.62,
+        "valence_max": 0.58
+      },
       "forbidden_tags": [
         "gym",
-        "phonk"
+        "phonk",
+        "party",
+        "hype"
       ],
       "forbidden_genres": [],
       "expected_tags": [
+        "sad",
+        "melancholic",
+        "bittersweet",
+        "lyr_sad",
+        "lyr_missing_you",
+        "lyr_love",
         "late_night",
         "longing",
         "regret",
-        "intimate",
-        "lyr_missing_you",
-        "lyr_love"
+        "intimate"
       ],
       "preferred_macro_genres": [],
       "semantic_core": [
