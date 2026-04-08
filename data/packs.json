@@ -110,7 +110,10 @@
         "workout",
         "beast_mode",
         "summer",
-        "morning"
+        "morning",
+        "spiritual",
+        "soulful",
+        "groovy"
       ],
       "forbidden_genres": [
         "Metal",
@@ -122,36 +125,13 @@
         "sad",
         "melancholic",
         "emo",
-        "introspective",
         "lyr_sad",
         "lyr_dark",
+        "bittersweet",
         "heartbreak",
-        "grief",
-        "hollow",
-        "devastated",
-        "shattered",
-        "crying",
-        "tears",
-        "sobbing",
-        "weeping",
-        "loneliness",
-        "loss",
-        "mourning",
         "numb",
-        "ache",
-        "wounded",
-        "heartbroken",
-        "broken_inside",
-        "depressed",
-        "heaviness",
-        "desolate",
-        "doom_slow",
-        "weighted_down",
-        "sludge_sad",
-        "sad_hours",
-        "feel_sad",
-        "breakup",
-        "when_sad"
+        "loss",
+        "breakup"
       ],
       "preferred_macro_genres": [
         "Indie / Alternative",
@@ -528,7 +508,12 @@
         "gym",
         "party",
         "anger",
-        "drill"
+        "drill",
+        "rousing",
+        "aggressive",
+        "intense",
+        "funk",
+        "angry"
       ],
       "forbidden_genres": [
         "Metal",
@@ -544,22 +529,11 @@
         "lyr_introspective",
         "dream_pop",
         "shoegaze",
-        "ethereal_float",
-        "cosmic_drift",
-        "signal_lost",
-        "half_asleep_drift",
-        "psychedelic_dissolve",
-        "sensory_immersive",
-        "falling_asleep_music",
-        "between_worlds",
-        "lush_reverb",
-        "gauzy_texture",
-        "layered_dreamscape",
-        "celestial",
-        "untethered",
-        "airy_cloud",
-        "surreal_ambient",
-        "kaleidoscope_haze"
+        "soft",
+        "calm",
+        "sleep",
+        "gentle",
+        "relax"
       ],
       "preferred_macro_genres": [
         "Ambient / Experimental",
@@ -1054,7 +1028,10 @@
         "hype",
         "gym",
         "summer",
-        "morning"
+        "morning",
+        "spiritual",
+        "soulful",
+        "groovy"
       ],
       "forbidden_genres": [
         "Metal",
@@ -1066,27 +1043,12 @@
         "introspective",
         "sad",
         "anxious",
+        "dark",
         "lyr_introspective",
         "lyr_sad",
-        "cant_sleep",
-        "insomnia",
-        "3am_thoughts",
-        "spiraling",
-        "racing_thoughts",
-        "anxiety_spiral",
-        "restless_mind",
-        "jittery",
-        "on_edge",
-        "nervous_energy",
-        "tense_beats",
-        "urgent_forward",
-        "anxious_momentum",
-        "bedroom_ceiling",
-        "staring_at_walls",
-        "lying_awake",
-        "ruminate",
-        "introspective_loop",
-        "midnight_spiral"
+        "lyr_dark",
+        "bittersweet",
+        "melancholic"
       ],
       "preferred_macro_genres": [
         "Indie / Alternative",
@@ -3622,14 +3584,18 @@
         "tempo_norm": 0.46
       },
       "audio_constraints": {
-        "energy_max": 0.78,
-        "valence_min": 0.22
+        "energy_max": 0.68,
+        "valence_min": 0.28
       },
       "forbidden_tags": [
         "phonk",
         "gym_rage",
         "death",
-        "scream"
+        "scream",
+        "party",
+        "hype",
+        "angry",
+        "rage"
       ],
       "forbidden_genres": [
         "Metal",
@@ -4461,22 +4427,27 @@
         "instrumentalness": 0.12,
         "tempo_norm": 0.45
       },
+      "audio_constraints": {
+        "energy_max": 0.72,
+        "valence_max": 0.68
+      },
       "forbidden_tags": [
         "gym",
-        "beast_mode"
+        "beast_mode",
+        "party",
+        "hype",
+        "groovy",
+        "spiritual"
       ],
       "forbidden_genres": [],
       "expected_tags": [
-        "goodbye",
-        "leaving",
-        "walk_away",
-        "last_time",
-        "moving_on",
-        "closure",
-        "farewell",
-        "endings",
+        "sad",
+        "melancholic",
+        "bittersweet",
+        "lyr_sad",
         "lyr_goodbye",
-        "lyr_sad"
+        "lyr_introspective",
+        "lyr_love"
       ],
       "preferred_macro_genres": [],
       "semantic_core": [
@@ -4619,7 +4590,12 @@
         "gym",
         "phonk",
         "party",
-        "hype"
+        "hype",
+        "spiritual",
+        "soulful",
+        "groovy",
+        "rousing",
+        "aggressive"
       ],
       "forbidden_genres": [],
       "expected_tags": [
@@ -4629,6 +4605,8 @@
         "lyr_sad",
         "lyr_missing_you",
         "lyr_love",
+        "lyr_dark",
+        "dark",
         "late_night",
         "longing",
         "regret",
@@ -4668,9 +4646,16 @@
         "instrumentalness": 0.08,
         "tempo_norm": 0.55
       },
+      "audio_constraints": {
+        "energy_min": 0.40,
+        "valence_max": 0.72
+      },
       "forbidden_tags": [
         "sleep",
-        "lullaby"
+        "lullaby",
+        "peaceful",
+        "calm",
+        "relax"
       ],
       "forbidden_genres": [],
       "expected_tags": [
@@ -4678,9 +4663,21 @@
         "menacing",
         "confident",
         "lyr_revenge",
-        "lyr_angry"
+        "lyr_angry",
+        "angry",
+        "aggressive",
+        "rage",
+        "dark",
+        "raw"
       ],
-      "preferred_macro_genres": [],
+      "preferred_macro_genres": [
+        "East Coast Rap",
+        "West Coast Rap",
+        "Southern Rap",
+        "Rock",
+        "Pop",
+        "Indie / Alternative"
+      ],
       "semantic_core": [
         "angry",
         "confident",
@@ -5381,16 +5378,26 @@
         "instrumentalness": 0.15,
         "tempo_norm": 0.68
       },
+      "audio_constraints": {
+        "energy_min": 0.52
+      },
       "forbidden_tags": [
         "sleep",
-        "classical_calm"
+        "classical_calm",
+        "acoustic",
+        "folk"
       ],
       "forbidden_genres": [],
       "expected_tags": [
         "hyperpop",
         "glitchy",
         "chaotic",
-        "lyr_sad"
+        "lyr_sad",
+        "energetic",
+        "intense",
+        "electronic",
+        "lyr_dark",
+        "vibrant"
       ],
       "preferred_macro_genres": [
         "Hyperpop",

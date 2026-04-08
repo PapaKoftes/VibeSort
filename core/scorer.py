@@ -964,7 +964,11 @@ def tag_score(profile: dict, expected_tags: list[str]) -> float:
             _is_per_track_m = any(mined_tag.startswith(p) for p in _PER_TRACK_PREFIXES)
             _cm = 1.0 if _is_per_track_m else _artist_mult
             candidate = 0.0
-            if tag in mined_tag or mined_tag in tag:
+            # Token-level substring: "night" matches "night_drive" but not
+            # "midnight"; "emo" matches "emo_rap" but not "emotional".
+            _tag_toks  = set(tag.split("_"))
+            _mine_toks = set(mined_tag.split("_"))
+            if _tag_toks & _mine_toks:
                 candidate = weight * _mb * _cm * 0.6
             elif _synonym_match(tag, mined_tag):
                 candidate = weight * _mb * _cm * 0.45
