@@ -49,9 +49,13 @@ MVP_SCORE_FLOOR        = float(os.getenv("MVP_SCORE_FLOOR", "0.15"))
 # W_METADATA_AUDIO: weight for metadata-derived proxy vectors (tags/genres/BPM heuristics).
 # Defaults bias slightly toward meaning (semantic) over strict macro genre — pairs with
 # cross-genre rescue in scorer.effective_genre_score.
-W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.10"))
-W_TAGS             = float(os.getenv("W_TAGS",             "0.46"))
-W_SEMANTIC         = float(os.getenv("W_SEMANTIC",         "0.26"))
+# M3.3: W_METADATA_AUDIO raised 0.10→0.14 now that real Deezer BPM data is
+# available (M2.6), making the proxy tempo dimension data-driven rather than
+# heuristic.  W_TAGS/W_SEMANTIC reduced slightly to absorb the difference.
+# All four weights must sum to 1.0.
+W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.14"))
+W_TAGS             = float(os.getenv("W_TAGS",             "0.44"))
+W_SEMANTIC         = float(os.getenv("W_SEMANTIC",         "0.24"))
 W_GENRE            = float(os.getenv("W_GENRE",            "0.18"))
 
 # When playlist mining is blocked or <10% of tracks got mined tags, scale up enrichment
