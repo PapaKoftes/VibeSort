@@ -321,6 +321,14 @@ def get_track_data(artist_name: str, title: str, cache: dict = None) -> dict | N
             cache.setdefault("tracks", {})[key] = "no_match"
         return {}
 
+    # Deezer /search returns lightweight track objects — BPM is NOT included.
+    # Fetch the full track by ID to get bpm, gain, contributors etc.
+    track_id = result.get("id")
+    if track_id:
+        full = _get(f"track/{track_id}")
+        if full and isinstance(full, dict) and full.get("id"):
+            result = full  # richer object with bpm filled in
+
     data = _extract_track_data(result)
     if cache is not None:
         cache.setdefault("tracks", {})[key] = data

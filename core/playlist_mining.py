@@ -1070,6 +1070,26 @@ def mine(
         mood_fit_playlists[mood_name].sort(key=lambda x: -x["count"])
         mood_fit_playlists[mood_name] = mood_fit_playlists[mood_name][:5]
 
+    # ── Inject mood_* confidence signal for Last.fm tag-chart matches ─────────
+    # Tracks matched via tag charts have context entries with mood set and
+    # playlist_id starting with "lastfm:tag:".  The _signal_confidence()
+    # scorer gives +0.45 for mood_* tags but none are produced when
+    # playlist_items is blocked.  Inject here so chart-matched tracks get
+    # the full confidence boost regardless of Spotify API restrictions.
+    _chart_mood_injected = 0
+    for uri, contexts in track_context.items():
+        for ctx in contexts:
+            _mood = ctx.get("mood")
+            if _mood and str(ctx.get("playlist_id", "")).startswith("lastfm:tag:"):
+                _slug    = _mood.lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+                _tag_key = f"mood_{_slug}"
+                _entry   = track_tags.setdefault(uri, {})
+                if _entry.get(_tag_key, 0.0) < 0.9:
+                    _entry[_tag_key] = 0.9
+                    _chart_mood_injected += 1
+    if _chart_mood_injected:
+        print(f"  Tag-chart mood boost  {_chart_mood_injected} mood_* tags injected for chart-matched tracks")
+
     total_tagged = sum(1 for t in track_tags.values() if t)
     print(f"  Mining complete       {len(fetched_ids)} playlists · "
           f"{total_tagged}/{len(user_uris)} tracks tagged")
