@@ -164,12 +164,20 @@ def test_ensure_minimum_no_duplicates():
 
 
 def test_ensure_minimum_skips_low_scores():
-    """ensure_minimum should not backfill tracks scoring <= 0.15."""
+    """ensure_minimum should not backfill tracks at or below the floor.
+
+    M3.2 changed floor from min_score*0.7 to min_score*0.5.
+    With default min_score=0.15: floor = max(0.15*0.5, 0.05) = 0.075.
+    Scores <= floor (0.05) must be excluded; scores > floor (0.10) may be included.
+    """
     ranked   = [("uri_a", 0.8)]
     all_pool = [("uri_a", 0.8), ("uri_b", 0.10), ("uri_c", 0.05)]
     result = ensure_minimum(ranked, all_pool, min_tracks=5)
     uris = [u for u, _ in result]
-    assert "uri_b" not in uris and "uri_c" not in uris
+    # uri_c (0.05 <= floor 0.075) must be excluded
+    assert "uri_c" not in uris
+    # uri_b (0.10 > floor 0.075) is now permitted under M3.2's relaxed floor
+    assert "uri_b" in uris
 
 
 # ── combine_expected_tags ─────────────────────────────────────────────────────
