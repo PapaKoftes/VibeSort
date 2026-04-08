@@ -44,6 +44,41 @@ W_SEMANTIC         = _cfg.W_SEMANTIC
 W_GENRE            = _cfg.W_GENRE
 
 
+# Prefixes that identify unambiguously per-track signals (not artist-level fallback).
+_PER_TRACK_PREFIXES: tuple[str, ...] = (
+    "lyr_",     # per-track lyric signals (NRC + VADER + keyword)
+    "bpm_",     # per-track tempo bucket
+    "meta_",    # per-track metadata signals (duration, position, feat., title keywords)
+    "mood_",    # Last.fm tag-chart matches (per-track ground truth)
+    "anchor_",  # curated anchor track matches (per-track ground truth)
+)
+
+
+def _signal_confidence(tags: dict[str, float]) -> float:
+    """
+    Estimate the fraction of per-track signal available for a track.
+
+    Returns [0.0, 1.0] — higher means more specific per-track data exists,
+    which lets tag_score() proportionally downweight artist-level fallback tags.
+
+    Confidence increments (capped at 1.0):
+      lyr_* present           → +0.35  (lyric analysis: NRC + VADER + keywords)
+      bpm_* or meta_* present → +0.20  (tempo bucket or structural metadata)
+      mood_* or anchor_*      → +0.45  (Last.fm tag-chart / curated anchor match)
+      dz_bpm present          → +0.10  (real Deezer BPM available)
+    """
+    conf = 0.0
+    if any(k.startswith("lyr_") for k in tags):
+        conf += 0.35
+    if any(k.startswith("bpm_") or k.startswith("meta_") for k in tags):
+        conf += 0.20
+    if any(k.startswith("mood_") or k.startswith("anchor_") for k in tags):
+        conf += 0.45
+    if "dz_bpm" in tags:
+        conf += 0.10
+    return min(conf, 1.0)
+
+
 def get_active_tags(profile: dict) -> dict[str, float]:
     """
     Return the unified tag signal for scoring.
@@ -896,6 +931,18 @@ def tag_score(profile: dict, expected_tags: list[str]) -> float:
     if not expected_tags or not active_tags:
         return 0.0
 
+    # M3.1 — Per-track signal confidence.
+    # Artist-level fallback tags (no recognised per-track prefix) are
+    # downweighted proportionally to how much per-track data already exists.
+    # This prevents "Eminem = angry" dominating every mood for every track.
+    # Formula: artist_weight_multiplier = max(0.70, 1.0 - confidence)
+    # So: confidence=0 → 1.0× (no per-track data, use artist fully)
+    #     confidence=0.35 → 0.70× (lyr_* only — moderate discount)
+    #     confidence=1.0  → 0.70× (full per-track coverage — floor discount)
+    _raw_tags   = profile.get("tags", {})
+    _confidence = _signal_confidence(_raw_tags)
+    _artist_mult = max(0.70, 1.0 - _confidence) if _confidence > 0 else 1.0
+
     # Track which active_tags have already been consumed (best-match wins).
     # Key: active_tag name.  Value: best contribution claimed so far.
     claimed: dict[str, float] = {}
@@ -905,18 +952,22 @@ def tag_score(profile: dict, expected_tags: list[str]) -> float:
         _lyr_boost = 1.2 if tag.startswith("lyr_") else 1.0
         # Tier 1 — exact match (doesn't consume; direct value)
         if tag in active_tags:
-            total += active_tags[tag] * _lyr_boost
+            _is_per_track = any(tag.startswith(p) for p in _PER_TRACK_PREFIXES)
+            _conf_mult = 1.0 if _is_per_track else _artist_mult
+            total += active_tags[tag] * _lyr_boost * _conf_mult
             continue
         # Tiers 2 + 3 — find the best unclaimed active_tag for this expected_tag
         best = 0.0
         best_key = ""
         for mined_tag, weight in active_tags.items():
             _mb = 1.2 if mined_tag.startswith("lyr_") else 1.0
+            _is_per_track_m = any(mined_tag.startswith(p) for p in _PER_TRACK_PREFIXES)
+            _cm = 1.0 if _is_per_track_m else _artist_mult
             candidate = 0.0
             if tag in mined_tag or mined_tag in tag:
-                candidate = weight * _mb * 0.6
+                candidate = weight * _mb * _cm * 0.6
             elif _synonym_match(tag, mined_tag):
-                candidate = weight * _mb * 0.45
+                candidate = weight * _mb * _cm * 0.45
             # Only consider if better than current best AND better than
             # whatever this active_tag has already contributed elsewhere.
             if candidate > best and candidate > claimed.get(mined_tag, 0.0):
@@ -926,9 +977,10 @@ def tag_score(profile: dict, expected_tags: list[str]) -> float:
             claimed[best_key] = best
             total += best
 
-    # Cap denominator at 8 so 2-3 strong real matches score meaningfully
-    # even when expected_tags contains many mining-generated phrases.
-    effective_denom = min(len(expected_tags), 8)
+    # M3.2 — Proportional denominator (replaces static cap of 8).
+    # Scales with mood complexity: 6-tag mood → denom=3, 27-tag mood → denom=9.
+    # Prevents long expected_tag lists from compressing all scores into a flat plateau.
+    effective_denom = max(3, len(expected_tags) // 3)
     return min(total / effective_denom, 1.0)
 
 
@@ -1788,7 +1840,7 @@ def ensure_minimum(
     """
     Backfill ranked playlist to min_tracks from all_ranked if below threshold.
 
-    Only adds tracks scoring above a proportional floor (min_score * 0.7, minimum
+    Only adds tracks scoring above a proportional floor (min_score * 0.5, minimum
     0.05) so backfill stays mood-consistent even with weak signal.
 
     Args:
@@ -1796,7 +1848,7 @@ def ensure_minimum(
         all_ranked: Full scored pool to backfill from, sorted descending.
         min_tracks: Target minimum playlist size (0 disables backfill).
         min_score:  The scoring threshold used in the main pass; backfill
-                    uses 70% of this so it's relaxed but not garbage.
+                    uses 50% of this (M3.2) so it's relaxed but not garbage.
         strict_backfill: If True and mood_name+profiles set, skip backfill
             candidates with very weak tag and semantic fit.
         mood_name:    Mood id for semantic/tag backfill gate.
@@ -1809,7 +1861,7 @@ def ensure_minimum(
     if min_tracks <= 0 or len(ranked) >= min_tracks:
         return ranked
     existing = {uri for uri, _ in ranked}
-    floor = max(min_score * 0.7, 0.05)
+    floor = max(min_score * 0.5, 0.05)
     exp_for_gate = (
         backfill_expected_tags
         if backfill_expected_tags is not None
