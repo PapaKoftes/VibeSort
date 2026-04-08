@@ -5118,21 +5118,40 @@
         "instrumentalness": 0.18,
         "tempo_norm": 0.62
       },
+      "audio_constraints": {
+        "energy_min": 0.55
+      },
       "forbidden_tags": [
         "sleep",
-        "lullaby"
+        "lullaby",
+        "sad",
+        "melancholic",
+        "dark",
+        "lyr_sad",
+        "lyr_dark",
+        "calm",
+        "acoustic",
+        "peaceful",
+        "depressed",
+        "emo",
+        "heartbreak"
       ],
       "forbidden_genres": [],
       "expected_tags": [
-        "brass",
-        "marching",
-        "stadium",
-        "anthemic"
+        "hype",
+        "energetic",
+        "intense",
+        "party",
+        "funk",
+        "rap",
+        "hip_hop"
       ],
       "preferred_macro_genres": [
         "Southern Rap",
         "Pop",
-        "World / Regional"
+        "World / Regional",
+        "Funk / Soul",
+        "Hip-Hop"
       ],
       "semantic_core": [
         "marching",

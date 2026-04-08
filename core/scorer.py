@@ -463,20 +463,21 @@ def passes_hard_filters(profile: dict, mood_name: str) -> bool:
     If audio features are unavailable (empty ``_features``), the track passes
     automatically — we cannot reject what we cannot measure.
 
-    IMPORTANT: metadata_proxy features are heuristic estimates derived from
-    genre/tag keywords, not real audio measurements.  We do NOT hard-filter on
-    proxy values — a track tagged "metal" gets proxy energy=0.85+ but the actual
-    song may be a slow, low-energy ballad.  Hard rejection based on heuristics
-    would silently discard genuine mood-fits.  Proxy values only influence the
-    soft scoring layer (audio_score with W_METADATA_AUDIO weight).
+    PROXY MODE (metadata_proxy source):
+    When real Spotify audio features are unavailable (e.g. Dev Mode), all tracks
+    receive heuristic proxy estimates from genre/tag signals.  We apply constraints
+    with a ±0.15 tolerance buffer so only clear violators are rejected.
+
+    The buffer handles genuine proxy inaccuracy: a track tagged "metal" gets
+    proxy energy≈0.85 but could be a mellow ballad, so we only reject at > 0.95
+    (0.80 + 0.15).  The 841 tracks with neutral proxy energy=0.50 (no genre signal)
+    pass all constraints because 0.50 is well inside any buffered range.
     """
+    _PROXY_TOLERANCE = 0.15   # margin applied to each constraint bound in proxy mode
+
     features = profile.get("_features") or {}
     if not features:
         return True  # no data → cannot filter
-
-    # Metadata proxy is heuristic — do not hard-reject based on estimated values.
-    if features.get("_source") == "metadata_proxy":
-        return True
 
     constraints = mood_audio_constraints(mood_name)
     if not constraints:
@@ -484,6 +485,20 @@ def passes_hard_filters(profile: dict, mood_name: str) -> bool:
 
     energy  = features.get("energy",  0.5)
     valence = features.get("valence", 0.5)
+    _is_proxy = features.get("_source") == "metadata_proxy"
+
+    if _is_proxy:
+        # Soft-apply constraints with tolerance buffer — only reject clear violators.
+        tol = _PROXY_TOLERANCE
+        if "energy_min"  in constraints and energy  < constraints["energy_min"]  - tol:
+            return False
+        if "energy_max"  in constraints and energy  > constraints["energy_max"]  + tol:
+            return False
+        if "valence_min" in constraints and valence < constraints["valence_min"] - tol:
+            return False
+        if "valence_max" in constraints and valence > constraints["valence_max"] + tol:
+            return False
+        return True
 
     if "energy_min"  in constraints and energy  < constraints["energy_min"]:
         return False
