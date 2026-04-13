@@ -710,15 +710,21 @@ def _mine_owned_playlists(
         if _items_blocked[0]:
             break   # all playlist_items calls are blocked — stop early
 
+        # Track-count quality proxy: larger playlists reflect more curation effort.
+        # Caps at 2.0× for 100+ track playlists; barely above 1.0× for tiny ones.
+        _pl_total = (pl.get("tracks") or {}).get("total") or 0
+        _pl_quality = min(2.0, 1.0 + _pl_total / 100.0)
+
         matched = 0
         for uri in uris:
             if uri in user_uris:
                 track_context[uri].append({
-                    "playlist_id": pid,
-                    "playlist":    pl_name,
-                    "followers":   0,
-                    "mood":        None,
-                    "tags":        tags,
+                    "playlist_id":   pid,
+                    "playlist":      pl_name,
+                    "followers":     0,
+                    "mood":          None,
+                    "tags":          tags,
+                    "quality_mult":  _pl_quality,
                 })
                 for mood_name, _ in mood_hits:
                     uri_mood_matches[uri].add(mood_name)
@@ -733,9 +739,10 @@ def _mine_owned_playlists(
     for uri, contexts in track_context.items():
         raw_weights: dict = collections.defaultdict(float)
         for ctx in contexts:
+            _q = ctx.get("quality_mult", 1.0)
             for tag in ctx["tags"]:
                 tag_weight = _tag_weight(tag)
-                tag_weight *= 3.0  # owned playlists = strong user signal
+                tag_weight *= 3.0 * _q  # owned playlists = strong user signal; larger playlists = higher quality
                 raw_weights[tag] += tag_weight
 
         if raw_weights:

@@ -408,6 +408,95 @@ def get_similar_track_tags(
     }
 
 
+# ---- Library-internal similarity graph (Pillar 1) ---------------------------
+
+def get_library_neighbors(
+    artist: str,
+    title: str,
+    api_key: str,
+    library_lookup: dict,
+    limit: int = 20,
+    cache: dict | None = None,
+) -> list[tuple[str, float]]:
+    """
+    Find library-internal similar tracks via track.getSimilar.
+
+    For each similar track returned by Last.fm, check if it exists in the
+    user's library via library_lookup.  Only library hits are returned.
+
+    Args:
+        artist:         Artist name of the source track.
+        title:          Track title of the source track.
+        api_key:        Last.fm API key.
+        library_lookup: {(artist_lower, clean_title_lower): uri} — built once
+                        from all library tracks before the graph pass.
+        limit:          Max similar tracks to request from Last.fm (default 20;
+                        more → more library hits at the cost of one extra API call).
+        cache:          Shared in-memory cache dict (same object used everywhere).
+
+    Returns:
+        List of (uri, match_score) for library tracks similar to the source,
+        sorted descending by match score.  Empty list on failure or no hits.
+    """
+    if not api_key or not artist or not title:
+        return []
+
+    sim_key = f"sim|||{_normalize_tag(artist)}|||{_normalize_tag(title)}"
+    if cache is not None and sim_key in cache.get("similar", {}):
+        similar = cache["similar"][sim_key]
+    else:
+        data = _api_get(
+            "track.getSimilar",
+            {"artist": artist, "track": title, "limit": limit},
+            api_key,
+        )
+        if data is None:
+            return []
+        raw = (data.get("similartracks") or {}).get("track") or []
+        if isinstance(raw, dict):
+            raw = [raw]
+
+        similar: list[dict] = []
+        for t in raw:
+            name = (t.get("name") or "").strip()
+            art_obj  = t.get("artist") or {}
+            art_name = (
+                art_obj.get("name", "") if isinstance(art_obj, dict) else str(art_obj)
+            ).strip()
+            try:
+                match = float(t.get("match") or 0)
+            except (ValueError, TypeError):
+                match = 0.0
+            if name and art_name and match > 0:
+                similar.append({"artist": art_name, "title": name, "match": match})
+
+        if cache is not None:
+            cache.setdefault("similar", {})[sim_key] = similar
+
+    if not similar:
+        return []
+
+    # Cross-reference against library_lookup
+    import re as _re2
+    _feat_pat = _re2.compile(
+        r"\s*[\(\[\{].*?[\)\]\}]|\s+feat\..*$|\s+ft\..*$",
+        _re2.IGNORECASE,
+    )
+
+    def _clean(s: str) -> str:
+        return _feat_pat.sub("", s).strip().lower()
+
+    hits: list[tuple[str, float]] = []
+    for sim in similar:
+        key = (_clean(sim["artist"]), _clean(sim["title"]))
+        uri = library_lookup.get(key)
+        if uri:
+            hits.append((uri, sim["match"]))
+
+    hits.sort(key=lambda x: -x[1])
+    return hits
+
+
 # ---- Library enrichment (main entry point) ----------------------------------
 
 def enrich_library(

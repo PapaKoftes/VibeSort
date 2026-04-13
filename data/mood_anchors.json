@@ -1,1 +1,537 @@
-{}
+{
+  "3 AM Unsent Texts": [
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "Jeff Buckley",     "title": "Hallelujah"},
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "Samira Said",      "title": "Youm Wara Youm"},
+    {"artist": "Radiohead",        "title": "No Surprises"}
+  ],
+  "Acoustic Corner": [
+    {"artist": "Hozier",           "title": "Take Me To Church"},
+    {"artist": "Damien Rice",      "title": "The Blower's Daughter"},
+    {"artist": "Iron & Wine",      "title": "Naked As We Came"},
+    {"artist": "Ed Sheeran",       "title": "The A Team"},
+    {"artist": "Nick Drake",       "title": "Pink Moon"}
+  ],
+  "Adrenaline": [
+    {"artist": "Linkin Park",               "title": "Bleed It Out"},
+    {"artist": "Linkin Park",               "title": "One Step Closer"},
+    {"artist": "Muse",                      "title": "Uprising"},
+    {"artist": "Rage Against the Machine",  "title": "Killing in the Name"},
+    {"artist": "Nine Inch Nails",           "title": "Head Like a Hole"}
+  ],
+  "Afro-Fusion Golden Hour": [
+    {"artist": "Burna Boy",  "title": "Last Last"},
+    {"artist": "Wizkid",     "title": "Essence"},
+    {"artist": "Davido",     "title": "Fall"},
+    {"artist": "Tems",       "title": "Free Mind"},
+    {"artist": "Fireboy DML","title": "Peru"}
+  ],
+  "Afterparty": [
+    {"artist": "Taio Cruz",           "title": "Dynamite"},
+    {"artist": "Calvin Harris",       "title": "Summer"},
+    {"artist": "Haddaway",            "title": "What Is Love"},
+    {"artist": "The Pussycat Dolls",  "title": "Don't Cha"},
+    {"artist": "Pitbull",             "title": "Give Me Everything"}
+  ],
+  "Amapiano Sunset": [
+    {"artist": "Kabza De Small",  "title": "Sponono"},
+    {"artist": "Focalistic",      "title": "Ke Star"},
+    {"artist": "DJ Maphorisa",    "title": "Izikhothane"},
+    {"artist": "Ami Faku",        "title": "Into Ingawe"}
+  ],
+  "Anime Endings": [
+    {"artist": "Aimer",            "title": "Brave Shine"},
+    {"artist": "Rie fu",           "title": "Life is Like a Boat"},
+    {"artist": "Porno Graffitti",  "title": "Melissa"},
+    {"artist": "Yoko Takahashi",   "title": "Fly Me to the Moon"}
+  ],
+  "Anime OST Energy": [
+    {"artist": "Linked Horizon",    "title": "Guren no Yumiya"},
+    {"artist": "Hiroyuki Sawano",   "title": "Call your name"},
+    {"artist": "Yoko Kanno",        "title": "Tank!"},
+    {"artist": "Ado",               "title": "Biri-Biri"}
+  ],
+  "Anime Openings": [
+    {"artist": "Asian Kung-Fu Generation", "title": "Haruka Kanata"},
+    {"artist": "Flow",                     "title": "GO!!!"},
+    {"artist": "Linked Horizon",           "title": "Guren no Yumiya"},
+    {"artist": "Myth & Roid",             "title": "L.L.L."}
+  ],
+  "Anti-Hero Receipts": [
+    {"artist": "50 Cent",   "title": "Many Men (Wish Death)"},
+    {"artist": "Eminem",    "title": "The Monster"},
+    {"artist": "Eminem",    "title": "Without Me"},
+    {"artist": "Kanye West","title": "Power"},
+    {"artist": "Jay-Z",     "title": "99 Problems"}
+  ],
+  "Baroque Pop Melodrama": [
+    {"artist": "Sufjan Stevens",      "title": "Death With Dignity"},
+    {"artist": "Regina Spektor",      "title": "Samson"},
+    {"artist": "The Decemberists",    "title": "The Mariner's Revenge Song"},
+    {"artist": "Joanna Newsom",       "title": "Sprout and the Bean"}
+  ],
+  "Bedroom Pop Diary": [
+    {"artist": "Rex Orange County",  "title": "Loving is Easy"},
+    {"artist": "Cavetown",           "title": "Boys Will Be Bugs"},
+    {"artist": "Still Woozy",        "title": "Goodie Bag"},
+    {"artist": "Omar Apollo",        "title": "Evergreen"}
+  ],
+  "Brass & Drumline Energy": [
+    {"artist": "Earth, Wind & Fire", "title": "September"},
+    {"artist": "James Brown",        "title": "Sex Machine"},
+    {"artist": "Trombone Shorty",    "title": "St. James Infirmary"},
+    {"artist": "Tower of Power",     "title": "What Is Hip"}
+  ],
+  "Chillhop Cafe": [
+    {"artist": "Nujabes",       "title": "Feather"},
+    {"artist": "Idealism",      "title": "evenings"},
+    {"artist": "Philanthrope",  "title": "I'll Stay"},
+    {"artist": "J Dilla",       "title": "Donuts (Outro)"}
+  ],
+  "Classical Calm": [
+    {"artist": "Ludovico Einaudi",     "title": "Experience"},
+    {"artist": "Erik Satie",           "title": "Gymnopédie No. 1"},
+    {"artist": "Frédéric Chopin",      "title": "Nocturne Op. 9 No. 2"},
+    {"artist": "Johann Sebastian Bach","title": "Cello Suite No. 1 in G Major"}
+  ],
+  "Cloud Rap Haze": [
+    {"artist": "Bones",         "title": "WhereTheTreesMeetTheFreeway"},
+    {"artist": "Xavier Wulf",   "title": "Monte Cristo"},
+    {"artist": "Pouya",         "title": "Suicidal Thoughts in the Back of the Cadillac"},
+    {"artist": "Chris Travis",  "title": "Overseas"}
+  ],
+  "Country Roads": [
+    {"artist": "John Denver",  "title": "Take Me Home, Country Roads"},
+    {"artist": "Johnny Cash",  "title": "Ring of Fire"},
+    {"artist": "Dolly Parton", "title": "Jolene"},
+    {"artist": "Willie Nelson","title": "On the Road Again"}
+  ],
+  "Country Story Hour": [
+    {"artist": "Johnny Cash",        "title": "Hurt"},
+    {"artist": "Townes Van Zandt",   "title": "Pancho and Lefty"},
+    {"artist": "Gillian Welch",      "title": "Everything Is Free"},
+    {"artist": "Kris Kristofferson", "title": "Me and Bobby McGee"}
+  ],
+  "Dark Pop": [
+    {"artist": "Billie Eilish", "title": "bury a friend"},
+    {"artist": "Lorde",         "title": "Royals"},
+    {"artist": "Halsey",        "title": "Gasoline"},
+    {"artist": "Lana Del Rey",  "title": "Young and Beautiful"}
+  ],
+  "Deep Focus": [
+    {"artist": "The Heavy",     "title": "How You Like Me Now"},
+    {"artist": "MONO",          "title": "After You Comes the Flood"},
+    {"artist": "Douglas Dare",  "title": "Nile"},
+    {"artist": "Brian Eno",     "title": "An Ending (Ascent)"}
+  ],
+  "Disco Lights": [
+    {"artist": "Daft Punk",     "title": "Get Lucky"},
+    {"artist": "Bee Gees",      "title": "Stayin' Alive"},
+    {"artist": "Chic",          "title": "Le Freak"},
+    {"artist": "Gloria Gaynor", "title": "I Will Survive"}
+  ],
+  "Dream Pop Haze": [
+    {"artist": "Beach House",         "title": "Space Song"},
+    {"artist": "Mazzy Star",          "title": "Fade Into You"},
+    {"artist": "Cigarettes After Sex","title": "Apocalypse"},
+    {"artist": "Cocteau Twins",       "title": "Lorelei"}
+  ],
+  "Drill": [
+    {"artist": "Pop Smoke",     "title": "Welcome to the Party"},
+    {"artist": "Chief Keef",    "title": "Love Sosa"},
+    {"artist": "Fivio Foreign", "title": "Big Drip"},
+    {"artist": "Headie One",    "title": "Know Better"}
+  ],
+  "Drill Confessions": [
+    {"artist": "Pop Smoke",   "title": "Dior"},
+    {"artist": "Central Cee", "title": "Loading"},
+    {"artist": "Dave",        "title": "Location"},
+    {"artist": "Lil Baby",    "title": "Emotionally Scarred"}
+  ],
+  "Emo Hour": [
+    {"artist": "My Chemical Romance","title": "Welcome to the Black Parade"},
+    {"artist": "Paramore",           "title": "Misery Business"},
+    {"artist": "Fall Out Boy",       "title": "Sugar, We're Goin Down"},
+    {"artist": "Panic! at the Disco","title": "I Write Sins Not Tragedies"}
+  ],
+  "Euphoric Rave": [
+    {"artist": "Avicii",         "title": "Levels"},
+    {"artist": "Eric Prydz",     "title": "Call on Me"},
+    {"artist": "Above & Beyond", "title": "Sun & Moon"},
+    {"artist": "Armin van Buuren","title": "This Is What It Feels Like"}
+  ],
+  "Flex Tape": [
+    {"artist": "Drake",       "title": "God's Plan"},
+    {"artist": "Kendrick Lamar","title": "HUMBLE."},
+    {"artist": "Travis Scott","title": "SICKO MODE"},
+    {"artist": "Cardi B",     "title": "Bodak Yellow"}
+  ],
+  "Golden Hour": [
+    {"artist": "The Beatles",          "title": "Twist And Shout"},
+    {"artist": "Electric Light Orchestra","title": "Mr. Blue Sky"},
+    {"artist": "Natasha Bedingfield",  "title": "Unwritten"},
+    {"artist": "Pharrell Williams",    "title": "Happy"}
+  ],
+  "Gospel Fire": [
+    {"artist": "Kanye West",             "title": "Jesus Walks"},
+    {"artist": "Kirk Franklin",          "title": "Stomp"},
+    {"artist": "Hezekiah Walker",        "title": "Every Praise"},
+    {"artist": "Tasha Cobbs Leonard",    "title": "Break Every Chain"}
+  ],
+  "Goth / Darkwave": [
+    {"artist": "Bauhaus",                  "title": "Bela Lugosi's Dead"},
+    {"artist": "Sisters of Mercy",         "title": "Temple of Love"},
+    {"artist": "The Cure",                 "title": "A Forest"},
+    {"artist": "Siouxsie and the Banshees","title": "Cities in Dust"}
+  ],
+  "Hard Reset": [
+    {"artist": "Linkin Park","title": "In the End"},
+    {"artist": "Linkin Park","title": "Bleed It Out"},
+    {"artist": "Linkin Park","title": "One Step Closer"},
+    {"artist": "Eminem",     "title": "Not Afraid"}
+  ],
+  "Healing Kind": [
+    {"artist": "Kanye West","title": "Street Lights"},
+    {"artist": "Kanye West","title": "Coldest Winter"},
+    {"artist": "Kanye West","title": "Ghost Town"},
+    {"artist": "Bon Iver",  "title": "Holocene"}
+  ],
+  "Heartbreak": [
+    {"artist": "The 1975",              "title": "Be My Mistake"},
+    {"artist": "Red Hot Chili Peppers","title": "Scar Tissue"},
+    {"artist": "Eminem",               "title": "Like Toy Soldiers"},
+    {"artist": "Eminem",               "title": "When I'm Gone"},
+    {"artist": "Radiohead",            "title": "Creep"}
+  ],
+  "Hollow": [
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "Jeff Buckley",     "title": "Hallelujah"},
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "Radiohead",        "title": "My Iron Lung"},
+    {"artist": "Kanye West",       "title": "Coldest Winter"}
+  ],
+  "Hyperpop": [
+    {"artist": "100 gecs",   "title": "money machine"},
+    {"artist": "Charli XCX", "title": "Click"},
+    {"artist": "SOPHIE",     "title": "Immaterial"},
+    {"artist": "Bladee",     "title": "Icedancer"}
+  ],
+  "Hyperpop Emotional Crash": [
+    {"artist": "Lil Peep",     "title": "Save That Shit"},
+    {"artist": "Lil Uzi Vert", "title": "XO Tour Llif3"},
+    {"artist": "Juice WRLD",   "title": "Lucid Dreams"},
+    {"artist": "XXXTentacion", "title": "Jocelyn Flores"}
+  ],
+  "Indie Bedroom": [
+    {"artist": "Rex Orange County","title": "Television / So Far So Good"},
+    {"artist": "Cavetown",         "title": "Boys Will Be Bugs"},
+    {"artist": "Tame Impala",      "title": "Let It Happen"},
+    {"artist": "Clairo",           "title": "Pretty Girl"}
+  ],
+  "Industrial Gothic Floor": [
+    {"artist": "Nine Inch Nails","title": "Closer"},
+    {"artist": "Rammstein",      "title": "Du Hast"},
+    {"artist": "Ministry",       "title": "Jesus Built My Hotrod"},
+    {"artist": "KMFDM",          "title": "A Drug Against War"}
+  ],
+  "J-Metal": [
+    {"artist": "X Japan",    "title": "Endless Rain"},
+    {"artist": "Dir En Grey","title": "Obscure"},
+    {"artist": "Buck-Tick",  "title": "Dress"},
+    {"artist": "Luna Sea",   "title": "Storm"}
+  ],
+  "J-Pop": [
+    {"artist": "Hikaru Utada",    "title": "First Love"},
+    {"artist": "Kenshi Yonezu",   "title": "Lemon"},
+    {"artist": "Kyary Pamyu Pamyu","title": "PONPONPON"},
+    {"artist": "Ado",             "title": "Usseewa"}
+  ],
+  "Jazz Nights": [
+    {"artist": "Miles Davis",   "title": "So What"},
+    {"artist": "John Coltrane", "title": "A Love Supreme, Pt. 1 - Acknowledgement"},
+    {"artist": "Bill Evans",    "title": "Waltz for Debby"},
+    {"artist": "Dave Brubeck",  "title": "Take Five"}
+  ],
+  "K-Pop Zone": [
+    {"artist": "BTS",    "title": "Dynamite"},
+    {"artist": "BLACKPINK","title": "DDU-DU DDU-DU"},
+    {"artist": "TWICE",  "title": "FANCY"},
+    {"artist": "EXO",    "title": "Ko Ko Bop"}
+  ],
+  "Kawaii Metal Sparkle": [
+    {"artist": "BABYMETAL","title": "Gimme Choco!!"},
+    {"artist": "BABYMETAL","title": "Road of Resistance"},
+    {"artist": "Ladybaby", "title": "Nippon Manju"}
+  ],
+  "Late Night Drive": [
+    {"artist": "XmegaLxl",        "title": "JET SET!"},
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "Tame Impala",      "title": "'Cause I'm A Man"},
+    {"artist": "Tommy Richman",    "title": "MILLION DOLLAR BABY"},
+    {"artist": "The Heavy",        "title": "How You Like Me Now"}
+  ],
+  "Latin Ballroom Heat": [
+    {"artist": "Marc Anthony",         "title": "Vivir Mi Vida"},
+    {"artist": "Celia Cruz",           "title": "La Vida Es Un Carnaval"},
+    {"artist": "Buena Vista Social Club","title": "Chan Chan"},
+    {"artist": "Tito Puente",          "title": "Oye Como Va"}
+  ],
+  "Latin Heat": [
+    {"artist": "Bad Bunny",  "title": "Dakiti"},
+    {"artist": "J Balvin",   "title": "Mi Gente"},
+    {"artist": "Daddy Yankee","title": "Gasolina"},
+    {"artist": "Shakira",    "title": "Hips Don't Lie"}
+  ],
+  "Liminal": [
+    {"artist": "Tame Impala",     "title": "'Cause I'm A Man"},
+    {"artist": "The Heavy",       "title": "How You Like Me Now"},
+    {"artist": "The Heavy",       "title": "Short Change Hero"},
+    {"artist": "Sound Architects","title": "Icarus"},
+    {"artist": "Brian Eno",       "title": "An Ending (Ascent)"}
+  ],
+  "Lo-Fi Flow": [
+    {"artist": "Nujabes",       "title": "Feather"},
+    {"artist": "J Dilla",       "title": "Workinonit"},
+    {"artist": "Idealism",      "title": "evenings"},
+    {"artist": "Emancipator",   "title": "Soon It Will Be Cold Enough"}
+  ],
+  "Meditation Bath": [
+    {"artist": "ACN Music.",  "title": "Guts"},
+    {"artist": "Douglas Dare","title": "Nile"},
+    {"artist": "ERA",         "title": "Ameno"},
+    {"artist": "Brian Eno",   "title": "Music for Airports, 1/1"}
+  ],
+  "Metal Storm": [
+    {"artist": "Metallica", "title": "Master of Puppets"},
+    {"artist": "Slayer",    "title": "Raining Blood"},
+    {"artist": "Pantera",   "title": "Walk"},
+    {"artist": "Megadeth",  "title": "Symphony of Destruction"}
+  ],
+  "Metal Testimony": [
+    {"artist": "Skillet",        "title": "Monster"},
+    {"artist": "August Burns Red","title": "White Washed"},
+    {"artist": "Demon Hunter",   "title": "The Soldier's Song"},
+    {"artist": "Stryper",        "title": "To Hell with the Devil"}
+  ],
+  "Midnight Clarity": [
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "Kanye West",       "title": "Street Lights"},
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "Tame Impala",      "title": "'Cause I'm A Man"}
+  ],
+  "Minimal Techno Tunnel": [
+    {"artist": "Richie Hawtin","title": "Consumed"},
+    {"artist": "Robert Hood",  "title": "Moveable Parts"},
+    {"artist": "Basic Channel","title": "Phylyps Trak"},
+    {"artist": "Surgeon",      "title": "Force + Counterforce"}
+  ],
+  "Money Talks": [
+    {"artist": "Jay-Z",    "title": "99 Problems"},
+    {"artist": "Rick Ross", "title": "Hustlin'"},
+    {"artist": "Kanye West","title": "Gold Digger"},
+    {"artist": "Drake",    "title": "Started From the Bottom"}
+  ],
+  "Morning Ritual": [
+    {"artist": "The Neighbourhood","title": "Alleyways"},
+    {"artist": "Hozier",          "title": "Take Me To Church"},
+    {"artist": "Cavetown",        "title": "Boys Will Be Bugs"},
+    {"artist": "Sufjan Stevens",  "title": "Mystery of Love"}
+  ],
+  "Neo-Soul": [
+    {"artist": "D'Angelo",    "title": "Brown Sugar"},
+    {"artist": "Erykah Badu", "title": "On & On"},
+    {"artist": "Lauryn Hill", "title": "Ex-Factor"},
+    {"artist": "John Legend", "title": "Ordinary People"}
+  ],
+  "Nostalgia": [
+    {"artist": "The Beatles",       "title": "In My Life"},
+    {"artist": "Simon & Garfunkel", "title": "The Sound of Silence"},
+    {"artist": "Fleetwood Mac",     "title": "The Chain"},
+    {"artist": "Don McLean",        "title": "American Pie"}
+  ],
+  "Old School Hip-Hop": [
+    {"artist": "Notorious B.I.G.",   "title": "Juicy"},
+    {"artist": "Nas",                "title": "N.Y. State of Mind"},
+    {"artist": "Wu-Tang Clan",       "title": "C.R.E.A.M."},
+    {"artist": "A Tribe Called Quest","title": "Can I Kick It?"}
+  ],
+  "Open Road": [
+    {"artist": "Tom Cochrane",   "title": "Life Is a Highway"},
+    {"artist": "Bruce Springsteen","title": "Born to Run"},
+    {"artist": "Eagles",         "title": "Take It Easy"},
+    {"artist": "Jackson Browne", "title": "Running on Empty"}
+  ],
+  "Overflow": [
+    {"artist": "Radiohead",        "title": "Creep"},
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "Bon Iver",         "title": "For Emma"}
+  ],
+  "Overthinking": [
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "Jeff Buckley",     "title": "Hallelujah"},
+    {"artist": "Radiohead",        "title": "No Surprises"}
+  ],
+  "Phonk Season": [
+    {"artist": "DVRST",       "title": "Close Eyes"},
+    {"artist": "kordhell",    "title": "Murder in My Mind"},
+    {"artist": "Ghostemane",  "title": "Mercury"},
+    {"artist": "Soudiere",    "title": "REALEST IN THE ROOM"}
+  ],
+  "Pluggnb Heartache": [
+    {"artist": "SAINt JHN",       "title": "Roses"},
+    {"artist": "Metro Boomin",    "title": "Space Cadet"},
+    {"artist": "SadBoyProlific",  "title": "Midnight Thoughts"},
+    {"artist": "Lil Peep",        "title": "Awful Things"}
+  ],
+  "Psychedelic": [
+    {"artist": "Tame Impala",    "title": "Let It Happen"},
+    {"artist": "Pink Floyd",     "title": "Comfortably Numb"},
+    {"artist": "Jimi Hendrix",   "title": "Purple Haze"},
+    {"artist": "The Doors",      "title": "Light My Fire"}
+  ],
+  "Punk Sprint": [
+    {"artist": "The Clash",   "title": "London Calling"},
+    {"artist": "Sex Pistols", "title": "Anarchy in the U.K."},
+    {"artist": "Green Day",   "title": "Basket Case"},
+    {"artist": "Rancid",      "title": "Time Bomb"}
+  ],
+  "Queer Dance Confetti": [
+    {"artist": "ABBA",          "title": "Dancing Queen"},
+    {"artist": "Kylie Minogue", "title": "Can't Get You Out of My Head"},
+    {"artist": "Madonna",       "title": "Like a Prayer"},
+    {"artist": "Lady Gaga",     "title": "Born This Way"}
+  ],
+  "Rage Lift": [
+    {"artist": "Linkin Park","title": "Points of Authority"},
+    {"artist": "Linkin Park","title": "Crawling"},
+    {"artist": "Linkin Park","title": "Bleed It Out"},
+    {"artist": "Linkin Park","title": "One Step Closer"},
+    {"artist": "Muse",       "title": "Uprising"}
+  ],
+  "Rainy Window": [
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "The Neighbourhood","title": "Alleyways"},
+    {"artist": "Jeff Buckley",     "title": "Hallelujah"},
+    {"artist": "Rex Orange County","title": "Television / So Far So Good"},
+    {"artist": "Ayoub Hattab",     "title": "7ayer"}
+  ],
+  "Raw Emotion": [
+    {"artist": "The 1975",              "title": "Be My Mistake"},
+    {"artist": "Kanye West",            "title": "Coldest Winter"},
+    {"artist": "Red Hot Chili Peppers", "title": "Scar Tissue"},
+    {"artist": "Muse",                  "title": "Supermassive Black Hole"}
+  ],
+  "Runaway Highways": [
+    {"artist": "Tom Petty",                  "title": "Running Down a Dream"},
+    {"artist": "Creedence Clearwater Revival","title": "Born on the Bayou"},
+    {"artist": "Eagles",                     "title": "Take It Easy"},
+    {"artist": "Bruce Springsteen",          "title": "Born to Run"}
+  ],
+  "Same Vibe Different Genre": [
+    {"artist": "Radiohead",  "title": "Creep"},
+    {"artist": "Tame Impala","title": "Let It Happen"},
+    {"artist": "Kanye West", "title": "Gold Digger"},
+    {"artist": "The Beatles","title": "Come Together"}
+  ],
+  "Sea Shanty Singalong": [
+    {"artist": "The Longest Johns",    "title": "Wellerman"},
+    {"artist": "Fisherman's Friends",  "title": "South Australia"},
+    {"artist": "Great Big Sea",        "title": "The Old Black Rum"},
+    {"artist": "Nathan Evans",         "title": "Wellerman"}
+  ],
+  "Shoegaze Breakups": [
+    {"artist": "Slowdive",          "title": "Alison"},
+    {"artist": "My Bloody Valentine","title": "Sometimes"},
+    {"artist": "Ride",              "title": "Vapour Trail"},
+    {"artist": "Lush",              "title": "De-Luxe"}
+  ],
+  "Slow Jams": [
+    {"artist": "Usher",         "title": "Nice & Slow"},
+    {"artist": "Brian McKnight","title": "Back at One"},
+    {"artist": "Keith Sweat",   "title": "I Want Her"},
+    {"artist": "Ginuwine",      "title": "Pony"}
+  ],
+  "Smoke & Mirrors": [
+    {"artist": "The Neighbourhood","title": "How"},
+    {"artist": "The Heavy",        "title": "How You Like Me Now"},
+    {"artist": "SadBoyProlific",   "title": "Midnight Thoughts"},
+    {"artist": "Kanye West",       "title": "Dark Fantasy"}
+  ],
+  "Soft Hours": [
+    {"artist": "Sufjan Stevens","title": "Death With Dignity"},
+    {"artist": "Iron & Wine",   "title": "Naked As We Came"},
+    {"artist": "Nick Drake",    "title": "Pink Moon"},
+    {"artist": "Bon Iver",      "title": "Skinny Love"}
+  ],
+  "Songs About Goodbye": [
+    {"artist": "The 1975",         "title": "Be My Mistake"},
+    {"artist": "Jeff Buckley",     "title": "Hallelujah"},
+    {"artist": "The Neighbourhood","title": "R.I.P. 2 My Youth"},
+    {"artist": "Green Day",        "title": "Good Riddance (Time of Your Life)"}
+  ],
+  "Songs About Home": [
+    {"artist": "John Denver",     "title": "Take Me Home, Country Roads"},
+    {"artist": "Fleet Foxes",     "title": "White Winter Hymnal"},
+    {"artist": "Mumford & Sons",  "title": "The Cave"},
+    {"artist": "Simon & Garfunkel","title": "The Sound of Silence"}
+  ],
+  "Sunday Reset": [
+    {"artist": "Rex Orange County","title": "Television / So Far So Good"},
+    {"artist": "Hozier",          "title": "Take Me To Church"},
+    {"artist": "Jack Johnson",     "title": "Better Together"},
+    {"artist": "Sufjan Stevens",   "title": "Mystery of Love"}
+  ],
+  "Sundown": [
+    {"artist": "The Neighbourhood","title": "Alleyways"},
+    {"artist": "Kanye West",       "title": "Street Lights"},
+    {"artist": "Kanye West",       "title": "Flashing Lights"},
+    {"artist": "Tame Impala",      "title": "Eventually"}
+  ],
+  "Symphonic Metal Epics": [
+    {"artist": "Epica",           "title": "Consign to Oblivion"},
+    {"artist": "Nightwish",       "title": "Ghost Love Score"},
+    {"artist": "Within Temptation","title": "Ice Queen"},
+    {"artist": "Apocalyptica",    "title": "Nothing Else Matters"}
+  ],
+  "Synthwave Nights": [
+    {"artist": "Kavinsky",    "title": "Nightcall"},
+    {"artist": "Perturbator", "title": "She Is Young, She Is Beautiful, She Is Next"},
+    {"artist": "Gunship",     "title": "Tech Noir"},
+    {"artist": "FM-84",       "title": "Running in the Night"}
+  ],
+  "Tropicana": [
+    {"artist": "Kygo",        "title": "Firestone"},
+    {"artist": "Thomas Jack", "title": "Rivers"},
+    {"artist": "Robin Schulz","title": "Prayer in C"},
+    {"artist": "Felix Jaehn", "title": "Ain't Nobody"}
+  ],
+  "Vaporwave": [
+    {"artist": "Macintosh Plus","title": "リサフランク420 / 現代のコンピュー"},
+    {"artist": "Saint Pepsi",   "title": "Cherry Pepsi"},
+    {"artist": "2814",          "title": "雨の日"},
+    {"artist": "Blank Banshee", "title": "MEGA"}
+  ],
+  "Villain Arc": [
+    {"artist": "50 Cent",   "title": "Many Men (Wish Death)"},
+    {"artist": "Eminem",    "title": "Without Me"},
+    {"artist": "Kanye West","title": "Power"},
+    {"artist": "Jay-Z",     "title": "99 Problems"},
+    {"artist": "Kendrick Lamar","title": "HUMBLE."}
+  ],
+  "Warehouse Techno": [
+    {"artist": "Jeff Mills",  "title": "The Bells"},
+    {"artist": "Adam Beyer",  "title": "Drums Please"},
+    {"artist": "Amelie Lens", "title": "Exhale"},
+    {"artist": "Surgeon",     "title": "Force + Counterforce"}
+  ],
+  "Weightless": [
+    {"artist": "Tame Impala","title": "'Cause I'm A Man"},
+    {"artist": "ERA",        "title": "Ameno"},
+    {"artist": "ACN Music.", "title": "Guts"},
+    {"artist": "The 1975",   "title": "Facedown"},
+    {"artist": "The 1975",   "title": "Lostmyhead"}
+  ]
+}

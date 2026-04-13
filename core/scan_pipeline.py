@@ -1032,6 +1032,100 @@ def execute_library_scan(
             except Exception as _sim_err:
                 step(f"getSimilar inference skipped: {_sim_err}", 83)
 
+    # ── Last.fm library-internal similarity graph (Pillar 1) ─────────────────
+    # For every library track that has at least some tags, fetch its Last.fm
+    # similar tracks and find which similar tracks are also in the library.
+    # Propagate the source track's tags to each neighbour at
+    #   _SIMILAR_CONFIDENCE (0.55) × match_score
+    # so that tracks with weak/zero tag coverage gain signal from their
+    # musically-closest neighbours.  Uses the same "similar" sub-cache as
+    # getSimilar above — no extra API requests for already-cached pairs.
+    if _lf_key:
+        try:
+            from core import lastfm as _lf_graph
+            import re as _re_graph
+
+            _feat_pat_g = _re_graph.compile(
+                r"\s*[\(\[\{].*?[\)\]\}]|\s+feat\..*$|\s+ft\..*$",
+                _re_graph.IGNORECASE,
+            )
+
+            def _clean_g(s: str) -> str:
+                return _feat_pat_g.sub("", s).strip().lower()
+
+            # Build library lookup: (artist_lower, clean_title_lower) -> uri
+            _lib_lookup: dict[tuple, str] = {}
+            for _gt in all_tracks:
+                _gu = _gt.get("uri", "")
+                if not _gu:
+                    continue
+                _ga = (((_gt.get("artists") or [{}])[0]) or {}).get("name", "")
+                _gtitle = _gt.get("name", "")
+                if _ga and _gtitle:
+                    _lib_lookup[(_clean_g(_ga), _clean_g(_gtitle))] = _gu
+
+            _graph_cache = _lf_graph._load_cache()
+            _graph_propagated = 0
+            _graph_processed  = 0
+
+            # Candidates: tracks that already have some tags (they are sources)
+            _graph_sources = [
+                t for t in all_tracks
+                if t.get("uri") and track_tags.get(t.get("uri", ""))
+            ]
+            _GRAPH_CONF = _lf_graph._SIMILAR_CONFIDENCE  # 0.55
+
+            step(f"Similarity graph — propagating tags across {len(_graph_sources)} tagged library tracks...", 84)
+
+            for _gi, _gtrack in enumerate(_graph_sources):
+                _g_uri    = _gtrack.get("uri", "")
+                _g_artist = (((_gtrack.get("artists") or [{}])[0]) or {}).get("name", "")
+                _g_title  = _gtrack.get("name", "")
+                if not (_g_uri and _g_artist and _g_title):
+                    continue
+                if _gi % 50 == 0:
+                    step(f"Similarity graph  {_gi}/{len(_graph_sources)}", 84)
+
+                _neighbors = _lf_graph.get_library_neighbors(
+                    _g_artist, _g_title, _lf_key,
+                    library_lookup=_lib_lookup,
+                    limit=20,
+                    cache=_graph_cache,
+                )
+                if not _neighbors:
+                    continue
+
+                _src_tags = track_tags.get(_g_uri, {})
+                if not _src_tags:
+                    continue
+
+                _graph_processed += 1
+                for _nb_uri, _nb_match in _neighbors:
+                    if _nb_uri == _g_uri:
+                        continue
+                    _nb_existing = track_tags.get(_nb_uri, {})
+                    _updated = False
+                    for _tag, _tw in _src_tags.items():
+                        _prop_w = round(_tw * _GRAPH_CONF * _nb_match, 4)
+                        if _prop_w <= 0:
+                            continue
+                        if _tag not in _nb_existing or _nb_existing[_tag] < _prop_w:
+                            if _nb_uri not in track_tags:
+                                track_tags[_nb_uri] = {}
+                            track_tags[_nb_uri][_tag] = _prop_w
+                            _updated = True
+                    if _updated:
+                        _graph_propagated += 1
+
+            _lf_graph._save_cache(_graph_cache)
+            step(
+                f"Similarity graph — {_graph_propagated} neighbour tracks enriched "
+                f"from {_graph_processed} source tracks",
+                85,
+            )
+        except Exception as _graph_err:
+            step(f"Similarity graph skipped: {_graph_err}", 85)
+
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 

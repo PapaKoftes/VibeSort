@@ -40,7 +40,7 @@ Spotify removed the public audio-features API in late 2024. Vibesort uses **meta
 | Genre | 20% | 42-genre hierarchy from artist tags + enrichers |
 | Metadata audio | 10% | Proxy energy/valence/tempo from tags + genres (not Spotify-measured) |
 
-The playlist mining step is the key: it searches public playlists named things like "late night drive", "gym rage", "overthinking" — checks which of your songs appear in them — and uses that as a human-labeled signal. This is how real music systems work.
+**Note on Spotify Dev Mode:** Public playlist fetching (`playlist_items`) is permanently blocked in Spotify's Development Mode — this is a policy restriction, not a rate limit. Vibesort routes around this via three ground-truth pillars: (1) **mood anchors** — 87 moods × 3–5 curated seed tracks that inject the highest-confidence signal (`anchor_*: 1.0`) when found in your library; (2) **Last.fm library similarity graph** — similar-track propagation across your library using `track.getSimilar`; and (3) **Last.fm tag chart mining** — tracks from `tag.getTopTracks` that appear in your library are tagged at 0.75× confidence. These three sources replace what public playlist mining used to provide.
 
 ---
 

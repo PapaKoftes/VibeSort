@@ -1,8 +1,38 @@
 # Vibesort — Signal System Rebuild Plan
 
-**Status:** In progress
+**Status:** Phase 3 implementation complete — pending full deep scan validation
 **Target:** Fully working per-track signal system for any public user
 **Milestone count:** 3 phases, 12 milestones + packs cleanup, 1 final validation gate
+
+---
+
+## Critical: Spotify Dev Mode Limitations
+
+**All Spotify playlist fetching is permanently broken in Development Mode.**
+
+Confirmed via mining cache (`playlist_items_blocked: True`). This applies to both:
+- Public playlist search + `playlist_items` (blocked by policy, not rate limiting)
+- **Own user playlists** — `playlist_items` blocked even for the authenticated user's own playlists
+
+This means `seed_phrases` in `packs.json` are effectively inert until the app is approved for
+Extended Access. The three replacement pillars below are the working ground truth signal chain.
+
+### Three Ground-Truth Pillars (Dev Mode Bypass)
+
+**Pillar 1 — Last.fm library similarity graph** (`core/lastfm.py: get_library_neighbors()`,
+`core/scan_pipeline.py` step 84-85):
+For each tagged library track, fetch its Last.fm similar tracks, find which similar tracks are
+also in the library, and propagate source tags at `_SIMILAR_CONFIDENCE (0.55) × match_score`.
+Uses the existing "similar" sub-cache — no extra API requests for cached track pairs.
+
+**Pillar 2 — Mood anchors** (`data/mood_anchors.json`, `core/anchors.py: apply_anchor_tags()`):
+87 moods × 3–5 curated universally-recognized anchor tracks each. Matching injects
+`anchor_<mood_slug>: 1.0` — the highest-confidence per-track signal in the system, bypassing
+the artist-level confidence discount entirely. Populated as of this implementation session.
+
+**Pillar 3 — User playlist quality weighting** (`core/playlist_mining.py: _mine_owned_playlists()`):
+Owned playlists weighted at `3.0 × quality_mult` where `quality_mult = min(2.0, 1.0 + tracks.total / 100)`.
+Larger playlists (more curation effort) get proportionally higher tag weight.
 
 ---
 

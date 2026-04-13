@@ -84,10 +84,10 @@
       "lyric_playlist_title": "Sad & honest lyrics",
       "seed_phrases": [
         "sad songs",
-        "heartbreak playlist",
+        "empty feeling music",
         "crying songs",
-        "sad vibes",
-        "feel sad",
+        "numb songs",
+        "feel hollow",
         "sad hours",
         "cry to this"
       ],
@@ -1005,11 +1005,11 @@
       "description": "3am and your brain won't stop — introspective and a little too honest",
       "seed_phrases": [
         "overthinking playlist",
-        "3am thoughts",
+        "3am anxiety",
         "introspective music",
-        "midnight thoughts",
+        "anxious thoughts music",
         "late night feels",
-        "can't sleep"
+        "can't sleep music"
       ],
       "audio_target": {
         "energy": 0.3,
@@ -1302,11 +1302,11 @@
       "description": "4am realizations — when everything becomes obvious",
       "seed_phrases": [
         "4am playlist",
-        "midnight thoughts",
+        "midnight realization",
         "clarity music",
         "introspective night",
         "self reflection",
-        "late night thinking"
+        "late night epiphany"
       ],
       "audio_target": {
         "energy": 0.32,
@@ -4788,7 +4788,7 @@
         "lyr_angry"
       ],
       "seed_phrases": [
-        "uk drill playlist",
+        "confessional drill",
         "drill rap emotional",
         "dark drill lyrics"
       ],
