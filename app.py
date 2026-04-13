@@ -43,12 +43,16 @@ if _code:
     st.session_state["_pending_code"]  = _code
     st.session_state["_pending_state"] = _state
     st.query_params.clear()
+    if not st.session_state.get("spotify_token"):
+        st.switch_page("pages/1_Connect.py")
 
 # Last.fm web-auth sends ?token= (distinct from Spotify's ?code=)
 _lastfm_token = st.query_params.get("token")
 if _lastfm_token and not _code:   # avoid picking up unrelated ?token= params
     st.session_state["_pending_lastfm_token"] = _lastfm_token
     st.query_params.clear()
+    if not st.session_state.get("spotify_token"):
+        st.switch_page("pages/1_Connect.py")
 
 import config as cfg
 
@@ -203,6 +207,92 @@ def _library_data_story(vibesort: dict) -> str:
         if parts
         else "Run a full scan with Last.fm (optional) and lyrics on for the richest interpretation of your library."
     )
+
+
+def _mood_fingerprint_narrative(mood_results: dict) -> str:
+    """Generate a 2-3 sentence human narrative about the emotional fingerprint of the library."""
+    _CLUSTERS = {
+        "DARK":  {"hollow", "rainy", "overthink", "3_am", "midnight", "late_night", "smoke",
+                  "heartbreak", "goodbye", "liminal", "sundown", "sad", "grief"},
+        "POWER": {"rage", "adrenaline", "hard_reset", "villain", "metal", "flex", "punk",
+                  "drill", "trap"},
+        "CHILL": {"meditation", "deep_focus", "lo_fi", "sunday_reset", "morning",
+                  "golden_hour", "healing", "weightless", "acoustic"},
+        "PARTY": {"afterparty", "latin", "queer", "dance", "phonk", "hyperpop", "rave", "techno"},
+        "STORY": {"nostalgia", "home", "road", "country", "folk", "indie", "bedroom"},
+    }
+    _CLUSTER_LABELS = {
+        "DARK":  "dark/introspective",
+        "POWER": "power/energy",
+        "CHILL": "chill/focus",
+        "PARTY": "party/dance",
+        "STORY": "story/roots",
+    }
+
+    cluster_counts: dict[str, int] = {c: 0 for c in _CLUSTERS}
+    cluster_top_moods: dict[str, list] = {c: [] for c in _CLUSTERS}
+
+    for mood_name, info in mood_results.items():
+        count = info.get("count", len(info.get("ranked", [])))
+        slug = mood_name.lower().replace(" ", "_").replace("-", "_").replace("/", "_")
+        while "__" in slug:
+            slug = slug.replace("__", "_")
+        slug = slug.strip("_")
+        for cluster, keywords in _CLUSTERS.items():
+            if any(kw in slug for kw in keywords):
+                cluster_counts[cluster] += count
+                cluster_top_moods[cluster].append((mood_name, count))
+                break
+
+    # Sort each cluster's moods by track count descending
+    for c in cluster_top_moods:
+        cluster_top_moods[c].sort(key=lambda x: -x[1])
+
+    # Find dominant cluster
+    dominant = max(cluster_counts, key=lambda c: cluster_counts[c])
+    dominant_count = cluster_counts[dominant]
+
+    if dominant_count == 0:
+        return "Run a full scan with Last.fm and lyrics for a richer emotional fingerprint."
+
+    # Top 3 individual moods overall
+    all_moods_sorted = sorted(mood_results.items(), key=lambda x: -x[1].get("count", 0))
+    top3 = [(n, info.get("count", 0)) for n, info in all_moods_sorted[:3]]
+
+    parts: list[str] = []
+
+    # Sentence 1: dominant cluster
+    top_mood_names = ", ".join(
+        mood_display_name(n) for n, _ in cluster_top_moods[dominant][:3]
+    )
+    parts.append(
+        f"Your library leans heavily into the **{_CLUSTER_LABELS[dominant]}** end"
+        + (f" — {top_mood_names} alone cover **{dominant_count}** tracks." if top_mood_names else f" with **{dominant_count}** tracks.")
+    )
+
+    # Sentence 2: second-biggest cluster (if meaningful)
+    others = sorted(
+        ((c, v) for c, v in cluster_counts.items() if c != dominant and v > 0),
+        key=lambda x: -x[1],
+    )
+    if others:
+        second_cluster, second_count = others[0]
+        second_top = ", ".join(mood_display_name(n) for n, _ in cluster_top_moods[second_cluster][:2])
+        parts.append(
+            f"There's a significant **{_CLUSTER_LABELS[second_cluster]}** streak"
+            + (f" ({second_top})" if second_top else "")
+            + f" running through **{second_count}** tracks."
+        )
+
+    # Sentence 3: third cluster if present
+    if len(others) >= 2:
+        third_cluster, third_count = others[1]
+        parts.append(
+            f"You've carved out **{third_count}** tracks of "
+            f"**{_CLUSTER_LABELS[third_cluster]}** space."
+        )
+
+    return " ".join(parts)
 
 
 def _render_enrichment_panel(feat: dict) -> None:
@@ -365,6 +455,87 @@ def _home():
         st.divider()
         render_scan_quality_strip(vibesort, title="Current Scan Quality")
         st.divider()
+
+        # ── Emotional fingerprint narrative + shareable card ─────────────────
+        if mood_results:
+            st.markdown("#### 🎭 Your Library's Emotional Fingerprint")
+            st.info(_mood_fingerprint_narrative(mood_results))
+
+            # Shareable cluster bar chart
+            _FP_CLUSTERS = {
+                "DARK":  {"hollow", "rainy", "overthink", "3_am", "midnight", "late_night", "smoke",
+                          "heartbreak", "goodbye", "liminal", "sundown", "sad", "grief"},
+                "POWER": {"rage", "adrenaline", "hard_reset", "villain", "metal", "flex", "punk",
+                          "drill", "trap"},
+                "CHILL": {"meditation", "deep_focus", "lo_fi", "sunday_reset", "morning",
+                          "golden_hour", "healing", "weightless", "acoustic"},
+                "PARTY": {"afterparty", "latin", "queer", "dance", "phonk", "hyperpop", "rave", "techno"},
+                "STORY": {"nostalgia", "home", "road", "country", "folk", "indie", "bedroom"},
+            }
+            _fp_counts: dict[str, int] = {c: 0 for c in _FP_CLUSTERS}
+            for _mn, _mi in mood_results.items():
+                _ms = _mn.lower().replace(" ", "_").replace("-", "_").replace("/", "_")
+                while "__" in _ms:
+                    _ms = _ms.replace("__", "_")
+                for _fc, _fkw in _FP_CLUSTERS.items():
+                    if any(kw in _ms for kw in _fkw):
+                        _fp_counts[_fc] += _mi.get("count", 0)
+                        break
+
+            _fp_total = sum(_fp_counts.values())
+            if _fp_total > 0:
+                with st.expander("📊 Emotional Fingerprint Card", expanded=False):
+                    st.caption("Your library's emotional DNA at a glance — screenshot to share.")
+                    _fp_labels = {
+                        "DARK": "🌑 Dark / Introspective",
+                        "POWER": "⚡ Power / Energy",
+                        "CHILL": "🌿 Chill / Focus",
+                        "PARTY": "🎉 Party / Dance",
+                        "STORY": "📖 Story / Roots",
+                    }
+                    _fp_colors = {
+                        "DARK": "#6366f1", "POWER": "#ef4444",
+                        "CHILL": "#22c55e", "PARTY": "#f59e0b", "STORY": "#a78bfa",
+                    }
+                    try:
+                        import matplotlib.pyplot as _plt
+                        import matplotlib.patches as _mpatches
+                        _fig, _ax = _plt.subplots(figsize=(7, 2.8))
+                        _fig.patch.set_facecolor("#0e1117")
+                        _ax.set_facecolor("#0e1117")
+                        _sorted_clusters = sorted(_fp_counts.items(), key=lambda x: -x[1])
+                        _names = [_fp_labels[c] for c, _ in _sorted_clusters]
+                        _vals  = [v for _, v in _sorted_clusters]
+                        _cols  = [_fp_colors[c] for c, _ in _sorted_clusters]
+                        _bars  = _ax.barh(_names, _vals, color=_cols, height=0.6)
+                        for _bar, _val in zip(_bars, _vals):
+                            _pct = round(100 * _val / _fp_total)
+                            _ax.text(
+                                _bar.get_width() + _fp_total * 0.01,
+                                _bar.get_y() + _bar.get_height() / 2,
+                                f"{_pct}%",
+                                va="center", ha="left",
+                                color="white", fontsize=9,
+                            )
+                        _ax.set_xlabel("tracks", color="#9ca3af", fontsize=8)
+                        _ax.tick_params(colors="white", labelsize=8)
+                        _ax.spines[:].set_visible(False)
+                        _ax.xaxis.label.set_color("#9ca3af")
+                        _plt.tight_layout()
+                        st.pyplot(_fig, use_container_width=True)
+                        _plt.close(_fig)
+                    except Exception as _chart_err:
+                        # Fallback: simple text bars
+                        _max_v = max(_fp_counts.values()) or 1
+                        for _c, _v in sorted(_fp_counts.items(), key=lambda x: -x[1]):
+                            _bar_w = int(30 * _v / _max_v)
+                            _pct = round(100 * _v / _fp_total)
+                            st.markdown(
+                                f"`{'█' * _bar_w}{'░' * (30 - _bar_w)}` "
+                                f"**{_fp_labels[_c]}** — {_v} tracks ({_pct}%)"
+                            )
+
+            st.divider()
 
         # ── Navigation cards ──────────────────────────────────────────────────
         col_v, col_g, col_t, col_a, col_s, col_b, col_stats = st.columns(7)

@@ -196,6 +196,99 @@ if not mood_results:
         st.switch_page("pages/2_Scan.py")
     st.stop()
 
+# ── Mood Atlas ───────────────────────────────────────────────────────────────
+with st.expander("🗺️ Mood Atlas — coverage across all moods", expanded=False):
+    try:
+        from core.mood_graph import all_moods as _all_moods_fn
+        _all_moods_dict = _all_moods_fn()
+        _all_mood_names = sorted(_all_moods_dict.keys())
+        _total = len(_all_mood_names)
+
+        # Build count lookup from mood_results
+        _mood_count_lookup = {
+            name: info.get("count", len(info.get("ranked", [])))
+            for name, info in mood_results.items()
+        }
+
+        # Categorise by tier
+        _strong  = [(n, _mood_count_lookup[n]) for n in _all_mood_names if _mood_count_lookup.get(n, 0) >= 15]
+        _present = [(n, _mood_count_lookup[n]) for n in _all_mood_names if 8 <= _mood_count_lookup.get(n, 0) < 15]
+        _thin    = [(n, _mood_count_lookup[n]) for n in _all_mood_names if 1 <= _mood_count_lookup.get(n, 0) < 8]
+        _missing = [n for n in _all_mood_names if _mood_count_lookup.get(n, 0) == 0]
+
+        st.caption(
+            f"**{len(_strong) + len(_present) + len(_thin)}/{_total}** moods found in your library "
+            f"({len(_strong)} strong, {len(_present)} present, {len(_thin)} thin)"
+        )
+
+        # Render in 4-column grid
+        _atlas_entries = []
+        for n, cnt in _strong:
+            _atlas_entries.append(f"**{mood_display_name(n)}** ({cnt})")
+        for n, cnt in _present:
+            _atlas_entries.append(f"{mood_display_name(n)} ({cnt})")
+        for n, cnt in _thin:
+            _atlas_entries.append(f"~{mood_display_name(n)} ({cnt})")
+        for n in _missing:
+            _atlas_entries.append(f"~~{mood_display_name(n)}~~")
+
+        _atlas_cols = st.columns(4)
+        for _i, _entry in enumerate(_atlas_entries):
+            _atlas_cols[_i % 4].markdown(_entry)
+    except Exception as _e:
+        st.caption(f"Atlas unavailable: {_e}")
+
+# ── Discovery Gaps ───────────────────────────────────────────────────────────
+# Show moods missing from the library with example tracks to inspire discovery
+_missing_moods_for_gaps = []
+try:
+    from core.mood_graph import all_moods as _all_moods_gap_fn
+    _all_moods_gap = _all_moods_gap_fn()
+    _missing_moods_for_gaps = [
+        n for n in sorted(_all_moods_gap.keys())
+        if not mood_results.get(n) or mood_results[n].get("count", 0) == 0
+    ]
+except Exception:
+    pass
+
+if _missing_moods_for_gaps:
+    with st.expander(f"🌱 Discovery Gaps — {len(_missing_moods_for_gaps)} unexplored vibes", expanded=False):
+        st.caption(
+            "These moods have no tracks in your library yet. "
+            "The example tracks below are curated anchors for each vibe — "
+            "adding a few to your Spotify library will unlock that mood on your next scan."
+        )
+        try:
+            from core.anchors import load_mood_anchors as _lma_gap
+            _anchors_gap = _lma_gap() or {}
+        except Exception:
+            _anchors_gap = {}
+
+        _gap_cols = st.columns(3)
+        for _gi, _gap_mood in enumerate(_missing_moods_for_gaps[:18]):  # cap at 18
+            with _gap_cols[_gi % 3]:
+                with st.container(border=True):
+                    st.markdown(f"**{mood_display_name(_gap_mood)}**")
+                    try:
+                        from core.mood_graph import get_mood as _gm_gap
+                        _gm_pack = _gm_gap(_gap_mood) or {}
+                        if _gm_pack.get("description"):
+                            st.caption(_gm_pack["description"])
+                    except Exception:
+                        pass
+                    _ex_tracks = _anchors_gap.get(_gap_mood, [])[:3]
+                    if _ex_tracks:
+                        for _ex in _ex_tracks:
+                            _ex_a = _ex.get("artist", "")
+                            _ex_t = _ex.get("title", "")
+                            if _ex_a and _ex_t:
+                                st.markdown(f"- *{_ex_t}* — {_ex_a}")
+                    else:
+                        st.caption("No example tracks yet.")
+
+        if len(_missing_moods_for_gaps) > 18:
+            st.caption(f"… and {len(_missing_moods_for_gaps) - 18} more unexplored vibes.")
+
 # Search/filter
 search = st.text_input("Filter by mood name or keyword", placeholder="e.g. dark, lo-fi, rap...")
 
@@ -244,8 +337,8 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                     _clabel_str = _clabel(cohesion)
                 except Exception:
                     _clabel_str = f"{cohesion * 100:.0f}%"
-                st.caption(f"{count} tracks · {_clabel_str} ({cohesion * 100:.0f}%)")
-                st.progress(cohesion, text="")
+                st.caption(f"{count} tracks · {_clabel_str} ({min(cohesion, 1.0) * 100:.0f}%)")
+                st.progress(min(max(float(cohesion), 0.0), 1.0), text="")
 
                 top = _top_tracks_display(uris, n=3)
                 for t in top:
@@ -272,13 +365,57 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
             st.divider()
             st.markdown(f"#### {mood_display_name(mood_name)} — Full Tracklist ({len(uris)} tracks)")
 
+            # Build mood slug for tag matching
+            _slug = mood_name.lower().replace(" ", "_").replace("-", "_").replace("/", "_")
+            while "__" in _slug:
+                _slug = _slug.replace("__", "_")
+            _slug = _slug.strip("_")
+
+            # Load track tags for signal badges
+            track_tags_all = vibesort.get("track_tags", {})
+
             # Show all tracks
             track_rows = []
             for uri in uris:
                 p = profiles.get(uri, {})
                 if p:
                     artists = ", ".join(p.get("artists", [])[:2])
-                    track_rows.append(f"**{p.get('name', '')}** — {artists}")
+                    tags = track_tags_all.get(uri, {}) or {}
+
+                    # Build signal badges
+                    badges = []
+                    if tags.get(f"anchor_{_slug}", 0) == 1.0:
+                        badges.append("🔑 Anchor")
+                    if tags.get(f"personal_anchor_{_slug}", 0) > 0:
+                        badges.append("🎵 Personal")
+                    if tags.get(f"graph_mood_{_slug}", 0) > 0.3:
+                        badges.append("🕸️ Similar")
+                    if tags.get(f"mood_{_slug}", 0) > 0.3:
+                        badges.append("📻 Last.fm")
+                    lyr_tags = [k for k, v in tags.items() if k.startswith("lyr_") and v > 0.3]
+                    if lyr_tags:
+                        lyr_label = lyr_tags[0].replace("lyr_", "")
+                        badges.append(f"📖 Lyrics: {lyr_label}")
+                    # Time-of-day badge
+                    _tod_labels = {
+                        "tod_late_night": "🌙 Late Night",
+                        "tod_morning":    "🌅 Morning",
+                        "tod_afternoon":  "☀️ Afternoon",
+                        "tod_evening":    "🌆 Evening",
+                    }
+                    for _tk, _tl in _tod_labels.items():
+                        if tags.get(_tk, 0) >= 0.5:
+                            badges.append(_tl)
+                            break
+                    macro = (p.get("macro_genres") or [])
+                    if macro:
+                        badges.append(macro[0])
+
+                    badge_str = " ".join(f"[{b}]" for b in badges)
+                    line = f"**{p.get('name', '')}** — {artists}"
+                    if badge_str:
+                        line += f" {badge_str}"
+                    track_rows.append(line)
             for i in range(0, len(track_rows), 3):
                 chunk = track_rows[i:i+3]
                 tcols = st.columns(3)

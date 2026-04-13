@@ -706,11 +706,43 @@ def execute_library_scan(
                     _lf_active_key, _lf_sess_user, period="6month", limit=200
                 )
                 _top_matched = 0
+                # Build uri→play_weight for personal anchor seeding (used post-graph)
+                _personal_top_uris: dict[str, float] = {}
                 for _lk, _lw in _lf_top.items():
                     _matched_uri = _lf_lookup.get(_lk)
-                    if _matched_uri and _matched_uri not in _lb_top_uris:
-                        _lb_top_uris[_matched_uri] = 1.0 + (_lw * 0.10)
-                        _top_matched += 1
+                    if _matched_uri:
+                        if _matched_uri not in _lb_top_uris:
+                            _lb_top_uris[_matched_uri] = 1.0 + (_lw * 0.10)
+                            _top_matched += 1
+                        if _lw >= 0.6:  # top 40% most-played → eligible for personal anchor
+                            _personal_top_uris[_matched_uri] = _lw
+
+                # ── Time-of-day tags from recent scrobbles ────────────────────
+                # Fetch recent scrobbles → bucket each track by hour → inject
+                # tod_<bucket>: weight into track_tags for matched library tracks.
+                # These power time-contextual moods (late_night_drive, morning, etc.)
+                try:
+                    step(f"Fetching Last.fm recent scrobbles for TOD tags...", 68)
+                    _tod_data = _lf_user_mod.get_recent_tracks_tod(
+                        _lf_active_key, _lf_sess_user, limit=1000
+                    )
+                    _tod_injected = 0
+                    for _tlk, _t_buckets in _tod_data.items():
+                        _t_uri = _lf_lookup.get(_tlk)
+                        if not _t_uri:
+                            continue
+                        if _t_uri not in track_tags:
+                            track_tags[_t_uri] = {}
+                        # Only inject buckets with dominant share (≥50% of plays)
+                        _dom_bucket, _dom_w = max(_t_buckets.items(), key=lambda x: x[1])
+                        if _dom_w >= 0.50:
+                            _tod_key = f"tod_{_dom_bucket}"
+                            track_tags[_t_uri][_tod_key] = round(_dom_w, 4)
+                            _tod_injected += 1
+                    if _tod_injected:
+                        step(f"TOD tags — {_tod_injected} tracks tagged by listening time", 68)
+                except Exception as _tod_err:
+                    step(f"TOD tags skipped: {_tod_err}", 68)
 
                 if _loved_matched or _top_matched:
                     step(
@@ -1091,6 +1123,43 @@ def execute_library_scan(
 
         except Exception as _graph_err:
             step(f"Agreement graph skipped: {_graph_err}", 85)
+
+    # ── Personal anchor seeding ───────────────────────────────────────────────
+    # Promote top-listened tracks to soft personal anchors in moods where the
+    # graph or curated data already places them.  Injects personal_anchor_<slug>
+    # tags which (a) boost signal confidence in the scorer and (b) appear as
+    # 🎵 Personal badges in the Vibes UI.
+    #
+    # Eligibility: track must be in user's top 40% of Last.fm plays (weight ≥0.6)
+    # AND have either an existing curated anchor_<mood> = 1.0 OR a graph label
+    # graph_mood_<mood> > 0.4 for that mood.
+    _personal_anchors_injected = 0
+    try:
+        if "_personal_top_uris" in dir():  # only if Last.fm session was active
+            for _pa_uri, _pa_weight in _personal_top_uris.items():
+                _pa_tags = track_tags.get(_pa_uri, {})
+                if not _pa_tags:
+                    continue
+                for _tag_key, _tag_val in list(_pa_tags.items()):
+                    _inject_slug = None
+                    if _tag_key.startswith("anchor_") and _tag_val == 1.0:
+                        # Already curated anchor — confirm as personal anchor
+                        _inject_slug = _tag_key[len("anchor_"):]
+                    elif _tag_key.startswith("graph_mood_") and _tag_val > 0.4:
+                        # Graph-propagated — elevate to personal anchor if highly played
+                        if _pa_weight >= 0.75:
+                            _inject_slug = _tag_key[len("graph_mood_"):]
+                    if _inject_slug:
+                        _pa_key = f"personal_anchor_{_inject_slug}"
+                        if _pa_key not in _pa_tags:
+                            track_tags.setdefault(_pa_uri, {})[_pa_key] = round(
+                                min(1.0, _pa_weight * 0.85), 4
+                            )
+                            _personal_anchors_injected += 1
+        if _personal_anchors_injected:
+            step(f"Personal anchors — {_personal_anchors_injected} tags seeded from listening history", 86)
+    except Exception as _pa_err:
+        step(f"Personal anchor seeding skipped: {_pa_err}", 86)
 
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)

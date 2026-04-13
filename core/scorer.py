@@ -74,7 +74,11 @@ def _signal_confidence(tags: dict[str, float]) -> float:
         conf += 0.35
     if any(k.startswith("bpm_") or k.startswith("meta_") for k in tags):
         conf += 0.20
-    if any(k.startswith("mood_") or k.startswith("anchor_") or k.startswith("graph_mood_") for k in tags):
+    if any(
+        k.startswith("mood_") or k.startswith("anchor_")
+        or k.startswith("graph_mood_") or k.startswith("personal_anchor_")
+        for k in tags
+    ):
         conf += 0.45
     if "dz_bpm" in tags:
         conf += 0.10

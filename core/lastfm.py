@@ -835,3 +835,101 @@ def get_user_top_tracks(
 
     max_count = max(c for _, c in raw) or 1
     return {key: round(count / max_count, 4) for key, count in raw}
+
+
+# ── TOD: time-of-day scrobble buckets ─────────────────────────────────────────
+# Maps hour → bucket name used as a pseudo-tag prefix (tod_<bucket>).
+_TOD_BUCKETS: dict[str, range] = {
+    "late_night": range(0, 6),    # 00:00 – 05:59
+    "morning":    range(6, 12),   # 06:00 – 11:59
+    "afternoon":  range(12, 18),  # 12:00 – 17:59
+    "evening":    range(18, 24),  # 18:00 – 23:59
+}
+
+
+def get_recent_tracks_tod(
+    api_key: str,
+    username: str,
+    limit: int = 1000,
+) -> dict[str, dict[str, float]]:
+    """
+    Fetch recent scrobbles for a user and bucket each track by time of day.
+
+    Returns:
+        {"artist|||title_norm": {"late_night": 0.8, "morning": 0.2, ...}}
+
+    Each inner dict has normalised weights per bucket (sum to 1.0).
+    Only tracks with ≥3 scrobbles are included (below that, timing is noise).
+    """
+    if not api_key or not username:
+        return {}
+
+    from datetime import datetime, timezone
+
+    raw: dict[str, dict[str, int]] = {}  # key → {bucket: count}
+    page = 1
+    fetched = 0
+    per_page = min(200, limit)
+
+    while fetched < limit:
+        data = _api_get(
+            "user.getrecenttracks",
+            {
+                "user": username,
+                "limit": str(per_page),
+                "page":  str(page),
+                "extended": "0",
+            },
+            api_key,
+        )
+        if not data:
+            break
+
+        tracks = (data.get("recenttracks") or {}).get("track", [])
+        if isinstance(tracks, dict):
+            tracks = [tracks]
+        if not tracks:
+            break
+
+        added = 0
+        for t in tracks:
+            # Skip currently-playing stub (no timestamp)
+            if t.get("@attr", {}).get("nowplaying"):
+                continue
+            ts_str = (t.get("date") or {}).get("uts", "")
+            if not ts_str:
+                continue
+            try:
+                ts = int(ts_str)
+            except (ValueError, TypeError):
+                continue
+
+            artist = _normalize_tag((t.get("artist") or {}).get("#text", ""))
+            title  = _normalize_tag(t.get("name", ""))
+            if not artist or not title:
+                continue
+
+            hour = datetime.fromtimestamp(ts, tz=timezone.utc).hour
+            bucket = next(
+                (b for b, rng in _TOD_BUCKETS.items() if hour in rng),
+                "evening",
+            )
+            key = f"{artist}|||{title}"
+            raw.setdefault(key, {b: 0 for b in _TOD_BUCKETS})
+            raw[key][bucket] += 1
+            added += 1
+
+        fetched += added
+        page += 1
+        if added < per_page:
+            break
+
+    # Normalise to weights, filter low-count tracks
+    result: dict[str, dict[str, float]] = {}
+    for key, bucket_counts in raw.items():
+        total = sum(bucket_counts.values())
+        if total < 3:
+            continue
+        result[key] = {b: round(c / total, 4) for b, c in bucket_counts.items()}
+
+    return result

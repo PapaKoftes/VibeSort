@@ -217,6 +217,7 @@ def kill_stale_instances():  # noqa: C901
 def launch():
     """Start Streamlit, auto-detect port from stdout, open browser."""
     env = os.environ.copy()
+    env["PYTHONUTF8"] = "1"
     env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
 
     proc = subprocess.Popen(

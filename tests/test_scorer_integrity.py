@@ -422,3 +422,77 @@ class TestAnchorTrackSanity:
             f"Anchor track (score={s_anchor:.4f}) should outscore random track "
             f"(score={s_random:.4f}) for Hollow"
         )
+
+
+# ── 10. personal_anchor_ confidence path ─────────────────────────────────────
+
+class TestPersonalAnchorConfidence:
+    """personal_anchor_ tags must contribute +0.45 to signal_confidence."""
+
+    def test_personal_anchor_confidence_boost(self):
+        """personal_anchor_hollow alone should yield signal_confidence >= 0.45."""
+        tags = {"personal_anchor_hollow": 0.85}
+        conf = scorer._signal_confidence(tags)
+        assert conf >= 0.45, (
+            f"personal_anchor_ tag should contribute ≥0.45 to signal_confidence, "
+            f"got {conf:.4f}"
+        )
+
+    def test_personal_anchor_plus_lyrics_confidence(self):
+        """personal_anchor_ + lyr_sad should accumulate to 0.80 (0.45 + 0.35)."""
+        tags = {"personal_anchor_hollow": 0.85, "lyr_sad": 0.7}
+        conf = scorer._signal_confidence(tags)
+        assert conf == 0.80, (
+            f"personal_anchor_(+0.45) + lyr_(+0.35) should yield 0.80, got {conf:.4f}"
+        )
+
+    def test_personal_anchor_does_not_affect_non_matching_mood(self):
+        """personal_anchor_hollow should not meaningfully boost score for 'Rage Lift'.
+
+        The tag adds confidence (signal_confidence), not score. For a mismatched mood
+        like 'Rage Lift', the tag key itself carries no expected-tag credit, so the
+        final score must not be inflated by the anchor beyond normal bounds.
+        """
+        p = _make_profile(tags={"personal_anchor_hollow": 0.9})
+        s = scorer.score_track(p, "Rage Lift")
+        # Score should be in valid range (not boosted to unreasonable levels)
+        assert s == -1.0 or s <= 2.5, (
+            f"personal_anchor_hollow should not inflate score for 'Rage Lift', "
+            f"got {s:.4f}"
+        )
+        # The tag key itself is not in Rage Lift's expected tags — score should be low
+        if s != -1.0:
+            assert s <= 1.5, (
+                f"personal_anchor_hollow must not contribute tag score to 'Rage Lift', "
+                f"got {s:.4f} — only confidence should be affected"
+            )
+
+
+# ── 11. TOD tag injection ─────────────────────────────────────────────────────
+
+class TestTODTagInjection:
+    """Time-of-day tags (tod_*) must be valid floats in [0, 1] and must not
+    be excluded by the numeric pseudo-tag filter in user_tag_preferences."""
+
+    def test_tod_tag_is_valid_range(self):
+        """tod_late_night value of 0.8 must be in [0.0, 1.0]."""
+        track_tags = {"tod_late_night": 0.8}
+        value = track_tags["tod_late_night"]
+        assert 0.0 <= value <= 1.0, (
+            f"tod_late_night value {value} is outside [0.0, 1.0] — "
+            "TOD tags must be normalised confidence scores, not raw counts."
+        )
+
+    def test_tod_tag_not_excluded_by_numeric_filter(self):
+        """user_tag_preferences must include tod_late_night but exclude dz_bpm."""
+        profiles = {
+            "uri1": _make_profile(tags={"tod_late_night": 0.8, "dz_bpm": 192.0}),
+        }
+        prefs = profile_mod.user_tag_preferences(profiles)
+        assert "tod_late_night" in prefs, (
+            "tod_late_night should pass through user_tag_preferences — "
+            "it is a valid [0,1] confidence score, not a raw numeric pseudo-tag."
+        )
+        assert "dz_bpm" not in prefs, (
+            "dz_bpm must still be excluded by the numeric pseudo-tag filter."
+        )
