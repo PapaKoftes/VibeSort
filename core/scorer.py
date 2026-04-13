@@ -621,10 +621,17 @@ def taste_adaptation_boost(
     active_tags = get_active_tags(profile)
     if not user_tag_prefs or not active_tags:
         return 1.0
-    total = sum(user_tag_prefs.get(tag, 0.0) for tag in active_tags)
-    avg   = total / len(active_tags)
-    # Map avg in [0, 1] → multiplier in [0.90, 1.10]
-    return round(0.90 + avg * 0.20, 6)
+    # Exclude numeric pseudo-tags (dz_bpm, vader_valence) — their raw float values
+    # (e.g. 193.2 BPM) are not in [0, 1] and inflate avg catastrophically.
+    _NUMERIC = frozenset({"dz_bpm", "vader_valence"})
+    total = sum(user_tag_prefs.get(tag, 0.0) for tag in active_tags if tag not in _NUMERIC)
+    denom = sum(1 for tag in active_tags if tag not in _NUMERIC)
+    if denom == 0:
+        return 1.0
+    avg   = total / denom
+    # Map avg in [0, 1] → multiplier in [0.90, 1.10].
+    # Clamp strictly — raw numeric tag values must never escape into the multiplier.
+    return round(max(0.90, min(1.10, 0.90 + avg * 0.20)), 6)
 
 
 # ── Positive match boost ──────────────────────────────────────────────────────
@@ -1946,12 +1953,16 @@ def combine_expected_tags(
             static.append(_lt)
             static_set.add(_lt)
 
-    # Blend top observed tags not already in static
+    # Blend top observed tags not already in static.
+    # Exclude numeric pseudo-tags (dz_bpm, vader_valence) — these accumulate
+    # raw floats (BPM values) during mining, producing inflated observed weights
+    # that have no place in a tag-match expected list.
+    _NUMERIC_PSEUDO = frozenset({"dz_bpm", "vader_valence"})
     top_observed = sorted(observed_tags.items(), key=lambda x: -x[1])
     n_to_add = max(2, int(len(static) * observed_weight))
     extras = [
         tag for tag, _ in top_observed
-        if tag not in static_set
+        if tag not in static_set and tag not in _NUMERIC_PSEUDO
     ][:n_to_add]
 
     return static + extras

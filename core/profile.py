@@ -192,11 +192,19 @@ def user_audio_mean(profiles: dict[str, dict]) -> list[float]:
 
 
 def user_tag_preferences(profiles: dict[str, dict]) -> dict[str, float]:
-    """Aggregate tag weights across the library to understand preferred vibes."""
+    """Aggregate tag weights across the library to understand preferred vibes.
+
+    Numeric pseudo-tags (dz_bpm, vader_valence) store raw floats far outside
+    [0, 1] and are excluded — including them would corrupt taste_adaptation_boost
+    for any track where they are the dominant or only tag.
+    """
+    _NUMERIC_PSEUDO = frozenset({"dz_bpm", "vader_valence"})
     totals: dict[str, float] = {}
     counts: dict[str, int] = {}
     for p in profiles.values():
         for tag, w in p["tags"].items():
+            if tag in _NUMERIC_PSEUDO:
+                continue
             totals[tag] = totals.get(tag, 0) + w
             counts[tag] = counts.get(tag, 0) + 1
     # Return average weight per tag
