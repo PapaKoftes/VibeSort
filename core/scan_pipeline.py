@@ -1032,99 +1032,65 @@ def execute_library_scan(
             except Exception as _sim_err:
                 step(f"getSimilar inference skipped: {_sim_err}", 83)
 
-    # ── Last.fm library-internal similarity graph (Pillar 1) ─────────────────
-    # For every library track that has at least some tags, fetch its Last.fm
-    # similar tracks and find which similar tracks are also in the library.
-    # Propagate the source track's tags to each neighbour at
-    #   _SIMILAR_CONFIDENCE (0.55) × match_score
-    # so that tracks with weak/zero tag coverage gain signal from their
-    # musically-closest neighbours.  Uses the same "similar" sub-cache as
-    # getSimilar above — no extra API requests for already-cached pairs.
+    # ── Anchor-seeded label propagation — the agreement layer (core/graph.py) ──
+    # Replaces the signal that dead playlist mining used to provide.
+    # Seeds mood labels from data/mood_anchors.json anchor tracks, builds a
+    # library-internal similarity graph via Last.fm track.getSimilar (BFS from
+    # anchors only — no unnecessary API calls), then propagates labels through
+    # the graph using weighted-mean formula.
+    #
+    # Produces "graph_mood_<slug>" pseudo-tags treated as high-confidence
+    # per-track signals by scorer._signal_confidence() (+0.45 tier, same as
+    # mood_* and anchor_*).  Tags are ADDITIVE — existing track_tags untouched.
     if _lf_key:
         try:
-            from core import lastfm as _lf_graph
-            import re as _re_graph
+            from core.graph import run_graph_pipeline
+            from core import lastfm as _lf_graph2
 
-            _feat_pat_g = _re_graph.compile(
-                r"\s*[\(\[\{].*?[\)\]\}]|\s+feat\..*$|\s+ft\..*$",
-                _re_graph.IGNORECASE,
-            )
+            # Always load fresh — fast (JSON + dict), avoids NameError if step 80 failed.
+            from core.anchors import load_mood_anchors as _lma2, build_anchor_lookup as _bal2
+            _graph_anchor_lookup = _bal2(_lma2() or {})
 
-            def _clean_g(s: str) -> str:
-                return _feat_pat_g.sub("", s).strip().lower()
+            if _graph_anchor_lookup:
+                _graph_cache2 = _lf_graph2._load_cache()
 
-            # Build library lookup: (artist_lower, clean_title_lower) -> uri
-            _lib_lookup: dict[tuple, str] = {}
-            for _gt in all_tracks:
-                _gu = _gt.get("uri", "")
-                if not _gu:
-                    continue
-                _ga = (((_gt.get("artists") or [{}])[0]) or {}).get("name", "")
-                _gtitle = _gt.get("name", "")
-                if _ga and _gtitle:
-                    _lib_lookup[(_clean_g(_ga), _clean_g(_gtitle))] = _gu
+                step("Agreement graph — building anchor-seeded similarity graph...", 84)
 
-            _graph_cache = _lf_graph._load_cache()
-            _graph_propagated = 0
-            _graph_processed  = 0
+                def _graph_progress(msg: str) -> None:
+                    step(msg, 84)
 
-            # Candidates: tracks that already have some tags (they are sources)
-            _graph_sources = [
-                t for t in all_tracks
-                if t.get("uri") and track_tags.get(t.get("uri", ""))
-            ]
-            _GRAPH_CONF = _lf_graph._SIMILAR_CONFIDENCE  # 0.55
-
-            step(f"Similarity graph — propagating tags across {len(_graph_sources)} tagged library tracks...", 84)
-
-            for _gi, _gtrack in enumerate(_graph_sources):
-                _g_uri    = _gtrack.get("uri", "")
-                _g_artist = (((_gtrack.get("artists") or [{}])[0]) or {}).get("name", "")
-                _g_title  = _gtrack.get("name", "")
-                if not (_g_uri and _g_artist and _g_title):
-                    continue
-                if _gi % 50 == 0:
-                    step(f"Similarity graph  {_gi}/{len(_graph_sources)}", 84)
-
-                _neighbors = _lf_graph.get_library_neighbors(
-                    _g_artist, _g_title, _lf_key,
-                    library_lookup=_lib_lookup,
-                    limit=20,
-                    cache=_graph_cache,
+                _graph_tags = run_graph_pipeline(
+                    all_tracks,
+                    _lf_key,
+                    _graph_anchor_lookup,
+                    _graph_cache2,
+                    min_similarity=0.6,
+                    max_neighbors=10,
+                    max_hops=2,
+                    hop_decay=0.65,
+                    min_confidence=0.15,
+                    progress_fn=_graph_progress,
                 )
-                if not _neighbors:
-                    continue
 
-                _src_tags = track_tags.get(_g_uri, {})
-                if not _src_tags:
-                    continue
+                _lf_graph2._save_cache(_graph_cache2)
 
-                _graph_processed += 1
-                for _nb_uri, _nb_match in _neighbors:
-                    if _nb_uri == _g_uri:
-                        continue
-                    _nb_existing = track_tags.get(_nb_uri, {})
-                    _updated = False
-                    for _tag, _tw in _src_tags.items():
-                        _prop_w = round(_tw * _GRAPH_CONF * _nb_match, 4)
-                        if _prop_w <= 0:
-                            continue
-                        if _tag not in _nb_existing or _nb_existing[_tag] < _prop_w:
-                            if _nb_uri not in track_tags:
-                                track_tags[_nb_uri] = {}
-                            track_tags[_nb_uri][_tag] = _prop_w
-                            _updated = True
-                    if _updated:
-                        _graph_propagated += 1
+                _graph_injected = 0
+                for _g_uri, _g_tags in _graph_tags.items():
+                    if _g_tags:
+                        if _g_uri not in track_tags:
+                            track_tags[_g_uri] = {}
+                        track_tags[_g_uri].update(_g_tags)
+                        _graph_injected += 1
 
-            _lf_graph._save_cache(_graph_cache)
-            step(
-                f"Similarity graph — {_graph_propagated} neighbour tracks enriched "
-                f"from {_graph_processed} source tracks",
-                85,
-            )
+                step(
+                    f"Agreement graph — {_graph_injected} tracks received graph_mood_* labels",
+                    85,
+                )
+            else:
+                step("Agreement graph skipped — no anchor lookup available", 84)
+
         except Exception as _graph_err:
-            step(f"Similarity graph skipped: {_graph_err}", 85)
+            step(f"Agreement graph skipped: {_graph_err}", 85)
 
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)

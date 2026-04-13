@@ -46,11 +46,12 @@ W_GENRE            = _cfg.W_GENRE
 
 # Prefixes that identify unambiguously per-track signals (not artist-level fallback).
 _PER_TRACK_PREFIXES: tuple[str, ...] = (
-    "lyr_",     # per-track lyric signals (NRC + VADER + keyword)
-    "bpm_",     # per-track tempo bucket
-    "meta_",    # per-track metadata signals (duration, position, feat., title keywords)
-    "mood_",    # Last.fm tag-chart matches (per-track ground truth)
-    "anchor_",  # curated anchor track matches (per-track ground truth)
+    "lyr_",         # per-track lyric signals (NRC + VADER + keyword)
+    "bpm_",         # per-track tempo bucket
+    "meta_",        # per-track metadata signals (duration, position, feat., title keywords)
+    "mood_",        # Last.fm tag-chart matches (per-track ground truth)
+    "anchor_",      # curated anchor track matches (per-track ground truth)
+    "graph_mood_",  # graph-propagated anchor labels (agreement layer)
 )
 
 
@@ -64,7 +65,8 @@ def _signal_confidence(tags: dict[str, float]) -> float:
     Confidence increments (capped at 1.0):
       lyr_* present           → +0.35  (lyric analysis: NRC + VADER + keywords)
       bpm_* or meta_* present → +0.20  (tempo bucket or structural metadata)
-      mood_* or anchor_*      → +0.45  (Last.fm tag-chart / curated anchor match)
+      mood_*, anchor_*,
+      or graph_mood_*         → +0.45  (Last.fm chart / anchor / graph agreement)
       dz_bpm present          → +0.10  (real Deezer BPM available)
     """
     conf = 0.0
@@ -72,7 +74,7 @@ def _signal_confidence(tags: dict[str, float]) -> float:
         conf += 0.35
     if any(k.startswith("bpm_") or k.startswith("meta_") for k in tags):
         conf += 0.20
-    if any(k.startswith("mood_") or k.startswith("anchor_") for k in tags):
+    if any(k.startswith("mood_") or k.startswith("anchor_") or k.startswith("graph_mood_") for k in tags):
         conf += 0.45
     if "dz_bpm" in tags:
         conf += 0.10
@@ -1194,6 +1196,19 @@ def score_track(
         lw = float(getattr(_cfg, "SCAN_LYRIC_WEIGHT", 1.0) or 1.0)
         if lw > 1.01 and any(k.startswith("lyr_") for k in get_active_tags(profile)):
             t = min(1.0, t * min(lw, 1.48))
+
+    # Graph agreement boost — graph_mood_<slug> is a direct mood identifier.
+    # A track adjacent to anchors for this mood should contribute that
+    # confidence as a floor on the tag score, since the graph_mood tag
+    # does not token-match against expected_tags (different vocabulary).
+    _g_slug  = mood_name.lower().replace(" ", "_").replace("-", "_").replace("/", "_")
+    while "__" in _g_slug:
+        _g_slug = _g_slug.replace("__", "_")
+    _g_slug = _g_slug.strip("_")
+    _g_conf  = get_active_tags(profile).get(f"graph_mood_{_g_slug}", 0.0)
+    if _g_conf > 0.0:
+        t = max(t, _g_conf)  # graph signal acts as floor — never reduces existing tag score
+
     s = semantic_score(profile, mood_name)
     g = effective_genre_score(profile, mood_name, t, s)
 
