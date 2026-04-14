@@ -220,6 +220,14 @@ def build_proxy_feature_dict(
         elif dz_bpm < 75:
             energy = round(max(0.0, energy - 0.08), 4)
 
+    # ── Deezer gain → real energy override (25% blend) ───────────────────────
+    # dz_gain is replay-gain normalised to [0,1] by scan_pipeline.
+    # It is the only real measured energy signal available post-Spotify deprecation.
+    # Blend at 25% so genre heuristics still anchor the estimate.
+    dz_gain = tags.get("dz_gain")
+    if dz_gain is not None and isinstance(dz_gain, (int, float)):
+        energy = round(0.75 * energy + 0.25 * float(dz_gain), 4)
+
     # ── VADER valence blend (12%) ─────────────────────────────────────────────
     # VADER's compound→[0,1] score from lyrics.py adds a data-driven valence
     # signal at low weight so heuristic signals remain dominant.

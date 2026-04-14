@@ -398,20 +398,42 @@ def effective_score_weights(
     weights: tuple[float, float, float, float],
 ) -> tuple[float, float, float, float]:
     """
-    When audio_vector_source is metadata_proxy, allocate W_METADATA_AUDIO to the
-    audio term and rescale tag/semantic/genre so the four sum to 1.0.
+    Adapt scoring weights based on audio data quality.
+
+    - Real Spotify audio:   use full weights as configured.
+    - Metadata proxy with dz_gain (real energy data blended in):
+        allocate W_METADATA_AUDIO to audio term, rescale others.
+    - Pure heuristic proxy (no dz_gain, neutral-ish vector):
+        zero audio weight entirely — redistribute to tags/semantic.
+        These vectors are too unreliable to influence ranking.
     """
     wa, wt, ws, wg = weights
-    if (
-        profile.get("audio_vector_source") == "metadata_proxy"
-        and not _is_neutral_vector(profile.get("audio_vector") or _NEUTRAL)
-    ):
-        wma = float(getattr(_cfg, "W_METADATA_AUDIO", 0.1))
-        rest = 1.0 - wma
-        s = wt + ws + wg
-        if s > 0 and rest >= 0:
-            k = rest / s
-            return (wma, wt * k, ws * k, wg * k)
+    src = profile.get("audio_vector_source", "")
+    vec = profile.get("audio_vector") or _NEUTRAL
+
+    if src == "metadata_proxy":
+        tags = profile.get("tags") or {}
+        has_real_energy = "dz_gain" in tags  # actual measured signal present
+
+        if _is_neutral_vector(vec) or not has_real_energy:
+            # Pure heuristic — audio weight meaningless, give it to tags
+            excess = wa
+            new_wt = wt + excess * 0.65
+            new_ws = ws + excess * 0.35
+            s = new_wt + new_ws + wg
+            if s > 0:
+                k = 1.0 / s
+                return (0.0, new_wt * k, new_ws * k, wg * k)
+            return (0.0, wt, ws, wg)
+        else:
+            # Proxy with real energy data — use reduced W_METADATA_AUDIO
+            wma = float(getattr(_cfg, "W_METADATA_AUDIO", 0.1))
+            rest = 1.0 - wma
+            s = wt + ws + wg
+            if s > 0 and rest >= 0:
+                k = rest / s
+                return (wma, wt * k, ws * k, wg * k)
+
     return (wa, wt, ws, wg)
 
 

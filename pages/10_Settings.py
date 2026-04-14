@@ -820,6 +820,10 @@ st.markdown("## Cache")
 st.caption("Caches speed up re-scans by storing API responses. Clear only if you think a cache is stale.")
 
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# NOTE: .last_scan_snapshot.json is intentionally excluded — it is the app's
+# in-memory result state, not an API cache. Clearing it loses all scan results
+# until the next scan completes. It is overwritten automatically on every scan.
 cache_files = {
     "Deezer genres":         "outputs/.deezer_cache.json",
     "Spotify artist genres": "outputs/.spotify_genres_cache.json",
@@ -842,13 +846,24 @@ for _row in _rows:
     for i, (label, rel) in enumerate(_row):
         _cpath = os.path.join(_root, rel)
         exists = os.path.exists(_cpath)
-        size_kb = os.path.getsize(_cpath) // 1024 if exists else 0
+        import datetime as _dt
+        if exists:
+            _age = (_dt.datetime.now() - _dt.datetime.fromtimestamp(os.path.getmtime(_cpath))).days
+            size_kb = os.path.getsize(_cpath) // 1024
+            _label_val = f"{size_kb} KB · {_age}d old"
+        else:
+            _label_val = "empty"
         with cols[i]:
-            st.metric(label, f"{size_kb} KB" if exists else "empty")
+            st.metric(label, _label_val)
 
 st.markdown("")
+st.warning(
+    "**Clearing all caches** requires a full re-download of all enrichment data "
+    "on your next scan. For a library of 2,000+ tracks this takes **10-15 minutes**. "
+    "Only clear if you suspect corrupted cache data."
+)
 _confirm = st.checkbox(
-    "I understand the next scan will re-download all enrichment data",
+    "I understand — the next scan will re-download all enrichment data (~10-15 min)",
     key="cache_clear_ack",
 )
 if st.button(

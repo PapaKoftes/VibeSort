@@ -4372,7 +4372,11 @@
         "ed",
         "jpop",
         "ballad",
-        "cathartic"
+        "cathartic",
+        "emotional",
+        "japanese",
+        "lyr_sad",
+        "lyr_hope"
       ],
       "preferred_macro_genres": [
         "K-Pop / J-Pop",
@@ -4435,7 +4439,9 @@
         "lyr_sad",
         "lyr_goodbye",
         "lyr_introspective",
-        "lyr_love"
+        "lyr_love",
+        "departure",
+        "farewell"
       ],
       "preferred_macro_genres": [
         "Pop",
@@ -4799,7 +4805,11 @@
         "freedom",
         "open_road",
         "lyr_freedom",
-        "lyr_night_drive"
+        "lyr_night_drive",
+        "driving",
+        "adventure",
+        "americana",
+        "wind"
       ],
       "preferred_macro_genres": [
         "Classic Rock",
@@ -5218,7 +5228,11 @@
         "party",
         "funk",
         "rap",
-        "hip_hop"
+        "hip_hop",
+        "brass",
+        "drumline",
+        "march",
+        "band"
       ],
       "preferred_macro_genres": [
         "Southern Rap",

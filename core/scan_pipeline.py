@@ -304,12 +304,23 @@ def execute_library_scan(
             progress_fn=lambda m: step(m, 63),
         )
         _dz_bpm_added = 0
+        _dz_gain_added = 0
         for _dz_uri, _dz_data in _dz_track_result.items():
             _bpm = _dz_data.get("bpm")
             if _bpm and isinstance(_bpm, (int, float)) and _bpm > 0:
                 track_tags.setdefault(_dz_uri, {})["dz_bpm"] = float(_bpm)
                 _dz_bpm_added += 1
-        step(f"Deezer BPM — {_dz_bpm_added}/{len(all_tracks)} tracks with real BPM", 64)
+            # dz_gain: replay-gain in negative dBFS (e.g. -9.0).
+            # Higher (closer to 0) = louder/more energetic track.
+            # Normalised to [0,1] over typical range [-14, -3].
+            _gain = _dz_data.get("gain")
+            if _gain is not None and isinstance(_gain, (int, float)):
+                _dz_energy = max(0.0, min(1.0, (float(_gain) + 14.0) / 11.0))
+                track_tags.setdefault(_dz_uri, {})["dz_gain"] = _dz_energy
+                _dz_gain_added += 1
+        step(
+            f"Deezer BPM+energy — {_dz_bpm_added} BPM / {_dz_gain_added} energy values", 64
+        )
     except Exception as _dz_bpm_err:
         step(f"Deezer per-track BPM skipped: {_dz_bpm_err}", 64)
 
@@ -1027,14 +1038,23 @@ def execute_library_scan(
         step(f"Metadata signals skipped: {_meta_err}", 81)
 
     # ── Last.fm getSimilar mood inference (M2.7) ─────────────────────────────
-    # For tracks still without any tags after all enrichment passes, infer mood
-    # from similar tracks' Last.fm top tags.  Only runs when a Last.fm API key
-    # is available.  Similar-inferred tags are weighted at 0.55× so they rank
-    # below direct track lookups (1.0×) and tag-chart anchors (0.75×).
+    # Infer mood from similar tracks' Last.fm top tags for any track that has
+    # no anchor/graph signal yet.  Previously only ran for fully-untagged tracks;
+    # now also runs for tagged tracks missing anchor coverage — this is the
+    # primary driver of the anchor graph hit rate (was 8.2%, target 30%+).
+    # Cache is permanent — only uncached tracks incur API calls on rescan.
     if _lf_key:
         _sim_candidates = [
             t for t in all_tracks
-            if t.get("uri") and not track_tags.get(t.get("uri", ""))
+            if t.get("uri") and (
+                # Untagged: no data at all
+                not track_tags.get(t.get("uri", ""))
+                # Or tagged but no anchor/graph signal (most of the library)
+                or not any(
+                    k.startswith(("anchor_", "graph_mood_", "personal_anchor_"))
+                    for k in track_tags.get(t.get("uri", ""), {})
+                )
+            )
         ]
         if _sim_candidates:
             try:
@@ -1042,14 +1062,14 @@ def execute_library_scan(
                 _sim_cache = _lf_sim._load_cache()
                 _sim_added = 0
                 _sim_total = len(_sim_candidates)
-                step(f"Last.fm getSimilar — inferring mood for {_sim_total} untagged tracks...", 82)
+                step(f"Last.fm getSimilar — {_sim_total} tracks without anchor signal...", 82)
                 for _si, _st in enumerate(_sim_candidates):
                     _s_uri = _st.get("uri", "")
                     _s_artist = (((_st.get("artists") or [{}])[0]) or {}).get("name", "")
                     _s_title  = _st.get("name", "")
                     if not (_s_uri and _s_artist and _s_title):
                         continue
-                    if _si % 20 == 0:
+                    if _si % 50 == 0:
                         step(f"Last.fm getSimilar  {_si}/{_sim_total}", 82)
                     _sim_tags = _lf_sim.get_similar_track_tags(
                         _s_artist, _s_title, _lf_key,
@@ -1057,10 +1077,15 @@ def execute_library_scan(
                         cache=_sim_cache,
                     )
                     if _sim_tags:
-                        track_tags[_s_uri] = _sim_tags
+                        # MERGE into existing tags with setdefault so direct
+                        # tag lookups (weight 1.0) always beat similar-inferred
+                        # tags (weight ~0.55) — never overwrite richer signal.
+                        existing = track_tags.setdefault(_s_uri, {})
+                        for _stag, _sw in _sim_tags.items():
+                            existing.setdefault(_stag, _sw)
                         _sim_added += 1
                 _lf_sim._save_cache(_sim_cache)
-                step(f"getSimilar — {_sim_added}/{_sim_total} previously-untagged tracks inferred", 83)
+                step(f"getSimilar — signal added to {_sim_added}/{_sim_total} tracks", 83)
             except Exception as _sim_err:
                 step(f"getSimilar inference skipped: {_sim_err}", 83)
 
@@ -1379,7 +1404,16 @@ def execute_library_scan(
         for _uri, _sc in _filtered_ranked:
             for _tag, _tw in track_tags.get(_uri, {}).items():
                 _tag_agg[_tag] = _tag_agg.get(_tag, 0.0) + float(_tw) * _sc
-        _top_tags = [t for t, _ in sorted(_tag_agg.items(), key=lambda x: -x[1])[:8]]
+        # Filter numeric pseudo-tags and internal signals from display
+        _TOP_TAG_EXCLUDE = {
+            "dz_bpm", "dz_gain", "vader_valence",
+            "meta_opener", "meta_single", "meta_feature", "meta_explicit",
+            "meta_long", "meta_short",
+        }
+        _top_tags = [
+            t for t, _ in sorted(_tag_agg.items(), key=lambda x: -x[1])
+            if t not in _TOP_TAG_EXCLUDE and not t.startswith(("anchor_", "graph_mood_", "personal_anchor_", "mood_"))
+        ][:8]
 
         mood_results[mood_name] = {
             "ranked": _filtered_ranked,

@@ -336,7 +336,7 @@ def _render_enrichment_panel(feat: dict) -> None:
         st.caption(f"Last scan: {audio_s} · {tags_s} · {genre_s} · {lyr_s} · {lb_s}")
 
     if st.button("⚙️ Settings", use_container_width=True):
-        st.switch_page("pages/9_Settings.py")
+        st.switch_page("pages/10_Settings.py")
 
 
 def _home():
@@ -578,7 +578,7 @@ def _home():
             st.markdown("### 🧬 Taste Map")
             st.caption("Your music DNA")
             if st.button("Open Taste Map", use_container_width=True):
-                st.switch_page("pages/6_B_Taste_Map.py")
+                st.switch_page("pages/7_Taste_Map.py")
 
         with col_a:
             st.markdown("### 🎤 Artists")
@@ -595,7 +595,7 @@ def _home():
                 staged = len(st.session_state.get("staged_ids", []))
             st.caption(f"{staged} playlists ready to deploy")
             if st.button("Open Staging", use_container_width=True):
-                st.switch_page("pages/7_Staging.py")
+                st.switch_page("pages/8_Staging.py")
 
         with col_b:
             st.markdown("### 🤝 Blend")
@@ -607,7 +607,7 @@ def _home():
             st.markdown("### 📊 Stats")
             st.caption("Taste report + analytics")
             if st.button("Open Stats", use_container_width=True):
-                st.switch_page("pages/8_Stats.py")
+                st.switch_page("pages/9_Stats.py")
 
         # ── Library interpretation (data collected) + mood sizes (secondary) ───
         if mood_results:
@@ -653,11 +653,11 @@ if hasattr(st, "navigation"):
             st.Page("pages/3_Vibes.py",          title="Vibes"),
             st.Page("pages/4_Genres.py",         title="Genres"),
             st.Page("pages/5_Artists.py",        title="Artists"),
-            st.Page("pages/6_B_Taste_Map.py",      title="Taste Map"),
+            st.Page("pages/7_Taste_Map.py",      title="Taste Map"),
             st.Page("pages/6_Blend.py",          title="Blend"),
-            st.Page("pages/7_Staging.py",        title="Staging"),
-            st.Page("pages/8_Stats.py",          title="Stats"),
-            st.Page("pages/9_Settings.py",       title="Settings"),
+            st.Page("pages/8_Staging.py",        title="Staging"),
+            st.Page("pages/9_Stats.py",          title="Stats"),
+            st.Page("pages/10_Settings.py",       title="Settings"),
         ],
         position="sidebar",
     )
