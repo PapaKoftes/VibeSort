@@ -259,80 +259,181 @@ with col_full:
 with col_custom:
     st.markdown("**Custom Scan**")
     st.caption("Choose which data sources to refresh before re-scoring.")
-    _do_custom = st.button(
-        "Run Custom Scan",
+    if st.button(
+        "Configure & Run Custom Scan →",
         use_container_width=True,
         key="btn_custom_scan",
-    )
+    ):
+        # Toggle the options panel open — don't start the scan yet
+        st.session_state["show_custom_options"] = not st.session_state.get("show_custom_options", False)
+        st.rerun()
 
 with col_local:
     st.markdown("**Local Library Scan**")
     st.caption("Fingerprint local audio files via AcoustID and merge with Spotify library.")
-    _do_local = st.button(
-        "Run Local Scan",
+    if st.button(
+        "Configure Local Scan →",
         use_container_width=True,
         key="btn_local_scan",
-    )
+    ):
+        st.session_state["show_local_options"] = not st.session_state.get("show_local_options", False)
+        st.rerun()
 
-# ── Custom Scan settings expander ─────────────────────────────────────────────
-with st.expander("Custom Scan options", expanded=_do_custom):
-    st.markdown("**Re-fetch sources** — clear a cache to force fresh data on next scan.")
+st.write("")
+
+# ── Custom Scan settings panel ────────────────────────────────────────────────
+_show_custom = st.session_state.get("show_custom_options", False)
+
+# Default values (set before the expander so they exist even when collapsed)
+_clr_mining = _clr_lastfm = _clr_deezer = _clr_lyrics = False
+_clr_audiodb = _clr_mb = _clr_discogs = _score_only = False
+_trigger_custom_start = False
+
+if _show_custom:
+    st.markdown("---")
+    st.markdown("### ⚙️ Custom Scan — choose what to refresh")
+    st.caption("Tick the data sources you want to re-fetch, then click **Start Custom Scan** below.")
+
     _col1, _col2 = st.columns(2)
 
     with _col1:
         _clr_mining  = st.checkbox(
             "Re-mine mood playlists",
-            help=f"Clears .mining_cache.json ({_cache_age_str('mining')}). "
-                 "Re-fetches Last.fm tag charts + owned playlists. "
-                 "First run: ~55s. Recommended if moods feel stale.",
+            key="chk_mining",
+            help=f"Clears mining cache ({_cache_age_str('mining')}). "
+                 "Re-fetches Last.fm tag charts + owned playlists (~55s). "
+                 "Recommended if moods feel stale or you added new anchors.",
         )
         _clr_lastfm  = st.checkbox(
             "Re-fetch Last.fm tags",
-            help=f"Clears artist + track entries in lastfm_cache ({_cache_age_str('lastfm')}). "
-                 "Keeps tag chart data. Re-enriches artist/track tags from Last.fm.",
+            key="chk_lastfm",
+            help=f"Last.fm cache: {_cache_age_str('lastfm')}. "
+                 "Re-enriches artist/track tags from Last.fm. Keeps tag chart data.",
         )
         _clr_deezer  = st.checkbox(
             "Re-fetch Deezer track data",
-            help=f"Clears per-track Deezer entries ({_cache_age_str('deezer')}). "
-                 "Keeps artist genre cache. Re-fetches BPM, explicit, rank.",
+            key="chk_deezer",
+            help=f"Deezer cache: {_cache_age_str('deezer')}. "
+                 "Re-fetches BPM, explicit flag, popularity rank per track.",
         )
         _clr_lyrics  = st.checkbox(
             "Re-fetch lyrics",
-            help=f"Clears .lyrics_cache.json ({_cache_age_str('lyrics')}). "
-                 "WARNING: slow on first run (~2-10 min for a large library).",
+            key="chk_lyrics",
+            help=f"Lyrics cache: {_cache_age_str('lyrics')}. "
+                 "WARNING: slow — can take 2–10 min for a large library.",
         )
 
     with _col2:
         _clr_audiodb = st.checkbox(
             "Re-fetch AudioDB",
-            help=f"Clears .audiodb_cache.json ({_cache_age_str('audiodb')}). "
+            key="chk_audiodb",
+            help=f"AudioDB cache: {_cache_age_str('audiodb')}. "
                  "Re-fetches artist mood/genre tags from TheAudioDB.",
         )
         _clr_mb      = st.checkbox(
             "Re-fetch MusicBrainz tags",
-            help=f"Clears .mb_cache.json ({_cache_age_str('musicbrainz')}). "
+            key="chk_mb",
+            help=f"MusicBrainz cache: {_cache_age_str('musicbrainz')}. "
                  "Re-fetches recording-level genre/mood tags.",
         )
         _clr_discogs = st.checkbox(
             "Re-fetch Discogs styles",
-            help=f"Clears .discogs_cache.json ({_cache_age_str('discogs')}). "
+            key="chk_discogs",
+            help=f"Discogs cache: {_cache_age_str('discogs')}. "
                  "Re-fetches sub-genre style labels (Cloud Rap, Shoegaze, etc.).",
         )
         _score_only  = st.checkbox(
             "Re-run scoring only (fastest)",
+            key="chk_score_only",
             help="Keeps all caches. Only re-runs mood scoring from cached enrichment data. "
-                 "Use when you change packs.json or scoring settings.",
+                 "Use when you've changed packs.json, anchors, or scoring settings.",
         )
 
+    st.write("")
+
+    # ── Scoring options (inline in custom panel) ────────────────────────────
+    with st.expander("Scoring options", expanded=False):
+        _mode_labels = {
+            "full_library": "Full library (liked + tops + followed + playlists)",
+            "liked_only":   "Liked songs only",
+        }
+        _selected_label = st.radio(
+            "Scan corpus",
+            options=list(_mode_labels.values()),
+            index=0 if st.session_state.get("scan_corpus_mode", "full_library") == "full_library" else 1,
+            key="custom_corpus_radio",
+        )
+        _selected_mode = next(k for k, v in _mode_labels.items() if v == _selected_label)
+        st.session_state["scan_corpus_mode"] = _selected_mode
+
+        st.session_state["strictness"] = st.slider(
+            "Strictness (higher = tighter playlists)",
+            min_value=1, max_value=5,
+            value=int(st.session_state.get("strictness", 3)),
+            key="custom_strictness",
+            help="Raises cohesion threshold and drop ratio when increased.",
+        )
+        st.session_state["playlist_min_size"] = st.slider(
+            "Minimum tracks per mood",
+            min_value=15, max_value=60,
+            value=int(st.session_state.get("playlist_min_size", 25)),
+            key="custom_pl_min",
+        )
+        st.session_state["scan_max_tracks"] = st.slider(
+            "Max tracks per mood",
+            min_value=25, max_value=80,
+            value=int(st.session_state.get("scan_max_tracks", 50)),
+            key="custom_max_tracks",
+        )
+        st.session_state["scan_lyric_weight"] = st.slider(
+            "Lyric emphasis",
+            min_value=1.0, max_value=1.45,
+            value=float(st.session_state.get("scan_lyric_weight", 1.16)),
+            step=0.02,
+            key="custom_lyric_w",
+            help="Boosts lyr_* tag scores for lyric-focused moods.",
+        )
+        st.session_state["playlist_expansion"] = st.checkbox(
+            "Backfill moods toward minimum size",
+            value=st.session_state.get("playlist_expansion", True),
+            key="custom_expansion",
+        )
+        st.session_state["allow_mvp_fallback"] = st.checkbox(
+            "Allow relaxed pass if a mood is thin",
+            value=st.session_state.get("allow_mvp_fallback", True),
+            key="custom_mvp",
+        )
+
+    st.write("")
+    _btn_col, _cancel_col = st.columns([3, 1])
+    with _btn_col:
+        _trigger_custom_start = st.button(
+            "▶  Start Custom Scan",
+            type="primary",
+            use_container_width=True,
+            key="btn_start_custom_scan",
+        )
+    with _cancel_col:
+        if st.button("✕ Cancel", use_container_width=True, key="btn_cancel_custom"):
+            st.session_state["show_custom_options"] = False
+            st.rerun()
+
+    st.markdown("---")
+
 # ── Local Library path input ─────────────────────────────────────────────────
-with st.expander("Local Library Scan options", expanded=_do_local):
+_show_local = st.session_state.get("show_local_options", False)
+_local_path = ""
+_trigger_local_start = False
+
+if _show_local:
+    st.markdown("### 📁 Local Library Scan")
     _local_path = st.text_input(
         "Music root directory",
         placeholder=r"C:\Music   or   /home/user/Music",
-        help="Path to your local music folder. Vibesort will scan recursively for "
-             "audio files (.mp3, .flac, .aac, .ogg, .m4a, .wav) and fingerprint them "
-             "via AcoustID to enrich mood tags.",
+        help="Path to your local music folder. Scans recursively for "
+             ".mp3, .flac, .aac, .ogg, .m4a, .wav — fingerprints via AcoustID.",
         value=st.session_state.get("local_music_path", ""),
+        key="local_path_input",
     )
     if _local_path:
         st.session_state["local_music_path"] = _local_path
@@ -346,8 +447,7 @@ with st.expander("Local Library Scan options", expanded=_do_local):
                 ]
                 st.info(
                     f"Found **{len(_audio_files)} audio files** in that directory. "
-                    f"Estimated fingerprinting: ~{max(1, len(_audio_files) // 60)} min "
-                    f"(fpcalc processes ~60 files/min)."
+                    f"Estimated fingerprinting: ~{max(1, len(_audio_files) // 60)} min."
                 )
             except Exception:
                 st.info("Directory found — file count unavailable.")
@@ -355,68 +455,39 @@ with st.expander("Local Library Scan options", expanded=_do_local):
             st.warning("Directory not found — check the path and try again.")
 
     import shutil
-    _fpcalc_found = bool(shutil.which("fpcalc"))
-    if not _fpcalc_found:
+    if not bool(shutil.which("fpcalc")):
         st.warning(
             "fpcalc not found on PATH. Install Chromaprint to enable fingerprinting: "
             "https://acoustid.org/chromaprint"
         )
 
-# ── General scan options expander ─────────────────────────────────────────────
-with st.expander("Scoring options", expanded=False):
-    _mode_labels = {
-        "full_library": "Full library (liked + tops + followed + playlists)",
-        "liked_only":   "Liked songs only",
-    }
-    _selected_label = st.radio(
-        "Scan corpus",
-        options=list(_mode_labels.values()),
-        index=0 if st.session_state.get("scan_corpus_mode", "full_library") == "full_library" else 1,
-    )
-    _selected_mode = next(k for k, v in _mode_labels.items() if v == _selected_label)
-    st.session_state["scan_corpus_mode"] = _selected_mode
+    st.write("")
+    _loc_btn, _loc_cancel = st.columns([3, 1])
+    with _loc_btn:
+        _trigger_local_start = st.button(
+            "▶  Start Local Scan",
+            type="primary",
+            use_container_width=True,
+            key="btn_start_local_scan",
+            disabled=not (_local_path and os.path.isdir(_local_path)),
+        )
+    with _loc_cancel:
+        if st.button("✕ Cancel", use_container_width=True, key="btn_cancel_local"):
+            st.session_state["show_local_options"] = False
+            st.rerun()
 
-    st.session_state["strictness"] = st.slider(
-        "Strictness (higher = tighter playlists)",
-        min_value=1, max_value=5,
-        value=int(st.session_state.get("strictness", 3)),
-        help="Raises cohesion threshold and drop ratio when increased.",
-    )
-    st.session_state["playlist_min_size"] = st.slider(
-        "Minimum tracks we try to keep per mood",
-        min_value=15, max_value=60,
-        value=int(st.session_state.get("playlist_min_size", 25)),
-    )
-    st.session_state["scan_max_tracks"] = st.slider(
-        "Max tracks per mood (library picks)",
-        min_value=25, max_value=80,
-        value=int(st.session_state.get("scan_max_tracks", 50)),
-    )
-    st.session_state["scan_lyric_weight"] = st.slider(
-        "Lyric emphasis for lyric-focused moods",
-        min_value=1.0, max_value=1.45,
-        value=float(st.session_state.get("scan_lyric_weight", 1.16)),
-        step=0.02,
-        help="Boosts tag scores when lyrics-derived lyr_* tags match.",
-    )
-    st.session_state["playlist_expansion"] = st.checkbox(
-        "Backfill moods toward minimum size",
-        value=st.session_state.get("playlist_expansion", True),
-    )
-    st.session_state["allow_mvp_fallback"] = st.checkbox(
-        "Allow relaxed pass if a mood is thin",
-        value=st.session_state.get("allow_mvp_fallback", True),
-    )
+    st.markdown("---")
 
 # ── Trigger logic ─────────────────────────────────────────────────────────────
-auto_scan     = not vibesort and not st.session_state.get("scan_failed")
-_trigger_full  = _do_full or auto_scan
-_trigger_custom = _do_custom
-_trigger_local  = _do_local and _local_path and os.path.isdir(_local_path)
+_trigger_full   = _do_full
+_trigger_custom = _trigger_custom_start
+_trigger_local  = _trigger_local_start and bool(_local_path) and os.path.isdir(_local_path)
 
 result = None
 
 if _trigger_custom:
+    # Close the options panel and clear its state
+    st.session_state["show_custom_options"] = False
     # Apply selective cache clearing before scan
     if _clr_mining:  _delete_cache("mining")
     if _clr_lastfm:  _clear_lastfm_enrichment()
@@ -426,11 +497,11 @@ if _trigger_custom:
     if _clr_mb:      _delete_cache("musicbrainz")
     if _clr_discogs: _delete_cache("discogs")
     if _score_only:  _delete_cache("snapshot")   # only clear snapshot
-
     # force=True so mining is re-evaluated even if within 30-day TTL
     result = run_scan(sp, user_id, force=not _score_only)
 
 elif _trigger_local:
+    st.session_state["show_local_options"] = False
     result = run_scan(sp, user_id, force=False, local_path=_local_path)
 
 elif _trigger_full:
