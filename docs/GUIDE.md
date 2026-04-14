@@ -21,13 +21,23 @@ All processing happens on your machine. Nothing is sent to a server.
 
 That's it. On first launch it checks for Python 3.10+, installs all Python dependencies, and opens the app in your browser. If Python isn't installed, it opens the download page for you.
 
-### Mac / Linux
+### Mac
+
+Double-click **`Vibesort.command`** in Finder. If macOS blocks it: right-click → Open → Open anyway (one-time only).
+
+Or in Terminal:
 
 ```bash
 bash run.sh
 ```
 
-Same auto-setup behavior.
+### Linux
+
+```bash
+bash run.sh
+```
+
+Same auto-setup behavior on all platforms.
 
 ### Manual
 
@@ -63,7 +73,7 @@ Go to **Scan** in the sidebar (or click the button on the Connect page).
 - **Full Library** — Liked Songs + followed playlists + top tracks (recommended)
 - **Liked Songs only** — faster, if your library is huge
 
-Click **Scan Library**. The first scan takes 1–5 minutes depending on library size. It:
+Click **Scan Library**. The first scan takes **3–10 minutes** depending on library size. It:
 1. Fetches your tracks from Spotify
 2. Pulls genre tags from MusicBrainz and Last.fm
 3. Mines public Spotify playlists to label tracks with human-verified mood signals
@@ -83,14 +93,15 @@ Open **Vibes** in the sidebar.
   <img src="screenshots/vibes.png" alt="Vibes page" width="700"/>
 </p>
 
-You'll see mood playlist cards sorted by cohesion (how strongly your tracks fit that vibe). Each card shows:
+You'll see mood playlist cards sorted by match quality (how strongly your tracks fit that vibe). Each card shows:
 - The mood name and description
-- Track count + cohesion score
-- A few example tracks
+- Track count + match quality label (Perfect fit / Great fit / Good fit / Mixed / Broad)
+- Signal badges for each track (curated anchor · personal · similarity · Last.fm · lyrics)
+- Insight lines: how many tracks you personally return to, how many were found via similarity graph
 
-**Filter** by tag (e.g. `dark`, `lo-fi`, `rap`) or sort by cohesion/size.
+**Filter** by tag (e.g. `dark`, `lo-fi`, `rap`) or sort by match quality/size.
 
-Click **Stage** to add a playlist to your Staging Shelf for review before deploying.
+Click **Build Playlist** to add a mood to your Playlist Queue for review before deploying.
 
 ---
 
@@ -104,13 +115,13 @@ The sidebar has dedicated pages for each dimension:
 
 ---
 
-## 6. The Staging Shelf
+## 6. The Playlist Queue
 
 <p align="center">
-  <img src="screenshots/staging.png" alt="Staging Shelf" width="700"/>
+  <img src="screenshots/staging.png" alt="Playlist Queue" width="700"/>
 </p>
 
-The Staging Shelf is your queue before deploying to Spotify. Here you can:
+The Playlist Queue is your staging area before deploying to Spotify. Here you can:
 - **Rename** any playlist before it's created
 - **Preview** the full tracklist
 - Toggle **Spotify Recommendations** to pad a playlist with similar tracks Spotify suggests
@@ -198,11 +209,11 @@ The **Blend** page lets multiple people merge their libraries for a shared playl
 | Problem | Fix |
 |---|---|
 | "Please connect to Spotify first" on all pages | Go to Connect and click **Connect to Spotify** |
-| Scan hangs at playlist mining | Normal — mining 87 public playlists takes 1–2 min. Dev Mode warning is expected. |
+| Scan hangs at playlist mining | Normal — enrichment can take several minutes on first scan. Subsequent scans use cache and are much faster. |
 | Too many songs in "Other" genre | Re-scan after adding Last.fm or genre tags — the backfill improves classification |
 | App won't start (Windows) | Make sure Python 3.10+ is on PATH and `run.bat` was used |
 | Port 8501 already in use | Another Streamlit app is running. Close it or set `STREAMLIT_PORT` in `.env` |
-| Spotify "access denied" | You may not be on the Development Mode allowlist — open an issue |
+| Spotify "access denied" | The shared app has a 25-user limit. Use your own free Spotify developer app — takes 5 minutes. See the Connect page for instructions. |
 
 ---
 

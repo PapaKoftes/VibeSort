@@ -3,7 +3,8 @@
 ## How to run (canonical)
 
 - **Windows:** [`run.bat`](../run.bat) — prefers embedded [`vendor/python/`](../vendor/) when present (portable zip), else system `python`, then runs [`launch.py`](../launch.py).
-- **Mac / Linux:** [`run.sh`](../run.sh) — requires `python3`, then runs `launch.py`.
+- **Mac:** [`Vibesort.command`](../Vibesort.command) — double-click in Finder (Python version check + auto-setup dialog). Or [`run.sh`](../run.sh) in Terminal.
+- **Linux:** [`run.sh`](../run.sh) — requires `python3`, then runs `launch.py`.
 - **Direct:** `python launch.py` from the repo root (Python 3.10+).
 
 [`launch.py`](../launch.py) ensures dependencies, `.env`, Streamlit config, then starts Streamlit on [`app.py`](../app.py).
@@ -30,7 +31,7 @@ These exist for historical or power-user workflows; the paths above are what REA
 | [`pages/`](../pages/) | Streamlit multipage UI. |
 | [`core/`](../core/) | Ingest, enrich, scoring, deploy, integrations. |
 | [`config.py`](../config.py) | Loads `.env` (do not commit `.env`). |
-| [`staging/`](../staging/) | Staging shelf logic (user playlist JSON is gitignored). |
+| [`staging/`](../staging/) | Playlist Queue logic (user playlist JSON is gitignored). |
 | [`ml/`](../ml/) | Optional feature extraction and local learning scripts. |
 | [`tests/`](../tests/) | Pytest. |
 
