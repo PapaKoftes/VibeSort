@@ -57,23 +57,48 @@ def execute_library_scan(
     _ensure_target = playlist_min_size if playlist_expansion else 0
     _strict_backfill = playlist_expansion
 
+    # ── Proactive token refresh (10-minute lookahead) ─────────────────────────
+    # PKCE tokens last 1 hour. Refresh preemptively if < 10 min left so the
+    # token doesn't expire mid-scan. Errors are surfaced (not swallowed) so
+    # the scan page can show a reconnect prompt instead of a 401 crash.
     if refresh_spotify_token:
+        _token = sp.auth if hasattr(sp, "auth") else None
+        _expires_at = 0
         try:
-            new_sp = refresh_spotify_token()
-            if new_sp is not None:
-                sp = new_sp
+            import streamlit as _st
+            _tok_dict = _st.session_state.get("spotify_token", {})
+            if isinstance(_tok_dict, dict):
+                _expires_at = float(_tok_dict.get("expires_at", 0))
         except Exception:
             pass
+        import time as _time_mod
+        _ttl = _expires_at - _time_mod.time()
+        if _ttl < 600:   # < 10 minutes remaining → refresh now
+            try:
+                new_sp = refresh_spotify_token()
+                if new_sp is not None:
+                    sp = new_sp
+                    step("Token refreshed.", 2)
+            except Exception as _ref_err:
+                # Refresh failed — surface as a clear error so the UI shows
+                # a reconnect prompt instead of a cryptic 401 later.
+                raise RuntimeError(
+                    f"Spotify token expired and could not be refreshed "
+                    f"(TTL was {int(_ttl)}s). Please reconnect to Spotify and scan again. "
+                    f"Detail: {_ref_err}"
+                ) from _ref_err
 
     # Step 1: Ingest
     if corpus_mode == "liked_only":
         step("Collecting liked songs only...", 5)
-        all_tracks = ingest.liked_songs(sp)
+        all_tracks = ingest.liked_songs(sp, _refresh_cb=refresh_spotify_token)
         top_tracks_list = []
         top_artists_list = []
     else:
         step("Collecting liked songs, top tracks, and followed artists...", 5)
-        all_tracks, top_tracks_list, top_artists_list = ingest.collect(sp, cfg)
+        all_tracks, top_tracks_list, top_artists_list = ingest.collect(
+            sp, cfg, _refresh_cb=refresh_spotify_token
+        )
     step(f"Collected {len(all_tracks)} unique tracks", 18)
 
     # Step 2: Enrich

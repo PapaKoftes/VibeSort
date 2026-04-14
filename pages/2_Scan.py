@@ -151,17 +151,42 @@ def run_scan(sp, user_id: str, force: bool = False, local_path: str = ""):
         )
 
     def _refresh_token():
-        from core.pkce import make_spotify as _pkce_sp, save_token as _pkce_save
+        """
+        Refresh the Spotify access token.
+
+        PKCE path: forces refresh if < 10 minutes left (not the default 60s)
+          so a slow scan won't hit 401 mid-way.
+        OAuth path: spotipy's auth_manager handles refresh automatically;
+          we just return the existing sp.
+        """
+        import time as _t
         _token = st.session_state.get("spotify_token", {})
         _shared_id = (cfg.VIBESORT_CLIENT_ID or "").strip()
+
         if _shared_id and isinstance(_token, dict) and "access_token" in _token:
-            sp_new, _refreshed = _pkce_sp(_token, _shared_id)
-            if _refreshed is not _token:
+            # PKCE — force refresh if < 10 minutes left
+            _expires_at = float(_token.get("expires_at", 0))
+            _ttl = _expires_at - _t.time()
+            if _ttl < 600:   # < 10 min → refresh now
+                from core.pkce import (
+                    refresh_access_token as _pkce_refresh,
+                    save_token as _pkce_save,
+                )
+                import spotipy as _sp_mod
+                _rt = _token.get("refresh_token", "")
+                if not _rt:
+                    return None
+                _refreshed = _pkce_refresh(_rt, _shared_id)
+                _sp_new = _sp_mod.Spotify(auth=_refreshed["access_token"])
                 st.session_state["spotify_token"] = _refreshed
-                st.session_state["sp"] = sp_new
+                st.session_state["sp"]            = _sp_new
                 _pkce_save(_refreshed)
+                return _sp_new
+            # Token still valid — return existing sp
             return st.session_state.get("sp")
-        return None
+
+        # Standard OAuth — spotipy auth_manager auto-refreshes on every call
+        return st.session_state.get("sp")
 
     try:
         _min_score_override = st.session_state.get("playlist_min_score", None)
@@ -205,8 +230,35 @@ def run_scan(sp, user_id: str, force: bool = False, local_path: str = ""):
 
     except Exception as e:
         progress_bar.empty()
-        status_box.error(f"Scan failed: {e}")
-        st.exception(e)
+        _err_str = str(e)
+        _is_auth_err = (
+            "401" in _err_str
+            or "access token expired" in _err_str.lower()
+            or "token expired" in _err_str.lower()
+            or "unauthorized" in _err_str.lower()
+        )
+        if _is_auth_err:
+            status_box.error(
+                "**Spotify session expired.** Your access token timed out during the scan."
+            )
+            st.warning(
+                "Spotify access tokens last 1 hour. "
+                "Reconnect to Spotify and then start a new scan — "
+                "all your enrichment caches are preserved."
+            )
+            # Clear the stale token so the user is forced to re-auth
+            for _k in ["spotify_token", "sp", "me", "pkce_token"]:
+                st.session_state.pop(_k, None)
+            try:
+                from core.pkce import clear_token as _clear
+                _clear()
+            except Exception:
+                pass
+            if st.button("Reconnect to Spotify →", type="primary"):
+                st.switch_page("pages/1_Connect.py")
+        else:
+            status_box.error(f"Scan failed: {e}")
+            st.exception(e)
         return None
     finally:
         try:

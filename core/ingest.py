@@ -24,10 +24,34 @@ def _print(*args, **kwargs) -> None:
             pass
 
 
-def _paginate(fn, *args, limit=50, **kwargs) -> list:
+def _paginate(fn, *args, limit=50, _refresh_cb=None, **kwargs) -> list:
+    """
+    Paginate through a Spotify API endpoint.
+
+    _refresh_cb: optional callable() → new spotipy.Spotify | None
+      Called on the first 401 (expired token) to get a fresh client.
+      The fn is re-bound to the refreshed client before retrying.
+    """
     results, offset = [], 0
+    _refreshed = False
     while True:
-        batch = fn(*args, limit=limit, offset=offset, **kwargs)
+        try:
+            batch = fn(*args, limit=limit, offset=offset, **kwargs)
+        except spotipy.SpotifyException as exc:
+            if exc.http_status == 401 and not _refreshed and _refresh_cb:
+                # Token expired mid-pagination — try once to refresh
+                new_sp = _refresh_cb()
+                if new_sp is not None:
+                    # Re-bind fn to the new client: fn is a bound method;
+                    # replace its __self__ by grabbing the same method name.
+                    try:
+                        fn = getattr(new_sp, fn.__name__)
+                    except AttributeError:
+                        pass  # fn not a simple method — can't rebind, will re-raise
+                    _refreshed = True
+                    time.sleep(0.3)
+                    continue  # retry this page with fresh client
+            raise  # not 401, or already retried, or no callback → propagate
         items = batch.get("items", [])
         if not items:
             break
@@ -51,9 +75,9 @@ def _normalize(items: list) -> list[dict]:
     return result
 
 
-def liked_songs(sp: spotipy.Spotify) -> list[dict]:
+def liked_songs(sp: spotipy.Spotify, _refresh_cb=None) -> list[dict]:
     _print("  liked songs...")
-    raw = _paginate(sp.current_user_saved_tracks)
+    raw = _paginate(sp.current_user_saved_tracks, _refresh_cb=_refresh_cb)
     tracks = _normalize(raw)
     _print(f"  liked songs          {len(tracks)}")
     return tracks
@@ -150,7 +174,7 @@ def followed_artist_tracks(
     return tracks
 
 
-def saved_playlist_tracks(sp: spotipy.Spotify) -> list[dict]:
+def saved_playlist_tracks(sp: spotipy.Spotify, _refresh_cb=None) -> list[dict]:
     # In Spotify Dev Mode, playlist_items returns 403 for playlists owned by
     # users not registered in the app.  Only read playlists the current user
     # actually OWNS — followed/saved playlists from other users will 403.
@@ -159,7 +183,7 @@ def saved_playlist_tracks(sp: spotipy.Spotify) -> list[dict]:
     except Exception:
         user_id = None
 
-    playlists = _paginate(sp.current_user_playlists)
+    playlists = _paginate(sp.current_user_playlists, _refresh_cb=_refresh_cb)
 
     # Filter to user-owned playlists only (avoids mass 403 spam in Dev Mode)
     if user_id:
@@ -171,7 +195,7 @@ def saved_playlist_tracks(sp: spotipy.Spotify) -> list[dict]:
     consec_403 = 0
     for pl in owned:
         try:
-            items = _paginate(sp.playlist_items, pl["id"], additional_types=["track"])
+            items = _paginate(sp.playlist_items, pl["id"], _refresh_cb=_refresh_cb, additional_types=["track"])
             consec_403 = 0
             for item in items:
                 t = item.get("track")
@@ -213,12 +237,16 @@ def friend_playlist_tracks(sp: spotipy.Spotify, urls: list[str]) -> list[dict]:
     return tracks
 
 
-def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict]]:
+def collect(sp: spotipy.Spotify, cfg, _refresh_cb=None) -> tuple[list[dict], list[dict], list[dict]]:
     """
     Master ingest. Returns:
       all_tracks   — deduplicated flat list of every track from all sources
       top_tracks   — just the user's top-played tracks
       top_artists  — user's top artists
+
+    _refresh_cb: optional callable() → new spotipy.Spotify | None
+      Passed into paginated calls so a mid-scan 401 can be healed
+      without crashing the entire scan.
     """
     _print("\n  Collecting your library:")
     all_raw: list[dict] = []
@@ -230,10 +258,20 @@ def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict
     try:
         _me = sp.current_user()
         _user_market = (_me.get("country") or "").strip() or None
+    except spotipy.SpotifyException as _me_exc:
+        if _me_exc.http_status == 401 and _refresh_cb:
+            new_sp = _refresh_cb()
+            if new_sp is not None:
+                sp = new_sp
+                try:
+                    _me = sp.current_user()
+                    _user_market = (_me.get("country") or "").strip() or None
+                except Exception:
+                    pass
     except Exception:
         pass
 
-    liked = liked_songs(sp)
+    liked = liked_songs(sp, _refresh_cb=_refresh_cb)
     all_raw.extend(liked)
 
     t_tracks = top_tracks(sp)
@@ -251,7 +289,7 @@ def collect(sp: spotipy.Spotify, cfg) -> tuple[list[dict], list[dict], list[dict
         )
 
     if getattr(cfg, "INCLUDE_SAVED_PLAYLISTS", True):
-        all_raw.extend(saved_playlist_tracks(sp))
+        all_raw.extend(saved_playlist_tracks(sp, _refresh_cb=_refresh_cb))
 
     urls = getattr(cfg, "FRIEND_PLAYLIST_URLS", [])
     if urls:
