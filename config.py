@@ -53,7 +53,7 @@ MVP_SCORE_FLOOR        = float(os.getenv("MVP_SCORE_FLOOR", "0.15"))
 # available (M2.6), making the proxy tempo dimension data-driven rather than
 # heuristic.  W_TAGS/W_SEMANTIC reduced slightly to absorb the difference.
 # All four weights must sum to 1.0.
-W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", "0.14"))
+W_METADATA_AUDIO   = float(os.getenv("W_METADATA_AUDIO", os.getenv("W_AUDIO", "0.15")))
 W_TAGS             = float(os.getenv("W_TAGS",             "0.44"))
 W_SEMANTIC         = float(os.getenv("W_SEMANTIC",         "0.24"))
 W_GENRE            = float(os.getenv("W_GENRE",            "0.18"))

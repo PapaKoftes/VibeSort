@@ -4437,7 +4437,14 @@
         "lyr_introspective",
         "lyr_love"
       ],
-      "preferred_macro_genres": [],
+      "preferred_macro_genres": [
+        "Pop",
+        "Indie / Alternative",
+        "R&B / Soul",
+        "Folk / Americana",
+        "Rock",
+        "Classic Rock"
+      ],
       "semantic_core": [
         "melancholic",
         "introspective",
@@ -4496,10 +4503,10 @@
       ],
       "preferred_macro_genres": [
         "Folk / Americana",
-        "Country / Americana",
         "Indie / Alternative",
         "Pop",
-        "Rock"
+        "Rock",
+        "Country"
       ],
       "semantic_core": [
         "nostalgic",
@@ -4733,9 +4740,22 @@
         "hustle",
         "celebration",
         "lyr_money",
-        "lyr_hype"
+        "lyr_hype",
+        "trap",
+        "rap",
+        "boastful",
+        "wealth",
+        "bars"
       ],
-      "preferred_macro_genres": [],
+      "preferred_macro_genres": [
+        "East Coast Rap",
+        "Southern Rap",
+        "West Coast Rap",
+        "UK Rap / Grime",
+        "R&B / Soul",
+        "Pop",
+        "Houston Rap"
+      ],
       "semantic_core": [
         "hype",
         "confident",
@@ -4781,7 +4801,13 @@
         "lyr_freedom",
         "lyr_night_drive"
       ],
-      "preferred_macro_genres": [],
+      "preferred_macro_genres": [
+        "Classic Rock",
+        "Country",
+        "Folk / Americana",
+        "Rock",
+        "Indie / Alternative"
+      ],
       "semantic_core": [
         "freedom",
         "drive",
@@ -4823,7 +4849,12 @@
         "menacing",
         "urban",
         "lyr_struggle",
-        "lyr_dark"
+        "lyr_dark",
+        "drill",
+        "lyr_violence",
+        "hardcore",
+        "raw",
+        "dark"
       ],
       "preferred_macro_genres": [
         "UK Rap / Grime",
@@ -4871,7 +4902,12 @@
         "hazy",
         "melancholic",
         "lyr_goodbye",
-        "lyr_sad"
+        "lyr_sad",
+        "noise",
+        "reverb",
+        "dream_pop",
+        "indie_rock",
+        "emotional"
       ],
       "preferred_macro_genres": [
         "Shoegaze / Dream Pop",
@@ -4919,7 +4955,12 @@
         "celebration",
         "party",
         "lyr_party",
-        "lyr_euphoric"
+        "lyr_euphoric",
+        "dance",
+        "lgbtq",
+        "empowering",
+        "fun",
+        "camp"
       ],
       "preferred_macro_genres": [
         "Pop",
@@ -4966,7 +5007,12 @@
         "metal",
         "spiritual",
         "anthemic",
-        "lyr_faith"
+        "lyr_faith",
+        "christian",
+        "worship",
+        "heavy",
+        "power_metal",
+        "epic"
       ],
       "preferred_macro_genres": [
         "Metal",
@@ -5012,7 +5058,12 @@
         "bedroom",
         "intimate",
         "indie",
-        "lyr_introspective"
+        "lyr_introspective",
+        "lo-fi",
+        "indie_pop",
+        "dreamy",
+        "soft",
+        "bedroom_pop"
       ],
       "preferred_macro_genres": [
         "Indie / Alternative",
@@ -5059,7 +5110,12 @@
         "lush",
         "romantic",
         "lyr_love",
-        "lyr_dark"
+        "lyr_dark",
+        "baroque",
+        "orchestral",
+        "dramatic",
+        "classical",
+        "chamber_pop"
       ],
       "preferred_macro_genres": [
         "Indie / Alternative",
@@ -5100,7 +5156,12 @@
         "nautical",
         "anthemic",
         "acoustic",
-        "communal"
+        "communal",
+        "sea_shanty",
+        "drinking",
+        "traditional",
+        "sing_along",
+        "pirate"
       ],
       "preferred_macro_genres": [
         "Folk / Americana",
@@ -5163,8 +5224,8 @@
         "Southern Rap",
         "Pop",
         "World / Regional",
-        "Funk / Soul",
-        "Hip-Hop"
+        "R&B / Soul",
+        "East Coast Rap"
       ],
       "semantic_core": [
         "marching",
@@ -5206,7 +5267,12 @@
         "cinematic",
         "fantasy",
         "metal",
-        "orchestral"
+        "orchestral",
+        "symphonic",
+        "power_metal",
+        "dramatic",
+        "heavy",
+        "anthemic"
       ],
       "preferred_macro_genres": [
         "Metal",
@@ -5246,7 +5312,12 @@
         "hypnotic",
         "focus",
         "electronic",
-        "late_night"
+        "late_night",
+        "techno",
+        "dark",
+        "driving",
+        "underground",
+        "industrial"
       ],
       "preferred_macro_genres": [
         "Electronic / Techno",
@@ -5285,7 +5356,12 @@
         "cloudy",
         "hazy",
         "dreamy",
-        "late_night"
+        "late_night",
+        "cloud_rap",
+        "melodic",
+        "atmospheric",
+        "trap",
+        "slow"
       ],
       "preferred_macro_genres": [
         "Southern Rap",
@@ -5331,7 +5407,12 @@
         "dance",
         "romantic",
         "sensual",
-        "lyr_love"
+        "lyr_love",
+        "salsa",
+        "cumbia",
+        "bachata",
+        "merengue",
+        "passionate"
       ],
       "preferred_macro_genres": [
         "Latin / Reggaeton",
@@ -5372,7 +5453,12 @@
         "groove",
         "sunset",
         "warm",
-        "celebration"
+        "celebration",
+        "afrobeats",
+        "amapiano",
+        "highlife",
+        "afropop",
+        "afrosoul"
       ],
       "preferred_macro_genres": [
         "Afrobeats / Amapiano",
@@ -5470,7 +5556,12 @@
         "gothic",
         "cold",
         "menacing",
-        "warehouse"
+        "warehouse",
+        "ebm",
+        "dark_electro",
+        "aggressive",
+        "darkwave",
+        "harsh"
       ],
       "preferred_macro_genres": [
         "Electronic / Techno",
@@ -5518,7 +5609,12 @@
         "storytelling",
         "nostalgic",
         "authentic",
-        "lyr_nostalgic"
+        "lyr_nostalgic",
+        "americana",
+        "folk",
+        "heartland",
+        "western",
+        "classic_country"
       ],
       "preferred_macro_genres": [
         "Country",
@@ -5557,7 +5653,12 @@
         "kawaii",
         "idol",
         "metal",
-        "playful"
+        "playful",
+        "j-metal",
+        "anime",
+        "cute",
+        "energetic",
+        "jpop"
       ],
       "preferred_macro_genres": [
         "Metal",
@@ -5604,7 +5705,12 @@
         "melodic",
         "late_night",
         "hazy",
-        "lyr_sad"
+        "lyr_sad",
+        "rnb",
+        "trap_soul",
+        "emotional",
+        "heartbreak",
+        "lyr_heartbreak"
       ],
       "preferred_macro_genres": [
         "Dark R&B",

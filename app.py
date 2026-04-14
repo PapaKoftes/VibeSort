@@ -578,7 +578,7 @@ def _home():
             st.markdown("### 🧬 Taste Map")
             st.caption("Your music DNA")
             if st.button("Open Taste Map", use_container_width=True):
-                st.switch_page("pages/6_Taste_Map.py")
+                st.switch_page("pages/6_B_Taste_Map.py")
 
         with col_a:
             st.markdown("### 🎤 Artists")
@@ -653,7 +653,7 @@ if hasattr(st, "navigation"):
             st.Page("pages/3_Vibes.py",          title="Vibes"),
             st.Page("pages/4_Genres.py",         title="Genres"),
             st.Page("pages/5_Artists.py",        title="Artists"),
-            st.Page("pages/6_Taste_Map.py",      title="Taste Map"),
+            st.Page("pages/6_B_Taste_Map.py",      title="Taste Map"),
             st.Page("pages/6_Blend.py",          title="Blend"),
             st.Page("pages/7_Staging.py",        title="Staging"),
             st.Page("pages/8_Stats.py",          title="Stats"),
