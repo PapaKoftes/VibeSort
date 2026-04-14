@@ -25,4 +25,4 @@ jobs:
           pip install pytest-cov
       - name: Pytest with coverage (core)
         run: |
-          python -m pytest tests/ --cov=core --cov-report=term-missing --cov-fail-under=14
+          python -m pytest tests/ --cov=core --cov-report=term-missing --cov-fail-under=30

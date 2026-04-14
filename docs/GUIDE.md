@@ -47,7 +47,7 @@ When the app opens, you'll land on the **Connect** page.
 
 Click **Connect to Spotify**. Your browser will open Spotify's authorization page. Log in, click **Agree**, and you'll be redirected back. The app reads your token automatically — no copy-pasting.
 
-> **Note:** The app is currently in Spotify Development Mode, which limits it to 25 authorized users. If you see "access denied", open an issue to be added to the allowlist, or use your own Spotify Developer app (see the Settings page).
+> **Dev Mode note:** The shared app has a 25-user limit (Spotify policy). If you see "access denied", use your own free Spotify developer app: create one at [developer.spotify.com](https://developer.spotify.com), add `https://papakoftes.github.io/VibeSort/callback.html` as a Redirect URI, and paste the Client ID into the Settings page. No client secret needed.
 
 ---
 

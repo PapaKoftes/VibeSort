@@ -11,3 +11,4 @@ musicbrainzngs>=0.7.1
 liblistenbrainz>=0.7.0
 lyricsgenius>=3.0.1
 vaderSentiment>=3.3.2
+matplotlib>=3.7.0

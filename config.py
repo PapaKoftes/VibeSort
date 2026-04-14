@@ -33,11 +33,11 @@ PLAYLIST_PREFIX        = os.getenv("PLAYLIST_PREFIX", "Vibesort: ")
 RECS_PER_PLAYLIST      = int(os.getenv("RECS_PER_PLAYLIST", "22"))
 MAX_TRACKS_PER_PLAYLIST = int(os.getenv("MAX_TRACKS_PER_PLAYLIST", "50"))
 # Target minimum tracks (library + recs) when expanding with recommendations
-MIN_PLAYLIST_TOTAL     = int(os.getenv("MIN_PLAYLIST_TOTAL", "25"))
+MIN_PLAYLIST_TOTAL     = int(os.getenv("MIN_PLAYLIST_TOTAL", "30"))
 MIN_SONGS_PER_GENRE    = int(os.getenv("MIN_SONGS_PER_GENRE", "5"))
 MIN_SONGS_PER_ERA      = int(os.getenv("MIN_SONGS_PER_ERA", "5"))
 MIN_SONGS_PER_ARTIST   = int(os.getenv("MIN_SONGS_PER_ARTIST", "8"))
-COHESION_THRESHOLD     = float(os.getenv("COHESION_THRESHOLD", "0.60"))
+COHESION_THRESHOLD     = float(os.getenv("COHESION_THRESHOLD", "0.55"))
 
 # When a mood has fewer than this many passing tracks, rank_tracks can relax gates (MVP pass).
 MVP_MIN_PLAYLIST_SIZE  = int(os.getenv("MVP_MIN_PLAYLIST_SIZE", "22"))
@@ -138,7 +138,7 @@ MUSICBRAINZ_ENRICH = os.getenv("MUSICBRAINZ_ENRICH", "false").lower() == "true"
 
 # Max tracks from the same artist in any generated playlist (default 3).
 # Lower = more diverse; higher = allows deep-dives into one artist.
-MAX_TRACKS_PER_ARTIST = int(os.getenv("MAX_TRACKS_PER_ARTIST", "3"))
+MAX_TRACKS_PER_ARTIST = int(os.getenv("MAX_TRACKS_PER_ARTIST", "4"))
 
 # ── Navidrome / Jellyfin (OpenSubsonic API) ────────────────────────────────────
 # https://www.navidrome.org/ — starred tracks + local genre tags.

@@ -13,7 +13,8 @@ You know that feeling when a song hits exactly right for the moment? Vibesort is
 ## Get started
 
 **Windows:** double-click `run.bat`  
-**Mac / Linux:** `bash run.sh`  
+**Mac:** double-click `Vibesort.command` in Finder, or `bash run.sh` in Terminal  
+**Linux:** `bash run.sh`  
 **Or:** `python launch.py` (Python 3.10+ required)
 
 First launch installs dependencies and opens in your browser. Click **Connect to Spotify**, authorize, done.

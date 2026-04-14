@@ -546,10 +546,16 @@ def _home():
                 except Exception:
                     _bm_label = "Great fit"
                 from core.mood_graph import mood_display_name as _bm_display
-                st.success(
-                    f"▶ **Start here:** [{_bm_display(_bm_name)}](pages/3_Vibes.py) "
-                    f"— {_bm_count} tracks · {_bm_label}"
-                )
+                _bm_col1, _bm_col2 = st.columns([5, 2])
+                with _bm_col1:
+                    st.success(
+                        f"▶ **Start here:** **{_bm_display(_bm_name)}** "
+                        f"— {_bm_count} tracks · {_bm_label}"
+                    )
+                with _bm_col2:
+                    if st.button("Open it →", type="primary", use_container_width=True, key="start_here_btn"):
+                        st.session_state["_start_mood"] = _bm_name
+                        st.switch_page("pages/3_Vibes.py")
 
             st.divider()
 

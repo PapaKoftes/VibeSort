@@ -30,6 +30,8 @@ If you skip PATH on Windows, double-clicking `run.bat` may say `'python' is not 
 bash run.sh
 ```
 
+> **Mac shortcut:** You can also double-click **`Vibesort.command`** in Finder instead of using Terminal. If macOS blocks it, right-click → Open → Open anyway (one-time only).
+
 The first launch installs dependencies (one or two minutes), creates a `.env` file if needed, then opens your browser. Click **Connect to Spotify** and sign in.
 
 ## 4. Optional: extra data sources
