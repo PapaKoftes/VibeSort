@@ -454,6 +454,50 @@ VIBESORT_LASTFM_API_SECRET=your_shared_secret_here
             st.success("✅ API key saved. Re-scan to use it.")
             st.rerun()
 
+
+# ── Last.fm username (no OAuth path) ─────────────────────────────────────────
+_lf_username_env = (
+    st.session_state.get("lastfm_username_runtime")
+    or getattr(cfg, "LASTFM_USERNAME", "").strip()
+)
+_show_lf_username = not _lf_username or True   # always show as supplement
+with st.expander(
+    ("✏️ Edit Last.fm username" if _lf_username else "Set Last.fm username (no login needed)"),
+    expanded=False,
+):
+    st.caption(
+        "If you don't want to authenticate via OAuth, just enter your public Last.fm username. "
+        "Vibesort will fetch your top artists and tags using the public API — no password or session needed."
+    )
+    _lf_uname_cur = _lf_username or _lf_username_env or ""
+    _lf_uname_in = st.text_input(
+        "Last.fm username",
+        value=_lf_uname_cur,
+        placeholder="e.g. rj",
+        key="lf_username_input",
+    )
+    if st.button("Save username", key="lf_uname_save"):
+        _un = (_lf_uname_in or "").strip()
+        if not _un:
+            st.error("Please enter a username.")
+        else:
+            _update_env_key("LASTFM_USERNAME", _un)
+            try:
+                cfg.LASTFM_USERNAME = _un
+            except Exception:
+                pass
+            st.session_state["lastfm_username_runtime"] = _un
+            st.success(f"✅ Last.fm username saved as **{_un}**. Re-scan to use it.")
+            st.rerun()
+    if _lf_uname_cur and st.button("Clear username", key="lf_uname_clear"):
+        _update_env_key("LASTFM_USERNAME", "")
+        try:
+            cfg.LASTFM_USERNAME = ""
+        except Exception:
+            pass
+        st.session_state.pop("lastfm_username_runtime", None)
+        st.rerun()
+
 st.divider()
 
 # ── ListenBrainz connection ───────────────────────────────────────────────────
@@ -831,6 +875,78 @@ else:
                     )
             except Exception as _ame:
                 st.error(f"Could not read library: {_ame}")
+
+st.divider()
+
+# ── Spotify streaming history import ─────────────────────────────────────────
+st.subheader("Spotify Streaming History  ·  Play count boost")
+st.caption(
+    "Import your extended streaming history from Spotify to boost frequently-played tracks in playlists. "
+    "Request your data at **spotify.com/account/privacy** — takes up to 30 days. "
+    "Look for files named `StreamingHistory_music_*.json`."
+)
+
+_HISTORY_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "streaming_history"
+)
+os.makedirs(_HISTORY_DIR, exist_ok=True)
+
+_existing_history = sorted([
+    f for f in os.listdir(_HISTORY_DIR)
+    if f.endswith(".json")
+]) if os.path.isdir(_HISTORY_DIR) else []
+
+if _existing_history:
+    _total_plays = 0
+    for _hf in _existing_history:
+        try:
+            import json as _hjson
+            with open(os.path.join(_HISTORY_DIR, _hf), "r", encoding="utf-8") as _hfh:
+                _hdata = _hjson.load(_hfh)
+            _total_plays += len(_hdata) if isinstance(_hdata, list) else 0
+        except Exception:
+            pass
+    st.success(
+        f"✅ {len(_existing_history)} streaming history file(s) loaded · "
+        f"~{_total_plays:,} play records"
+    )
+    st.caption("Files: " + ", ".join(f"`{f}`" for f in _existing_history))
+    if st.button("Remove streaming history", key="history_remove"):
+        for _hf in _existing_history:
+            try:
+                os.remove(os.path.join(_HISTORY_DIR, _hf))
+            except Exception:
+                pass
+        st.rerun()
+else:
+    _hist_files = st.file_uploader(
+        "Drop your Spotify history files here",
+        type=["json"],
+        accept_multiple_files=True,
+        key="history_uploader",
+        help="Upload StreamingHistory_music_0.json, StreamingHistory_music_1.json, etc.",
+    )
+    if _hist_files:
+        _saved = 0
+        for _uf in _hist_files:
+            try:
+                _dest = os.path.join(_HISTORY_DIR, _uf.name)
+                with open(_dest, "wb") as _dh:
+                    _dh.write(_uf.getbuffer())
+                _saved += 1
+            except Exception as _he:
+                st.warning(f"Could not save {_uf.name}: {_he}")
+        if _saved:
+            st.success(
+                f"✅ {_saved} file(s) saved to `data/streaming_history/`. "
+                "Re-scan to use your play history."
+            )
+            st.rerun()
+    st.caption(
+        "Don't have your history yet? Request it at "
+        "[spotify.com/account/privacy](https://www.spotify.com/account/privacy) "
+        "under **Download your data**."
+    )
 
 st.divider()
 

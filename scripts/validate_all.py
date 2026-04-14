@@ -234,6 +234,17 @@ except ImportError:
     check("sentence-transformers available", False,
           "run: pip install sentence-transformers", warn=True)
 
+# semantic_embed module
+_sem_path = os.path.join(ROOT, "core", "semantic_embed.py")
+check("core/semantic_embed.py exists", os.path.exists(_sem_path))
+if os.path.exists(_sem_path):
+    try:
+        from core.semantic_embed import is_available as _sem_avail
+        check("semantic_embed.is_available()", _sem_avail(),
+              "sentence-transformers not installed or model not loadable", warn=True)
+    except Exception as _se:
+        check("semantic_embed imports", False, str(_se))
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 print("\n── Summary ─────────────────────────────────────────────────────────────")
 print(f"  Failures: {len(failures)}")

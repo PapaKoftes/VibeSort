@@ -1,0 +1,106 @@
+name: Release — Portable Zip
+
+# Triggered when a version tag is pushed: git tag v0.5.0 && git push --tags
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-zip:
+    name: Build portable zip
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Run the validator — release is blocked if any check FAILs
+      - name: Validate release
+        run: python scripts/validate_all.py
+
+      # Build the portable zip
+      # Excludes: .git, __pycache__, .env, secrets, large cache files, dev artifacts
+      - name: Build portable zip
+        shell: pwsh
+        run: |
+          $VERSION = "${{ github.ref_name }}"
+          $DIST    = "vibesort-$VERSION"
+          $ZIP     = "vibesort-$VERSION-portable.zip"
+
+          # Collect files to include
+          $EXCLUDE = @(
+            ".git", ".github", "__pycache__", "*.pyc",
+            ".env", ".env.*",
+            ".vibesort_pkce_token.json", ".vibesort_pkce_state",
+            ".vibesort_cache",
+            "data/cache", "outputs/.last_scan_snapshot.json",
+            "data/streaming_history",
+            "*.egg-info", ".pytest_cache", ".mypy_cache",
+            "node_modules", "dist", "build",
+            $ZIP
+          )
+
+          # Use Compress-Archive with exclusions via robocopy staging
+          $STAGING = "$env:TEMP\$DIST"
+          New-Item -ItemType Directory -Force -Path $STAGING | Out-Null
+
+          # robocopy: mirror repo into staging, excluding unwanted paths
+          $ROBOCOPY_EXCLUDEDIRS  = ".git .github __pycache__ data\cache outputs node_modules dist build .pytest_cache .mypy_cache"
+          $ROBOCOPY_EXCLUDEFILES = "*.pyc .env .env.* .vibesort_pkce_token.json .vibesort_pkce_state .vibesort_cache vibesort-*.zip"
+
+          robocopy . $STAGING /E /XD $ROBOCOPY_EXCLUDEDIRS /XF $ROBOCOPY_EXCLUDEFILES /NFL /NDL /NJH /NJS
+          # robocopy exit code 1 = success with copies; treat as OK
+          if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
+
+          # Write a VERSION file
+          $VERSION | Out-File -FilePath "$STAGING\VERSION" -Encoding UTF8 -NoNewline
+
+          # Copy .env.example → .env.example (already there, ensure it exists)
+          if (-not (Test-Path "$STAGING\.env.example")) {
+            if (Test-Path ".env.example") {
+              Copy-Item ".env.example" "$STAGING\.env.example"
+            }
+          }
+
+          # Zip the staging directory
+          Compress-Archive -Path "$STAGING\*" -DestinationPath $ZIP -Force
+          Write-Host "Built: $ZIP"
+
+          # Export zip name for next step
+          echo "ZIP_NAME=$ZIP" >> $env:GITHUB_ENV
+
+      # Create GitHub Release and upload the zip
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Vibesort ${{ github.ref_name }}"
+          body: |
+            ## Vibesort ${{ github.ref_name }}
+
+            ### Installation (Windows portable)
+            1. Download and extract the zip below
+            2. Copy `.env.example` → `.env` and add your Spotify credentials
+            3. Run: `pip install -r requirements.txt`
+            4. Run: `streamlit run app.py`
+
+            See [docs/ROADMAP.md](docs/ROADMAP.md) for what's new in this release.
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: ${{ env.ZIP_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

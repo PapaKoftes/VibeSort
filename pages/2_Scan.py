@@ -239,11 +239,46 @@ if vibesort and _snapshot_age:
 
 st.write("")
 
+# ── Scan depth presets ────────────────────────────────────────────────────────
+st.markdown("### Choose scan depth")
+_col_q, _col_f, _col_d = st.columns(3)
+
+with _col_q:
+    st.markdown("**Quick Rescore**")
+    st.caption("Re-runs scoring against all cached data. No API calls. Under 1 minute.")
+    _do_quick = st.button("Run Quick Rescore", use_container_width=True, key="btn_quick_scan")
+
+with _col_f:
+    st.markdown("**Fresh Scan**")
+    st.caption(
+        "Re-fetches enrichment for any tracks added since last scan, "
+        "then re-scores. Typically 3–5 min."
+    )
+    _do_fresh = st.button("Run Fresh Scan", use_container_width=True,
+                          type="primary", key="btn_fresh_scan")
+
+with _col_d:
+    st.markdown("**Deep Scan**")
+    st.caption(
+        "Clears all enrichment caches and re-fetches everything from scratch. "
+        "10–15 min. Use when results feel stale or after major anchor changes."
+    )
+    _do_deep = st.button("Run Deep Scan", use_container_width=True, key="btn_deep_scan")
+
+if _do_deep:
+    st.warning(
+        "Deep Scan clears all enrichment caches and re-fetches everything. "
+        "This takes **10–15 minutes** for a 2,000+ track library. "
+        "Your results will be unavailable until it completes."
+    )
+
+st.markdown("---")
+
 # ── Three scan mode buttons ───────────────────────────────────────────────────
 col_full, col_custom, col_local = st.columns(3)
 
 with col_full:
-    st.markdown("**Full Scan**")
+    st.markdown("**Full Scan** *(advanced)*")
     st.caption(
         "Re-scores your full library using all cached data. "
         "First scan typically takes **3–10 minutes** depending on library size and enrichment sources. "
@@ -252,19 +287,17 @@ with col_full:
     _do_full = st.button(
         "Run Full Scan",
         use_container_width=True,
-        type="primary",
         key="btn_full_scan",
     )
 
 with col_custom:
-    st.markdown("**Custom Scan**")
-    st.caption("Choose which data sources to refresh before re-scoring.")
+    st.markdown("**Custom Scan** *(advanced)*")
+    st.caption("Choose exactly which data sources to refresh before re-scoring.")
     if st.button(
         "Configure & Run Custom Scan →",
         use_container_width=True,
         key="btn_custom_scan",
     ):
-        # Toggle the options panel open — don't start the scan yet
         st.session_state["show_custom_options"] = not st.session_state.get("show_custom_options", False)
         st.rerun()
 
@@ -485,7 +518,33 @@ _trigger_local  = _trigger_local_start and bool(_local_path) and os.path.isdir(_
 
 result = None
 
-if _trigger_custom:
+# ── Preset scan triggers ──────────────────────────────────────────────────────
+if _do_quick:
+    # Quick Rescore: re-score only — no cache clearing, no API calls
+    st.session_state["scan_max_tracks"] = st.session_state.get("scan_max_tracks", cfg.MAX_TRACKS_PER_PLAYLIST)
+    result = run_scan(sp, user_id, force=False)
+
+elif _do_fresh:
+    # Fresh Scan: clear mining if stale (>7d), keep all enrichment caches
+    # New tracks get enriched naturally since caches are incremental
+    import datetime as _dt
+    _mining_p = _cache_path("mining")
+    if os.path.exists(_mining_p):
+        _mining_age = (_dt.datetime.now() - _dt.datetime.fromtimestamp(os.path.getmtime(_mining_p))).days
+        if _mining_age > 7:
+            _delete_cache("mining")
+    result = run_scan(sp, user_id, force=False)
+
+elif _do_deep:
+    # Deep Scan: wipe all enrichment caches, full re-fetch
+    for _ck in ["mining", "lastfm", "deezer", "lyrics", "audiodb", "musicbrainz", "discogs"]:
+        try:
+            _delete_cache(_ck)
+        except Exception:
+            pass
+    result = run_scan(sp, user_id, force=True)
+
+elif _trigger_custom:
     # Close the options panel and clear its state
     st.session_state["show_custom_options"] = False
     # Apply selective cache clearing before scan
@@ -496,8 +555,7 @@ if _trigger_custom:
     if _clr_audiodb: _delete_cache("audiodb")
     if _clr_mb:      _delete_cache("musicbrainz")
     if _clr_discogs: _delete_cache("discogs")
-    if _score_only:  _delete_cache("snapshot")   # only clear snapshot
-    # force=True so mining is re-evaluated even if within 30-day TTL
+    if _score_only:  _delete_cache("snapshot")
     result = run_scan(sp, user_id, force=not _score_only)
 
 elif _trigger_local:
@@ -505,7 +563,6 @@ elif _trigger_local:
     result = run_scan(sp, user_id, force=False, local_path=_local_path)
 
 elif _trigger_full:
-    # Full Scan: never force — lets mining cache TTL decide whether to re-mine
     result = run_scan(sp, user_id, force=False)
 
 if result:

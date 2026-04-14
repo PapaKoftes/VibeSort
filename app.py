@@ -56,6 +56,68 @@ if _lastfm_token and not _code:   # avoid picking up unrelated ?token= params
 
 import config as cfg
 
+# ── First-run wizard ──────────────────────────────────────────────────────────
+# Show a 3-step onboarding wizard when:
+#   • No Spotify token (not yet connected), AND
+#   • No on-disk snapshot (never scanned before), AND
+#   • Wizard hasn't been dismissed this session
+_snap_path_fw = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs", ".last_scan_snapshot.json")
+_is_first_run = (
+    not st.session_state.get("spotify_token")
+    and not os.path.exists(_snap_path_fw)
+    and not st.session_state.get("_wizard_dismissed")
+    and not st.session_state.get("_wizard_done")
+    and not _code          # don't interrupt an OAuth callback
+    and not _lastfm_token  # don't interrupt a Last.fm callback
+)
+if _is_first_run:
+    st.markdown("# 🎧 Welcome to Vibesort")
+    st.markdown("*Your Spotify library, sorted by feeling.*")
+    st.divider()
+
+    st.markdown("### Get started in 3 steps")
+
+    _w_col1, _w_col2, _w_col3 = st.columns(3)
+
+    with _w_col1:
+        st.markdown("#### Step 1 · Connect Spotify")
+        st.markdown(
+            "Vibesort reads your liked songs and top tracks. "
+            "It only **creates** playlists you deploy — it never modifies your library."
+        )
+        if st.button("Connect to Spotify →", type="primary", use_container_width=True, key="wizard_sp"):
+            st.session_state["_wizard_dismissed"] = True
+            st.switch_page("pages/1_Connect.py")
+
+    with _w_col2:
+        st.markdown("#### Step 2 · Add Last.fm _(optional)_")
+        st.markdown(
+            "A free Last.fm API key adds crowd-sourced mood tags — "
+            "'dark', 'chill', 'hype' — making playlists significantly more accurate."
+        )
+        st.link_button(
+            "Get free Last.fm key →",
+            "https://www.last.fm/api/account/create",
+            use_container_width=True,
+        )
+
+    with _w_col3:
+        st.markdown("#### Step 3 · Scan & Sort")
+        st.markdown(
+            "Hit Scan after connecting. Vibesort scores your entire library against "
+            "87 mood packs in 1–3 minutes. Playlists are ready to deploy immediately."
+        )
+        st.markdown("*Connect first, then scan.*")
+
+    st.divider()
+    _wiz_c1, _wiz_c2 = st.columns([1, 5])
+    with _wiz_c1:
+        if st.button("Skip intro", key="wizard_skip"):
+            st.session_state["_wizard_dismissed"] = True
+            st.rerun()
+
+    st.stop()
+
 # ── Last.fm session restore (survives page reload) ────────────────────────────
 if not st.session_state.get("lastfm_session"):
     try:
