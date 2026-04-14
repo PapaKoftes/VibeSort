@@ -31,7 +31,7 @@ FRIEND_PLAYLIST_URLS: list[str] = []
 # ── Playlist generation ───────────────────────────────────────────────────────
 PLAYLIST_PREFIX        = os.getenv("PLAYLIST_PREFIX", "Vibesort: ")
 RECS_PER_PLAYLIST      = int(os.getenv("RECS_PER_PLAYLIST", "22"))
-MAX_TRACKS_PER_PLAYLIST = int(os.getenv("MAX_TRACKS_PER_PLAYLIST", "50"))
+MAX_TRACKS_PER_PLAYLIST = int(os.getenv("MAX_TRACKS_PER_PLAYLIST", "75"))
 # Target minimum tracks (library + recs) when expanding with recommendations
 MIN_PLAYLIST_TOTAL     = int(os.getenv("MIN_PLAYLIST_TOTAL", "30"))
 MIN_SONGS_PER_GENRE    = int(os.getenv("MIN_SONGS_PER_GENRE", "5"))

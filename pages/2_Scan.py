@@ -190,7 +190,7 @@ def run_scan(sp, user_id: str, force: bool = False, local_path: str = ""):
             mvp_score_floor=cfg.MVP_SCORE_FLOOR,
             corpus_mode=st.session_state.get("scan_corpus_mode", "full_library"),
             lyric_weight=float(st.session_state.get("scan_lyric_weight", 1.16)),
-            max_tracks_cap=int(st.session_state.get("scan_max_tracks", 50)),
+            max_tracks_cap=int(st.session_state.get("scan_max_tracks", cfg.MAX_TRACKS_PER_PLAYLIST)),
         )
         if lyrics_lang:
             st.session_state["lyrics_lang_map"] = lyrics_lang
@@ -381,8 +381,8 @@ if _show_custom:
         )
         st.session_state["scan_max_tracks"] = st.slider(
             "Max tracks per mood",
-            min_value=25, max_value=80,
-            value=int(st.session_state.get("scan_max_tracks", 50)),
+            min_value=25, max_value=100,
+            value=int(st.session_state.get("scan_max_tracks", 75)),
             key="custom_max_tracks",
         )
         st.session_state["scan_lyric_weight"] = st.slider(

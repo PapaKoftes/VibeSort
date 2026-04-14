@@ -685,54 +685,63 @@ def positive_boost(
 # Only intra-track conflicts count — a track with both "calm" and "aggressive"
 # tags is genuinely contradictory and should be penalised.
 #
-# Each base tag maps to the set of tags that conflict with it.
-# Penalty per conflicting pair: 0.40.  Total capped at 1.0.
+# Each base tag maps to the set of tags that genuinely contradict it.
+# Only truly incompatible pairs — tags that Last.fm legitimately applies to the
+# same song (calm+hype, ambient+hype, sad+hype) are NOT conflicts; they reflect
+# real musical complexity.  We only flag things that are essentially mutually
+# exclusive in practice.
+# Penalty per pair: 0.12.  Cap: 0.40.  Never zero-suppress a track.
 _CONFLICT_MAP: dict[str, set[str]] = {
-    "calm":         {"aggressive", "rage", "drill", "hype", "metal", "angry", "chaotic"},
-    "aggressive":   {"calm", "ambient", "sleep", "peaceful", "soft", "gentle"},
-    "peaceful":     {"aggressive", "rage", "hype", "chaotic", "angry", "metal"},
-    "romantic":     {"rage", "drill", "metal", "aggressive", "angry"},
-    "focus":        {"party", "club", "hype", "rave", "chaotic"},
-    "sleep":        {"hype", "party", "aggressive", "gym", "energy", "chaotic"},
-    "worship":      {"rage", "aggressive", "angry", "metal", "drill"},
+    "sleep":        {"hype", "party", "aggressive", "gym", "chaotic"},
+    "peaceful":     {"aggressive", "rage", "drill", "chaotic"},
+    "worship":      {"rage", "drill"},
     "happy":        {"hollow", "numb", "desolate", "despair"},
-    "sad":          {"hype", "euphoric", "party", "turnt"},
-    "ambient":      {"aggressive", "hype", "chaotic", "rage", "gym"},
+    "romantic":     {"drill", "rage"},
 }
+
+# Minimum tag weight for a conflict pair to fire.
+# Low-confidence peripheral tags (weight < threshold) are ignored.
+_CONFLICT_WEIGHT_MIN = 0.25
 
 
 def conflict_penalty(profile: dict) -> float:
     """
-    Penalise tracks whose own tags actively contradict each other.
+    Apply a mild penalty to tracks whose tags actively contradict each other.
 
-    A track tagged both "calm" and "aggressive" is genuinely incoherent —
-    no mood should want it.  Each detected contradiction adds 0.40 penalty,
-    capped at 1.0 (full suppression for maximally conflicted tracks).
+    Only fires on genuinely incompatible pairs (sleep+hype, worship+rage, etc.).
+    Tags that naturally co-exist in music (calm+hype, ambient+hype, sad+hype)
+    have been removed — Last.fm applies these legitimately to the same song.
 
-    This is mood-independent: if a track contradicts itself, it's a bad fit
-    everywhere.  It fires AFTER negative_filter_penalty so the combined effect
-    can suppress heavily conflicted tracks completely.
+    Only fires if BOTH tags have weight >= _CONFLICT_WEIGHT_MIN so peripheral
+    low-confidence tags don't trigger false penalties.
+
+    Per-pair penalty: 0.12.  Cap: 0.40.  Caller: score *= (1 - penalty).
+    Never fully suppresses a track (max 40% reduction).
 
     Returns:
-        Float in [0.0, 1.0].  Caller applies: score *= (1 - conflict_penalty).
+        Float in [0.0, 0.40].
     """
-    tags = set(get_active_tags(profile).keys())
-    if len(tags) < 2:
+    active = get_active_tags(profile)
+    if len(active) < 2:
         return 0.0
 
     penalty = 0.0
     seen_pairs: set[frozenset] = set()
 
     for base, opposites in _CONFLICT_MAP.items():
-        if base in tags:
-            for opp in opposites:
-                if opp in tags:
-                    pair = frozenset({base, opp})
-                    if pair not in seen_pairs:
-                        penalty += 0.40
-                        seen_pairs.add(pair)
+        base_w = active.get(base, 0.0)
+        if base_w < _CONFLICT_WEIGHT_MIN:
+            continue
+        for opp in opposites:
+            opp_w = active.get(opp, 0.0)
+            if opp_w < _CONFLICT_WEIGHT_MIN:
+                continue
+            pair = frozenset({base, opp})
+            if pair not in seen_pairs:
+                penalty += 0.12
+                seen_pairs.add(pair)
 
-    return min(penalty, 1.0)
+    return min(penalty, 0.40)
 
 
 # ── Adaptive strictness ───────────────────────────────────────────────────────
