@@ -535,6 +535,22 @@ def _home():
                                 f"**{_fp_labels[_c]}** — {_v} tracks ({_pct}%)"
                             )
 
+            # ── Start here CTA ────────────────────────────────────────────────
+            _best_mood = max(mood_results.items(), key=lambda x: x[1].get("cohesion", 0), default=None)
+            if _best_mood:
+                _bm_name, _bm_info = _best_mood
+                _bm_count = _bm_info.get("count", 0)
+                try:
+                    from core.cohesion import cohesion_label as _bm_clabel
+                    _bm_label = _bm_clabel(_bm_info.get("cohesion", 0))
+                except Exception:
+                    _bm_label = "Great fit"
+                from core.mood_graph import mood_display_name as _bm_display
+                st.success(
+                    f"▶ **Start here:** [{_bm_display(_bm_name)}](pages/3_Vibes.py) "
+                    f"— {_bm_count} tracks · {_bm_label}"
+                )
+
             st.divider()
 
         # ── Navigation cards ──────────────────────────────────────────────────

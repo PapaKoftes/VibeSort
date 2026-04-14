@@ -93,11 +93,11 @@ def top_n_by_score(
 
 def cohesion_label(score: float) -> str:
     if score >= 0.88:
-        return "very cohesive"
+        return "Perfect fit"
     if score >= 0.78:
-        return "cohesive"
+        return "Great fit"
     if score >= 0.65:
-        return "decent"
+        return "Good fit"
     if score >= 0.50:
-        return "loose"
-    return "scattered"
+        return "Mixed"
+    return "Broad"

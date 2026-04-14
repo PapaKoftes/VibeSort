@@ -375,6 +375,29 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
             track_tags_all = vibesort.get("track_tags", {})
 
             # Show all tracks
+            # Count personal anchors in this mood for contextual note
+            _personal_count = sum(
+                1 for u in uris
+                if (track_tags_all.get(u) or {}).get(f"personal_anchor_{_slug}", 0) > 0
+            )
+            _graph_count = sum(
+                1 for u in uris
+                if (track_tags_all.get(u) or {}).get(f"graph_mood_{_slug}", 0) > 0.3
+            )
+            _insight_parts = []
+            if _personal_count:
+                _insight_parts.append(
+                    f"**{_personal_count} track{'s' if _personal_count > 1 else ''}** here "
+                    f"{'are' if _personal_count > 1 else 'is'} something you clearly return to."
+                )
+            if _graph_count:
+                _insight_parts.append(
+                    f"**{_graph_count}** found by mapping how your songs relate to each other — "
+                    f"not just genre, but musical neighbourhood."
+                )
+            if _insight_parts:
+                st.caption("  ".join(_insight_parts))
+
             st.caption(
                 "**Signal key:** 🔑 Curated anchor · 🎵 You play this a lot · "
                 "🕸️ Similarity match · 📻 Last.fm tags · 📖 Lyric analysis · "
