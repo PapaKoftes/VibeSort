@@ -43,7 +43,7 @@ def _audio_vector(features: dict) -> list[float]:
         features.get("danceability",     0.5),
         tempo_norm,
         features.get("acousticness",     0.5),
-        features.get("instrumentalness", 0.0),
+        features.get("instrumentalness", 0.5),
     ]
 
 

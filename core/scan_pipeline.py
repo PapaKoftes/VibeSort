@@ -1403,7 +1403,7 @@ def execute_library_scan(
             }
         mood_results = _lb_boosted
 
-    _MAX_PL = 3
+    _MAX_PL = 4  # max moods a track can appear in (raised from 3 → 4 for better coverage)
     _track_best: dict[str, list[tuple[str, float]]] = {}
     for _mn, _md in mood_results.items():
         for _uri, _sc in _md.get("ranked", []):
