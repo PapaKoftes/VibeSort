@@ -243,7 +243,8 @@ if not st.session_state.get("spotify_token") and (USE_PKCE or USE_OAUTH):
     st.subheader("Connect to Spotify")
     st.write(
         "Vibesort reads your liked songs, top tracks, and followed artists. "
-        "It only writes playlists you explicitly deploy."
+        "It only **creates** playlists you explicitly deploy — it never modifies or deletes anything in your library. "
+        "All processing runs locally on your machine."
     )
     st.write("")
 
@@ -287,6 +288,13 @@ if not st.session_state.get("spotify_token") and (USE_PKCE or USE_OAUTH):
     )
     st.caption(
         "You'll be taken to Spotify to authorize, then returned here automatically."
+    )
+    st.info(
+        "**App currently in Spotify Development Mode (25-user limit).**  \n"
+        "If Spotify says you're not registered: use your own free Spotify developer app instead — "
+        "takes about 5 minutes. [Open Spotify Dashboard →](https://developer.spotify.com/dashboard)  \n"
+        "Create an app, add `https://papakoftes.github.io/VibeSort/callback.html` as Redirect URI, "
+        "then paste your **Client ID** into Settings here or into `.env`."
     )
 
 elif not st.session_state.get("spotify_token"):

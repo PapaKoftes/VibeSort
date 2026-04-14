@@ -46,7 +46,7 @@ with st.sidebar:
         staged_count = _staging_mod.get_staged_count()
     except Exception:
         staged_count = len(st.session_state.get("staged_ids", []))
-    st.metric("Staged", staged_count)
+    st.metric("Queued", staged_count)
 
     st.divider()
     naming_mode = st.selectbox(
@@ -56,7 +56,7 @@ with st.sidebar:
     )
 
     st.divider()
-    if st.button("Go to Staging Shelf", use_container_width=True):
+    if st.button("Go to Playlist Queue", use_container_width=True):
         st.switch_page("pages/7_Staging.py")
 
 
@@ -337,7 +337,7 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                     _clabel_str = _clabel(cohesion)
                 except Exception:
                     _clabel_str = f"{cohesion * 100:.0f}%"
-                st.caption(f"{count} tracks · {_clabel_str} ({min(cohesion, 1.0) * 100:.0f}%)")
+                st.caption(f"{count} tracks · match quality: **{_clabel_str}**")
                 st.progress(min(max(float(cohesion), 0.0), 1.0), text="")
 
                 top = _top_tracks_display(uris, n=3)
@@ -351,7 +351,7 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                 is_expanded = st.session_state.get("expanded_vibe") == mood_name
 
                 if st.button(
-                    "Hide" if is_expanded else "View & Stage",
+                    "Hide" if is_expanded else "Build Playlist",
                     key=f"btn_{mood_name}",
                     use_container_width=True,
                 ):
@@ -375,6 +375,11 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
             track_tags_all = vibesort.get("track_tags", {})
 
             # Show all tracks
+            st.caption(
+                "**Signal key:** 🔑 Curated anchor · 🎵 You play this a lot · "
+                "🕸️ Similarity match · 📻 Last.fm tags · 📖 Lyric analysis · "
+                "🌙/🌅/☀️/🌆 Your usual listening time"
+            )
             track_rows = []
             for uri in uris:
                 p = profiles.get(uri, {})
@@ -449,7 +454,7 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                         st.markdown(f"- **{pl_name}** — {follows_str}{overlap_str}")
 
             st.divider()
-            st.markdown("**Add to Staging**")
+            st.markdown("**Build this playlist**")
 
             suggested_name, suggested_desc = _generate_name(mood_name, uris)
 
@@ -475,13 +480,13 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
             )
 
             if st.button(
-                "Save to Staging Shelf",
+                "Save to Queue",
                 type="primary",
                 key=f"stage_{mood_name}",
                 use_container_width=True,
             ):
                 pid = _add_to_staging(mood_name, uris, user_name, user_desc, expand_recs)
                 if pid:
-                    st.success(f"Added **{user_name}** to staging shelf.")
+                    st.success(f"Added **{user_name}** to your playlist queue.")
             st.divider()
             break

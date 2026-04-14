@@ -245,8 +245,9 @@ col_full, col_custom, col_local = st.columns(3)
 with col_full:
     st.markdown("**Full Scan**")
     st.caption(
-        "Re-scores your library using all cached enrichment data. "
-        "Re-fetches mood playlists if older than 30 days."
+        "Re-scores your full library using all cached data. "
+        "First scan typically takes **3–10 minutes** depending on library size and enrichment sources. "
+        "Subsequent scans are faster — most data is cached."
     )
     _do_full = st.button(
         "Run Full Scan",

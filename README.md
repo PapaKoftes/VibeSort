@@ -21,7 +21,9 @@ First launch installs dependencies and opens in your browser. Click **Connect to
 Step-by-step install: **[SETUP.md](SETUP.md)**  
 Full guide: **[docs/GUIDE.md](docs/GUIDE.md)**
 
-> **Dev Mode note:** The app runs in Spotify Development Mode (25-user limit). If you can't connect, [open an issue](https://github.com/PapaKoftes/VibeSort/issues) to be added.
+> **Dev Mode note:** The shared app has a 25-user limit (Spotify policy). If you can't connect, use your own free Spotify developer app — takes 5 minutes: create an app at [developer.spotify.com](https://developer.spotify.com), add `https://papakoftes.github.io/VibeSort/callback.html` as a Redirect URI, paste the Client ID into Settings. No secret needed.
+
+**Privacy:** Vibesort runs entirely on your machine. It reads your library and creates playlists you choose to deploy — it never modifies or deletes existing playlists, and no listening data leaves your computer.
 
 ---
 
@@ -29,12 +31,7 @@ Full guide: **[docs/GUIDE.md](docs/GUIDE.md)**
 
 Vibesort uses a multi-signal scoring engine — not just one data source, but five layered together:
 
-| Signal | Weight | What it catches |
-|--------|--------|-----------------|
-| Tags | 48% | Playlist mining, Last.fm, lyrics, Deezer, Discogs |
-| Semantic | 22% | Abstract vibe matching |
-| Genre | 20% | 42-genre hierarchy with 500+ mapping rules |
-| Metadata proxy | 10% | BPM, energy, tempo heuristics |
+Vibesort layers five signals — tags (Last.fm, lyrics, Deezer, Discogs), semantic matching, genre hierarchy, and metadata proxy — weighted and combined per track. The result is playlists that feel right, not just sound similar.
 
 **Spotify killed their audio-features API in late 2024.** Vibesort routes around it via three ground-truth pillars:
 1. **87 curated mood anchors** — 3–5 hand-picked seed tracks per mood that inject the strongest possible signal when found in your library
@@ -46,6 +43,19 @@ Vibesort uses a multi-signal scoring engine — not just one data source, but fi
 ## What you get
 
 - **87 mood playlists** — Hollow, Villain Arc, Late Night Drive, Phonk Season, Rewire, Dissolve, and 81 more
+
+<details>
+<summary>See all mood categories</summary>
+
+**Dark / Introspective:** Hollow · 3 AM Unsent Texts · Rainy Window · Smoke & Mirrors · Midnight Spiral · Heartbreak Hotel · Grief Sequence  
+**Power / Energy:** Villain Arc · Rage Lift · Hard Reset · Adrenaline · Phonk Season · Drill Mode  
+**Chill / Focus:** Late Night Drive · Lo-Fi Corner · Deep Focus · Sunday Reset · Golden Hour · Acoustic Corner  
+**Party / Dance:** Afterparty · Hyperpop Overload · Rave Brain · Latin Heat · Queer Anthem  
+**Story / Roots:** Nostalgia Rush · Bedroom Pop · Folk & Feel · Road Songs · Indie Daydream  
+*…and 62 more across 87 total moods.*
+
+</details>
+
 - **42 genre playlists** — mapped with 500+ rules (East Coast Rap, UK Rap, Brazilian Phonk, Funk Carioca, etc.)
 - **Era playlists** — by decade
 - **Artist spotlights** — one playlist per artist with 8+ songs in your library
@@ -63,7 +73,7 @@ Vibesort uses a multi-signal scoring engine — not just one data source, but fi
 ```
 Connect to Spotify
     ↓
-Scan Library  (~1–3 min first time)
+Scan Library  (~3–10 min first time, faster after)
     ↓
 Browse Vibes · Genres · Artists
     ↓
@@ -164,3 +174,11 @@ PRs welcome. Good places to start:
 | [Every Noise at Once](https://everynoise.com) | Spotify's map of ~6000 genres |
 | [Obscurify](https://obscurify.com) | Obscurity score |
 | [Soundiiz](https://soundiiz.com) | Transfer playlists between platforms |
+
+---
+
+## About
+
+Vibesort started as a personal tool — a way to properly sort a music library that had grown too big to navigate by feel alone. The impetus was a friend whose musical taste was too specific and too good to be served by Spotify's algorithmic playlists.
+
+If your library has moods that Spotify's recommendations never quite catch — this was built for that.
