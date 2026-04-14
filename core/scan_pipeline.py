@@ -761,6 +761,54 @@ def execute_library_scan(
                         f"{_top_matched} top tracks prioritised",
                         68,
                     )
+        elif (
+            not (_lf_sess and _lf_sess.get("key"))  # no OAuth session
+        ):
+            # ── Fallback: username-only path (no OAuth, public data) ──────────
+            # User set LASTFM_USERNAME in .env or Connect page without full OAuth.
+            # We can still fetch their public top tracks for a play-count boost.
+            _lf_fallback_user = (
+                getattr(cfg, "LASTFM_USERNAME", "").strip()
+                or (st_session.get("lastfm_username_runtime") if "st_session" in dir() else "")
+            )
+            _lf_fallback_key = (
+                getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+                or getattr(cfg, "LASTFM_API_KEY", "").strip()
+            )
+            if _lf_fallback_user and _lf_fallback_key:
+                try:
+                    from core import lastfm as _lf_pub_mod
+                    step(f"Last.fm public top tracks for {_lf_fallback_user}...", 67)
+                    _lf_fallback_lookup: dict[str, str] = {}
+                    for _t in all_tracks:
+                        _t_uri = _t.get("uri", "")
+                        if not _t_uri:
+                            continue
+                        for _a in (_t.get("artists") or []):
+                            _a_n = "_".join(_a.get("name", "").lower().split())
+                            _t_n = "_".join(_t.get("name", "").lower().split())
+                            if _a_n and _t_n:
+                                _lf_fallback_lookup[f"{_a_n}|||{_t_n}"] = _t_uri
+                                break
+                    _lf_pub_top = _lf_pub_mod.get_user_top_tracks(
+                        _lf_fallback_key, _lf_fallback_user, period="6month", limit=200
+                    )
+                    _pub_matched = 0
+                    for _lk, _lw in _lf_pub_top.items():
+                        _pu = _lf_fallback_lookup.get(_lk)
+                        if _pu:
+                            _lb_top_uris[_pu] = max(
+                                _lb_top_uris.get(_pu, 1.0), 1.0 + (_lw * 0.09)
+                            )
+                            _pub_matched += 1
+                    if _pub_matched:
+                        step(
+                            f"Last.fm public boost — {_pub_matched} top tracks prioritised "
+                            f"(username-only, no OAuth — connect via Last.fm for loved tracks too)",
+                            68,
+                        )
+                except Exception as _lf_pub_err:
+                    step(f"Last.fm public boost skipped: {_lf_pub_err}", 68)
     except Exception as _lf_user_err:
         step(f"Last.fm personal boost skipped: {_lf_user_err}", 68)
 
@@ -1423,6 +1471,37 @@ def execute_library_scan(
             "top_tags": _top_tags,
         }
 
+    # ── Streaming history play-count boost ────────────────────────────────────
+    # Read StreamingHistory_music_*.json (from data/ or data/streaming_history/).
+    # Frequently-played tracks earn a small multiplier (≤1.12×) merged into
+    # the same _lb_top_uris dict used by ListenBrainz / Last.fm boosts.
+    try:
+        history_entries = history_parser.load("data")
+        history_stats = history_parser.stats(history_entries) if history_entries else {}
+        history_uris = history_parser.sorted_uris(history_entries) if history_entries else []
+        if history_entries:
+            _hist_counts = history_parser.play_counts(history_entries)
+            _hist_max = max(_hist_counts.values(), default=1) or 1
+            _hist_matched = 0
+            # Build a URI→play_count lookup for the user's library
+            _uri_set = {t.get("uri", t.get("id", "")) for t in all_tracks if t}
+            for _h_uri, _h_cnt in _hist_counts.items():
+                if _h_uri in _uri_set:
+                    _norm = _h_cnt / _hist_max
+                    if _norm >= 0.1:   # ignore <10% of max plays (one-offs)
+                        _h_boost = 1.02 + (_norm * 0.10)   # range: 1.03–1.12×
+                        _lb_top_uris[_h_uri] = max(_lb_top_uris.get(_h_uri, 1.0), _h_boost)
+                        _hist_matched += 1
+            if _hist_matched:
+                step(f"Streaming history — {_hist_matched} frequently-played tracks boosted", 88)
+        else:
+            history_stats = {}
+            history_uris = []
+    except Exception as _hist_err:
+        history_stats = {}
+        history_uris = []
+        step(f"Streaming history skipped: {_hist_err}", 88)
+
     if _lb_top_uris:
         _lb_boosted: dict = {}
         for _mn, _md in mood_results.items():
@@ -1484,11 +1563,6 @@ def execute_library_scan(
             observed_mood_tags[_mn] = _tag_agg
 
     step(f"Found {len(mood_results)} vibes in your library", 90)
-
-    history_entries = history_parser.load("data")
-    history_stats = history_parser.stats(history_entries) if history_entries else {}
-    history_uris = history_parser.sorted_uris(history_entries) if history_entries else []
-
     step("Scan complete.", 100)
 
     # Spotify artist popularity (0–100) — public field; complements track popularity for "obscurity"

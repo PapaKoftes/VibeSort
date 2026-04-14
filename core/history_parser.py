@@ -13,10 +13,26 @@ from datetime import datetime
 
 
 def load(data_dir: str = "data") -> list[dict]:
-    pattern = os.path.join(data_dir, "StreamingHistory*.json")
-    files = glob.glob(pattern)
+    """
+    Load streaming history entries from:
+      • data/StreamingHistory_music_*.json   (original drop location)
+      • data/streaming_history/*.json        (Connect page upload location)
+    """
+    patterns = [
+        os.path.join(data_dir, "StreamingHistory*.json"),
+        os.path.join(data_dir, "streaming_history", "*.json"),
+    ]
+    files: list[str] = []
+    seen: set[str] = set()
+    for pat in patterns:
+        for path in sorted(glob.glob(pat)):
+            real = os.path.realpath(path)
+            if real not in seen:
+                seen.add(real)
+                files.append(path)
+
     entries = []
-    for path in sorted(files):
+    for path in files:
         with open(path, "r", encoding="utf-8") as f:
             try:
                 entries.extend(json.load(f))
