@@ -3,7 +3,7 @@
 > *Your music library, finally sorted by feeling.*
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Vibesort home screen" width="800"/>
+  <img src="docs/vibesort_demo.gif" alt="Vibesort demo — mood playlists, signal badges, emotional fingerprint" width="900"/>
 </p>
 
 You know that feeling when a song hits exactly right for the moment? Vibesort is built around that. It reads your Spotify library and sorts everything into **87 mood playlists** — not by BPM or energy level, but by what the music actually *feels* like. Hollow for 3am existential spirals. Villain Arc for when you need to feel unstoppable. Late Night Drive for exactly what it sounds like.
@@ -84,7 +84,7 @@ Deploy All → Spotify  (one click)
 ```
 
 <p align="center">
-  <img src="docs/screenshots/scan.png" alt="Library Scan page" width="800"/>
+  <img src="docs/screenshots/home_dashboard.png" alt="Home dashboard — emotional fingerprint, Start Here CTA, stats" width="900"/>
 </p>
 
 ---
@@ -156,12 +156,16 @@ PRs welcome. Good places to start:
 ---
 
 <p align="center">
-  <img src="docs/screenshots/vibes.png" alt="Vibes page showing mood playlist cards" width="800"/>
+  <img src="docs/screenshots/vibes_cards.png" alt="Vibes page — mood cards with fit quality and Build Playlist" width="900"/>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/genres.png" alt="Genre Playlists" width="390" style="display:inline-block; margin-right:8px"/>
-  <img src="docs/screenshots/stats.png" alt="Taste Report / Stats" width="390" style="display:inline-block"/>
+  <img src="docs/screenshots/signal_badges.png" alt="Signal badges — anchor, personal, similarity, Last.fm, lyrics" width="440" style="display:inline-block; margin-right:8px"/>
+  <img src="docs/screenshots/fingerprint.png" alt="Emotional Fingerprint chart" width="440" style="display:inline-block"/>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/mood_atlas.png" alt="Mood Atlas — top 30 vibes bar chart" width="900"/>
 </p>
 
 ---
