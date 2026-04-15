@@ -65,8 +65,10 @@ jobs:
           $ROBOCOPY_EXCLUDEFILES = "*.pyc .env .env.* .vibesort_pkce_token.json .vibesort_pkce_state .vibesort_cache vibesort-*.zip"
 
           robocopy . $STAGING /E /XD $ROBOCOPY_EXCLUDEDIRS /XF $ROBOCOPY_EXCLUDEFILES /NFL /NDL /NJH /NJS
-          # robocopy exit code 1 = success with copies; treat as OK
+          # robocopy exit codes 0-7 are all success; >7 indicates real error.
+          # Reset $LASTEXITCODE so it does not leak into the step's exit code.
           if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
+          $LASTEXITCODE = 0
 
           # Write a VERSION file
           $VERSION | Out-File -FilePath "$STAGING\VERSION" -Encoding UTF8 -NoNewline
