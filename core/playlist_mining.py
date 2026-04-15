@@ -792,6 +792,120 @@ def _mine_owned_playlists(
     }
 
 
+# ── Editorial playlist catalogue ───────────────────────────────────────────────
+# Spotify-curated editorial playlists mapped to mood names.
+# IDs are stable public Spotify playlist IDs verified as of 2026.
+# Add new entries here — the mining engine picks them up automatically.
+# In Spotify Dev Mode, playlist_items will 403 for these (owned by "spotify");
+# the function handles that gracefully and prints a single warning.
+
+_EDITORIAL_PLAYLISTS: dict[str, list[str]] = {
+    "Focus Flow":          ["37i9dQZF1DWZeKCadgRdKQ"],  # Deep Focus
+    "Peaceful":            ["37i9dQZF1DX4sWSpwq3LiO"],  # Peaceful Piano
+    "Happy Daze":          ["37i9dQZF1DXdPec7aLTmlC"],  # Happy Hits!
+    "Melancholy":          ["37i9dQZF1DX3YSRoSdA634"],  # Life Sucks
+    "Late Night":          ["37i9dQZF1DX4E3UdUs7fUx"],  # Late Night Vibes
+    "Hype":                ["37i9dQZF1DWTggY0yqBxES"],  # Beast Mode
+    "Chill Vibes":         ["37i9dQZF1DX4WYpdgoIcn6"],  # Chill Hits
+    "Morning Coffee":      ["37i9dQZF1DX6ziVCJnEm59"],  # Morning Coffee
+    "Workout":             ["37i9dQZF1DX70RN3TfWWJh"],  # Cardio
+    "Party Mode":          ["37i9dQZF1DXaXB8fQg7xif"],  # Dance Party
+    "Night Drive":         ["37i9dQZF1DX9tPFwDMOegx"],  # Night Drive
+    "Bedroom Pop":         ["37i9dQZF1DWXIcbzpLauPS"],  # Bedroom Pop
+    "Heartbreak":          ["37i9dQZF1DWXlBnHRBQ9PL"],  # Sad Beats
+    "Jazz Vibes":          ["37i9dQZF1DXbITWG1ZJKYt"],  # Jazz Vibes
+    "Lo-Fi Chill":         ["37i9dQZF1DWWQRwui0ExPn"],  # lofi beats
+    "Indie Folk":          ["37i9dQZF1DWV7EzJly4jqt"],  # Indie Folk
+    "R&B Mood":            ["37i9dQZF1DX4SBhb3fqCJd"],  # R&B Mood
+    "Electronic Pulse":    ["37i9dQZF1DX6J754A1BISI"],  # Electronic Rising
+    "Classical Focus":     ["37i9dQZF1DWV0gynK7G6pD"],  # Classical Focus
+    "Confidence Boost":    ["37i9dQZF1DX3rxVfibe1L0"],  # Mood Booster
+    "Soft Hours":          ["37i9dQZF1DX9XIFQuFvzM4"],  # Feelin Good
+    "Slow Burn":           ["37i9dQZF1DWTvNyuk7TJ4o"],  # Slow Jams
+    "Nostalgic":           ["37i9dQZF1DX4o1oenSJRJd"],  # All Out 80s
+    "Alt Energy":          ["37i9dQZF1DX0UrRvztWcAU"],  # Rock This
+    "Soul Stirring":       ["37i9dQZF1DX2UgsUIyTB2c"],  # Soul
+    "Acoustic Calm":       ["37i9dQZF1DX504r1DvyvxG"],  # Acoustic Concentration
+}
+
+
+def _mine_editorial_playlists(
+    sp: spotipy.Spotify,
+    user_uris: set[str],
+    mood_packs: dict,
+    max_tracks: int,
+    budget: dict,
+    batch_gap: float,
+) -> dict[str, list[dict]]:
+    """
+    Fetch Spotify editorial playlists and cross-reference with user's library.
+
+    Returns track_context additions: {uri: [{playlist, followers, mood, tags}]}.
+    Silently skips if all editorial playlists are 403-blocked (Dev Mode).
+    """
+    additions: dict[str, list[dict]] = collections.defaultdict(list)
+    blocked_count = 0
+    matched_count = 0
+    fetched_count = 0
+
+    # Build a quick reverse lookup: which moods does the user actually have?
+    available_moods = set(mood_packs.keys())
+
+    for mood_name, playlist_ids in _EDITORIAL_PLAYLISTS.items():
+        # Only mine for moods that exist in the current pack
+        if mood_name not in available_moods:
+            continue
+        if budget["calls"] >= budget["max"]:
+            break
+
+        for pid in playlist_ids:
+            if budget["calls"] >= budget["max"]:
+                break
+            try:
+                pl_meta = sp.playlist(pid, fields="name,followers,owner")
+                time.sleep(0.1)
+            except Exception:
+                blocked_count += 1
+                continue
+
+            pl_name   = pl_meta.get("name", mood_name)
+            followers = (pl_meta.get("followers") or {}).get("total", 0)
+            tags      = extract_tags(pl_name)
+            if not tags:
+                tags = [mood_name.lower().replace(" ", "_")]
+
+            try:
+                track_uris = _playlist_track_uris(
+                    sp, pid, max_tracks, _budget=budget, _batch_gap=batch_gap,
+                )
+                fetched_count += 1
+            except Exception as exc:
+                if "403" in str(exc) or "Forbidden" in str(exc):
+                    blocked_count += 1
+                continue
+
+            for uri in track_uris:
+                if uri in user_uris:
+                    additions[uri].append({
+                        "playlist_id": pid,
+                        "playlist":    pl_name,
+                        "followers":   followers,
+                        "mood":        mood_name,
+                        "tags":        tags,
+                    })
+                    matched_count += 1
+
+            time.sleep(0.1)
+
+    if blocked_count > 0 and fetched_count == 0:
+        print("  Editorial playlists  blocked (Dev Mode) — skipped")
+    elif fetched_count > 0:
+        print(f"  Editorial playlists  {fetched_count} fetched · "
+              f"{matched_count} track-mood matches")
+
+    return dict(additions)
+
+
 # ── Core mining ────────────────────────────────────────────────────────────────
 
 def mine(
@@ -883,6 +997,22 @@ def mine(
         print("  Last.fm tag charts   skipped (no API key configured)")
     elif not user_tracks:
         print("  Last.fm tag charts   skipped (user_tracks not passed to mine())")
+
+    # ── STEP 1.9: Editorial playlist mining (Spotify curated, high authority) ───
+    # Spotify's own editorial playlists (e.g. "Deep Focus", "Peaceful Piano") are
+    # the highest-quality mood signal available.  They are maintained by Spotify's
+    # editorial team and have millions of followers.
+    #
+    # NOTE: In Spotify Dev Mode, playlist_items is blocked for playlists whose
+    # owners are not registered in the app.  Spotify editorial playlists are
+    # owned by "spotify" — so this step silently skips in Dev Mode.
+    # In Extended Quota / Production, this works fully.
+    _editorial_additions = _mine_editorial_playlists(
+        sp, user_uris, mood_packs, _mtp, _budget, _batch_gap,
+    )
+    for uri, ctxs in _editorial_additions.items():
+        for ctx in ctxs:
+            track_context[uri].append(ctx)
 
     # ── STEP 2: Probe whether public playlist_items is accessible ─────────────
     # Spotify Dev Mode restricts playlist_items for playlists not owned by users

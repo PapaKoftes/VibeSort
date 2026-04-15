@@ -245,6 +245,31 @@ if os.path.exists(_sem_path):
     except Exception as _se:
         check("semantic_embed imports", False, str(_se))
 
+# acousticbrainz / local audio module
+_ab_path = os.path.join(ROOT, "core", "acousticbrainz.py")
+check("core/acousticbrainz.py exists", os.path.exists(_ab_path))
+if os.path.exists(_ab_path):
+    try:
+        from core.acousticbrainz import is_available as _ab_avail
+        check("librosa available (local audio analysis)", _ab_avail(),
+              "pip install librosa — needed only for local file analysis", warn=True)
+    except Exception as _ab_e:
+        check("acousticbrainz imports", False, str(_ab_e))
+
+# vibe_sentence coverage
+_vs_missing = [n for n, m in packs.items() if not m.get("vibe_sentence", "").strip()]
+check("All moods have vibe_sentence", len(_vs_missing) == 0,
+      f"{len(_vs_missing)} missing — run scripts/patch_packs.py", warn=len(_vs_missing) > 0)
+
+# anti_mood coverage
+_am_missing = [n for n, m in packs.items() if not m.get("anti_mood")]
+check("All moods have anti_mood", len(_am_missing) == 0,
+      f"{len(_am_missing)} missing — run scripts/patch_packs.py", warn=len(_am_missing) > 0)
+
+# Mood count target (≥ 87 after new moods added)
+check("Mood count ≥ 87 (target with new moods)", len(packs) >= 87,
+      f"actual={len(packs)} — run scripts/patch_packs.py to add new moods", warn=len(packs) < 87)
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 print("\n── Summary ─────────────────────────────────────────────────────────────")
 print(f"  Failures: {len(failures)}")

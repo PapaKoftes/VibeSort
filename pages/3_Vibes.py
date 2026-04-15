@@ -326,6 +326,9 @@ for row_start in range(0, len(sorted_moods), cols_per_row):
                 st.markdown(f"### {mood_display_name(mood_name)}")
                 try:
                     pack = get_mood(mood_name) or {}
+                    vibe_sent = pack.get("vibe_sentence", "")
+                    if vibe_sent:
+                        st.markdown(f"*{vibe_sent}*")
                     desc = pack.get("description", "")
                     if desc:
                         st.caption(desc)
