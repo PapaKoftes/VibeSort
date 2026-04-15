@@ -49,7 +49,7 @@ This helps us tune the conflict rules and anchor set.
 
 ### Suggest New Mood Packs
 
-Vibesort currently has 87 mood packs. If you have a clear vision for a new one:
+Vibesort currently has 110 mood packs. If you have a clear vision for a new one:
 
 1. Open an issue titled `[New Mood] Your Mood Name`
 2. Describe the vibe in 2–3 sentences

@@ -6,7 +6,7 @@
   <img src="docs/vibesort_demo.gif" alt="Vibesort demo — mood playlists, signal badges, emotional fingerprint" width="900"/>
 </p>
 
-You know that feeling when a song hits exactly right for the moment? Vibesort is built around that. It reads your Spotify library and sorts everything into **87 mood playlists** — not by BPM or energy level, but by what the music actually *feels* like. Hollow for 3am existential spirals. Villain Arc for when you need to feel unstoppable. Late Night Drive for exactly what it sounds like.
+You know that feeling when a song hits exactly right for the moment? Vibesort is built around that. It reads your Spotify library and sorts everything into **110 mood playlists** — not by BPM or energy level, but by what the music actually *feels* like. Hollow for 3am existential spirals. Villain Arc for when you need to feel unstoppable. Late Night Drive for exactly what it sounds like.
 
 ---
 
@@ -35,7 +35,7 @@ Vibesort uses a multi-signal scoring engine — not just one data source, but fi
 Vibesort layers five signals — tags (Last.fm, lyrics, Deezer, Discogs), semantic matching, genre hierarchy, and metadata proxy — weighted and combined per track. The result is playlists that feel right, not just sound similar.
 
 **Spotify killed their audio-features API in late 2024.** Vibesort routes around it via three ground-truth pillars:
-1. **87 curated mood anchors** — 3–5 hand-picked seed tracks per mood that inject the strongest possible signal when found in your library
+1. **110 mood anchors** — 12+ hand-curated seed tracks per mood that inject the strongest possible signal when found in your library
 2. **Last.fm similarity graph** — BFS propagation through your library using track similarity data
 3. **Last.fm tag chart mining** — crowd-sourced mood tags from millions of listeners
 
@@ -43,17 +43,18 @@ Vibesort layers five signals — tags (Last.fm, lyrics, Deezer, Discogs), semant
 
 ## What you get
 
-- **87 mood playlists** — Hollow, Villain Arc, Late Night Drive, Phonk Season, Rewire, Dissolve, and 81 more
+- **110 mood playlists** — Hollow, Villain Arc, Late Night Drive, Phonk Season, Rewire, Dissolve, and 104 more
 
 <details>
 <summary>See all mood categories</summary>
 
-**Dark / Introspective:** Hollow · 3 AM Unsent Texts · Rainy Window · Smoke & Mirrors · Midnight Spiral · Heartbreak Hotel · Grief Sequence  
-**Power / Energy:** Villain Arc · Rage Lift · Hard Reset · Adrenaline · Phonk Season · Drill Mode  
-**Chill / Focus:** Late Night Drive · Lo-Fi Corner · Deep Focus · Sunday Reset · Golden Hour · Acoustic Corner  
-**Party / Dance:** Afterparty · Hyperpop Overload · Rave Brain · Latin Heat · Queer Anthem  
-**Story / Roots:** Nostalgia Rush · Bedroom Pop · Folk & Feel · Road Songs · Indie Daydream  
-*…and 62 more across 87 total moods.*
+**Dark / Introspective:** Hollow · 3 AM Unsent Texts · Rainy Window · Smoke & Mirrors · Midnight Spiral · Heartbreak Hotel · Grief Sequence · Grief Wave · Winter Dark · Bedroom Confessions · Sea of Feels  
+**Power / Energy:** Villain Arc · Rage Lift · Hard Reset · Adrenaline · Phonk Season · Drill Mode · Boxing Ring · Rage Quit · Running Fuel · Breakup Bravado  
+**Chill / Focus:** Late Night Drive · Lo-Fi Corner · Deep Focus · Sunday Reset · Golden Hour · Acoustic Corner · Coffee Shop Folk · Work Mode · Morning Coffee · Acoustic Soul  
+**Party / Dance:** Afterparty · Hyperpop Overload · Rave Brain · Latin Heat · Queer Anthem · Club Warm-Up · Dance Alone · Trap & Chill · New City Energy  
+**Story / Roots:** Nostalgia Rush · Bedroom Pop · Folk & Feel · Road Songs · Indie Daydream · Campfire Sessions · Protest Songs · Piano Bar · Midnight Gospel  
+**Cinematic / Expansive:** Cinematic Swell · Retro Future · Epic Gaming · Tenderness  
+*…and more across 110 total moods.*
 
 </details>
 
@@ -61,7 +62,7 @@ Vibesort layers five signals — tags (Last.fm, lyrics, Deezer, Discogs), semant
 - **Era playlists** — by decade
 - **Artist spotlights** — one playlist per artist with 8+ songs in your library
 - **Emotional Fingerprint** — a visual breakdown of your library's emotional DNA (DARK / POWER / CHILL / PARTY / STORY)
-- **Mood Atlas** — see all 87 moods and which ones are missing from your library (with discovery suggestions)
+- **Mood Atlas** — see all 110 moods and which ones are missing from your library (with discovery suggestions)
 - **Taste Map** — explore your library's clusters visually
 - **Staging shelf** — queue playlists, rename them, preview tracks, then batch-deploy to Spotify in one click
 - **Blend** — multi-user blend, genre-aware, better than Spotify's (supports 3+ people)
@@ -130,8 +131,8 @@ Vibesort/
 ├── tests/              60+ unit tests + audit script
 │
 └── data/
-    ├── packs.json          87 mood definitions
-    ├── mood_anchors.json   361 curated seed tracks
+    ├── packs.json          110 mood definitions
+    ├── mood_anchors.json   1,389 curated seed tracks (12+ per mood)
     └── macro_genres.json   Genre mapping rules
 ```
 

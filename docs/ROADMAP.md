@@ -8,8 +8,8 @@
 ## Where we are right now
 
 **What works well:**
-- 87 mood definitions with semantic cores, audio targets, forbidden signals, genre constraints
-- 546 human-curated anchor tracks (6.3 avg per mood) — the strongest signal we have
+- 110 mood definitions with semantic cores, audio targets, forbidden signals, genre constraints
+- 1,389 human-curated anchor tracks (12.6 avg per mood) — the strongest signal we have
 - Multi-signal scoring: tags × semantic × genre × audio proxy
 - Graph propagation via Last.fm similarity — finds tracks adjacent to anchors
 - Cohesion filtering — playlists that don't feel random
@@ -88,7 +88,7 @@ The caching system is already well-designed in code. The problem is that users (
 
 | File | What it stores | TTL | Incremental? | Safe to clear? |
 |---|---|---|---|---|
-| `.mining_cache.json` | Last.fm tag charts + playlist mining results for all 87 moods | **30 days** (auto-expires) | No — full re-mine on miss | Yes, costs ~55s |
+| `.mining_cache.json` | Last.fm tag charts + playlist mining results for all 110 moods | **30 days** (auto-expires) | No — full re-mine on miss | Yes, costs ~55s |
 | `.lastfm_cache.json` | Artist tag dictionaries + track tag dictionaries + similarity graph | **None** (permanent) | Yes — only uncached tracks fetched | Careful — full re-fetch costs 3-10 min for large libraries |
 | `.deezer_cache.json` | Artist genres + per-track BPM/gain/rank | **None** (permanent) | Yes — only uncached tracks fetched | Yes for tracks sub-key; artist key is fast |
 | `.audiodb_cache.json` | Artist/track mood + energy data from TheAudioDB | **None** (permanent) | Yes | Yes, costs ~90s first time |
@@ -143,7 +143,7 @@ Data freshness:
   Deezer BPM        ██████████  3 days old     ✓ fresh
   Playlist mining   ████░░░░░░  18 days old    ✓ fresh (expires in 12 days)
   Lyrics            ██████████  3 days old     ✓ fresh
-  Last scan         ██████████  2 hours ago    2,620 tracks · 87 moods
+  Last scan         ██████████  2 hours ago    2,620 tracks · 110 moods
 ```
 
 #### Mapping cache clearing to scan presets (Phase 3.4)
@@ -293,7 +293,7 @@ These don't affect scoring — they affect the UI and make the product feel like
 **Implementation:**
 - Build weighted similarity graph: edges between tracks sharing tags, anchors, Last.fm similarity
 - Louvain clustering (`python-louvain`, MIT license, pure Python)
-- For each cluster: score it against all 87 moods → assign the best-matching mood label
+- For each cluster: score it against all 110 moods → assign the best-matching mood label
 - Report unmatched clusters to user as "discovered" moods without labels
 - This runs post-scoring as an enhancement layer, not a replacement
 
@@ -350,7 +350,7 @@ Custom scan stays available as an "Advanced" collapse.
 ✓ Loaded genre tags — 1,847 tracks enriched
 ⟳ Fetching Last.fm mood data — 847/2620 tracks (2m remaining)
   Pulling similar tracks for your anchors...
-⟳ Running mood scoring — 45/87 moods done
+⟳ Running mood scoring — 45/110 moods done
 ```
 
 ---

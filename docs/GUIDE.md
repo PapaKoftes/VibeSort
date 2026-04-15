@@ -78,7 +78,7 @@ Click **Scan Library**. The first scan takes **3–10 minutes** depending on lib
 2. Pulls genre tags from MusicBrainz and Last.fm
 3. Mines public Spotify playlists to label tracks with human-verified mood signals
 4. Builds profiles for every track combining audio features, genres, tags, and lyrics
-5. Runs each track through 87 mood scorers
+5. Runs each track through 110 mood scorers
 6. Saves a cache so re-scans are instant
 
 After scanning, the results are cached — future launches load in under a second.
@@ -249,7 +249,7 @@ Vibesort/
 │   └── theme.py             App CSS / design tokens
 │
 └── data/
-    ├── packs.json           87 mood preset definitions
+    ├── packs.json           110 mood preset definitions
     ├── macro_genres.json    500+ genre normalization rules
     └── HOW_TO_GET_FULL_HISTORY.md
 ```
