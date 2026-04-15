@@ -31,6 +31,8 @@ jobs:
       # Run the validator — release is blocked if any check FAILs
       - name: Validate release
         run: python scripts/validate_all.py
+        env:
+          PYTHONUTF8: "1"
 
       # Build the portable zip
       # Excludes: .git, __pycache__, .env, secrets, large cache files, dev artifacts
