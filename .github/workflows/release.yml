@@ -83,7 +83,7 @@ jobs:
           Write-Host "Built: $ZIP"
 
           # Export zip name for next step
-          echo "ZIP_NAME=$ZIP" >> $env:GITHUB_ENV
+          Add-Content -Path $env:GITHUB_ENV -Value "ZIP_NAME=$ZIP"
 
       # Create GitHub Release and upload the zip
       - name: Create GitHub Release
