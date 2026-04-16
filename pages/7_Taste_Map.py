@@ -364,11 +364,10 @@ with tab_mine:
                 _lyr_total_tracks = max(len(track_tags_all), 1)
                 _CAP = 0.50  # 50% of library = full bar
                 for mood_key, label in lyr_labels.items():
-                    if mood_key not in lyr_totals:
+                    if mood_key not in lyr_counts:
                         continue
-                    # avg per-track weight × tracks = total weight; divide by
-                    # library size for true prevalence (0.0 – 1.0 range)
-                    prevalence = lyr_totals[mood_key] / _lyr_total_tracks
+                    # % of library tracks that carry this lyric theme (count-based)
+                    prevalence = lyr_counts[mood_key] / _lyr_total_tracks
                     pct = int(prevalence * 100)  # real % of library
                     bar_fill = min(prevalence / _CAP, 1.0)  # normalise to 50% cap
                     bar = "█" * int(bar_fill * 20) + "░" * (20 - int(bar_fill * 20))
