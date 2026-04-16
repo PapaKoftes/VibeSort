@@ -233,6 +233,95 @@ def execute_library_scan(
         except Exception as _lf_err:
             step(f"Last.fm enrichment failed: {_lf_err}", 58)
 
+    # ── Last.fm chart mood injection (Dev Mode playlist-mining substitute) ────
+    # When Spotify's playlist_items API is blocked, we use Last.fm tag charts
+    # as a direct substitute: fetch the top-100 tracks for each mood's tag
+    # vocabulary, match them against the user's library by artist+title, and
+    # inject mood_<slug> tags — the same signal that playlist mining produces.
+    # This is the single highest-impact workaround for Spotify Dev Mode.
+    if _mining_degraded and _lf_key:
+        try:
+            import json as _jchart
+            from core import lastfm as _lf_chart_mod
+
+            _mood_tags_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "data", "mood_lastfm_tags.json",
+            )
+            with open(_mood_tags_path, encoding="utf-8") as _mf:
+                _mood_tag_vocab: dict = _jchart.load(_mf)
+
+            # Normalised library lookup: "artist|||title" → uri
+            _chart_lookup: dict[str, str] = {}
+            for _ct in all_tracks:
+                _c_uri = _ct.get("uri", "")
+                if not _c_uri:
+                    continue
+                for _ca in (_ct.get("artists") or []):
+                    _can = "_".join(_ca.get("name", "").lower().split())
+                    _ctn = "_".join(_ct.get("name", "").lower().split())
+                    if _can and _ctn:
+                        _chart_lookup[f"{_can}|||{_ctn}"] = _c_uri
+                        break
+
+            # Invert: tag → list of mood slugs that use it (deduplicate API calls)
+            _tag_to_slugs: dict[str, list[str]] = {}
+            for _mn, _vocab in _mood_tag_vocab.items():
+                _ms = _mn.lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+                # Only inject for moods the scoring engine knows about
+                if not any(_ms == _mx.lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+                           for _mx in moods):
+                    continue
+                for _mtag in (_vocab or [])[:4]:   # top-4 tags per mood
+                    _tag_to_slugs.setdefault(_mtag, []).append(_ms)
+
+            _lf_cache = _lf_chart_mod._load_cache()
+            _chart_injected = 0
+            _chart_moods_hit: set[str] = set()
+            step(
+                f"Last.fm chart mining — {len(_tag_to_slugs)} tags "
+                f"across {len(_mood_tag_vocab)} moods (Dev Mode substitute)...",
+                59,
+            )
+            for _ctag, _cslugs in _tag_to_slugs.items():
+                try:
+                    _ctracks = _lf_chart_mod.get_tag_top_tracks(
+                        _ctag, limit=100, api_key=_lf_key, cache=_lf_cache
+                    )
+                    for _rank, _ctr in enumerate(_ctracks):
+                        _an = "_".join(_ctr.get("artist", "").lower().split())
+                        _tn = "_".join(_ctr.get("title",  "").lower().split())
+                        _c_uri = _chart_lookup.get(f"{_an}|||{_tn}")
+                        if not _c_uri:
+                            continue
+                        # Weight decays by chart rank (mirrors playlist-mining signal)
+                        _w = (
+                            0.85 if _rank < 10
+                            else 0.75 if _rank < 25
+                            else 0.65 if _rank < 50
+                            else 0.55
+                        )
+                        for _cslug in _cslugs:
+                            _tkey = f"mood_{_cslug}"
+                            _cur  = track_tags.get(_c_uri, {}).get(_tkey, 0.0)
+                            if _w > _cur:
+                                track_tags.setdefault(_c_uri, {})[_tkey] = round(_w, 4)
+                                if _cur == 0.0:
+                                    _chart_injected += 1
+                                _chart_moods_hit.add(_cslug)
+                except Exception:
+                    pass
+
+            _lf_chart_mod._save_cache(_lf_cache)
+            if _chart_injected:
+                step(
+                    f"Last.fm chart tags — {_chart_injected} mood tags on "
+                    f"{len(_chart_moods_hit)} moods injected (playlist-mining substitute)",
+                    60,
+                )
+        except Exception as _lf_chart_err:
+            step(f"Last.fm chart mining skipped: {_lf_chart_err}", 60)
+
     elif not _lf_key:
         try:
             from core import deezer as _dz_mod

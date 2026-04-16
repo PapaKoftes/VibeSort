@@ -63,7 +63,7 @@ W_GENRE            = float(os.getenv("W_GENRE",            "0.18"))
 MINING_FALLBACK_ENRICH_MULT = float(os.getenv("MINING_FALLBACK_ENRICH_MULT", "1.65"))
 
 # Playlist mining — conservative defaults to avoid rate limits / quota burn
-PLAYLISTS_PER_SEED    = int(os.getenv("PLAYLISTS_PER_SEED", "3"))
+PLAYLISTS_PER_SEED    = int(os.getenv("PLAYLISTS_PER_SEED", "5"))
 MINING_FORCE_REFRESH  = os.getenv("MINING_FORCE_REFRESH", "false").lower() == "true"
 # Max track URIs fetched per public playlist (smaller = fewer API pages)
 MINING_MAX_TRACKS_PER_PLAYLIST = int(os.getenv("MINING_MAX_TRACKS_PER_PLAYLIST", "100"))
@@ -73,10 +73,10 @@ MINING_MAX_PLAYLIST_ITEMS_CALLS = int(os.getenv("MINING_MAX_PLAYLIST_ITEMS_CALLS
 MINING_SEARCH_DELAY = float(os.getenv("MINING_SEARCH_DELAY", "0.38"))
 MINING_PLAYLIST_ITEMS_GAP = float(os.getenv("MINING_PLAYLIST_ITEMS_GAP", "0.14"))
 MINING_ITEMS_BATCH_GAP = float(os.getenv("MINING_ITEMS_BATCH_GAP", "0.12"))
-# Seed phrases per mood (fewer = fewer searches)
-MINING_MAX_SEED_PHRASES = int(os.getenv("MINING_MAX_SEED_PHRASES", "2"))
+# Seed phrases per mood (more = wider playlist search net)
+MINING_MAX_SEED_PHRASES = int(os.getenv("MINING_MAX_SEED_PHRASES", "5"))
 # Max anchor playlists processed per mood
-MINING_MAX_ANCHORS_PER_MOOD = int(os.getenv("MINING_MAX_ANCHORS_PER_MOOD", "4"))
+MINING_MAX_ANCHORS_PER_MOOD = int(os.getenv("MINING_MAX_ANCHORS_PER_MOOD", "6"))
 # Max owned playlists to pull items from per scan
 MINING_MAX_OWNED_PLAYLISTS = int(os.getenv("MINING_MAX_OWNED_PLAYLISTS", "200"))
 

@@ -120,6 +120,19 @@ USE_PKCE  = bool(SHARED_ID)
 USE_OAUTH = _creds_ok(USER_ID, USER_SEC)
 CLIENT_ID = SHARED_ID or USER_ID   # whichever is active
 
+# ── Restore Last.fm session from disk on every cold start ─────────────────────
+# session_state is ephemeral — after a restart the UI would show "not connected"
+# even though the session file on disk is valid. Load it once here so the
+# connect status and the scan pipeline see the same state.
+if "lastfm_session" not in st.session_state:
+    try:
+        from core.lastfm import load_session as _lf_disk_load
+        _disk_sess = _lf_disk_load()
+        if _disk_sess and _disk_sess.get("key") and _disk_sess.get("name"):
+            st.session_state["lastfm_session"] = _disk_sess
+    except Exception:
+        pass
+
 
 # ── Already connected ─────────────────────────────────────────────────────────
 if st.session_state.get("spotify_token"):
@@ -134,11 +147,50 @@ if st.session_state.get("spotify_token"):
         if img:
             st.image(img, width=56)
     with c2:
-        st.success(f"Connected as **{name}**")
+        st.success(f"✅ Spotify — connected as **{name}**")
     st.write("")
+
+    # ── Inline Last.fm status — shown right next to Spotify so users connect both
+    _inline_lf_sess  = st.session_state.get("lastfm_session") or {}
+    _inline_lf_user  = _inline_lf_sess.get("name", "")
+    _lf_k_i, _lf_s_i = _lf_app_creds()
+
+    if _inline_lf_user:
+        st.success(f"✅ Last.fm — connected as **{_inline_lf_user}**")
+    elif _lf_k_i:
+        st.info(
+            "**Connect Last.fm** for personalised mood tags and listening history — "
+            "strongly recommended for best playlist quality."
+        )
+        from core.lastfm import generate_auth_url as _lf_inline_url
+        _inline_lf_oauth = _lf_inline_url(_lf_k_i)
+        st.markdown(
+            f"""
+            <a href="{_inline_lf_oauth}" target="_self" style="
+                display: block;
+                width: 100%;
+                padding: 0.60rem 1rem;
+                text-align: center;
+                background: #d51007;
+                color: #ffffff;
+                border-radius: 8px;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 1rem;
+                font-weight: 600;
+                text-decoration: none;
+                letter-spacing: 0.04em;
+                border: 1px solid #8b0000;
+                box-shadow: 0 0 12px #d5100744;
+            ">Connect Last.fm →</a>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption("You'll be taken to Last.fm to authorise, then returned here automatically.")
+        st.write("")
+
     if st.button("Scan Library", type="primary", use_container_width=True):
         st.switch_page("pages/2_Scan.py")
-    if st.button("Disconnect", use_container_width=True):
+    if st.button("Disconnect Spotify", use_container_width=True):
         for k in ["spotify_token", "sp", "me", "vibesort", "pkce_token"]:
             st.session_state.pop(k, None)
         if USE_PKCE:
