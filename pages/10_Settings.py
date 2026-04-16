@@ -522,13 +522,16 @@ with st.expander("View current values and explanations"):
         st.markdown("**Current values**")
         settings = {
             "PLAYLIST_PREFIX":          getattr(cfg, "PLAYLIST_PREFIX", "Vibesort: "),
-            "MAX_TRACKS_PER_PLAYLIST":  getattr(cfg, "MAX_TRACKS_PER_PLAYLIST", 50),
+            "MAX_TRACKS_PER_PLAYLIST":  getattr(cfg, "MAX_TRACKS_PER_PLAYLIST", 75),
+            "RECS_PER_PLAYLIST":        getattr(cfg, "RECS_PER_PLAYLIST", 22),
+            "MIN_PLAYLIST_TOTAL":       getattr(cfg, "MIN_PLAYLIST_TOTAL", 30),
             "MIN_SONGS_PER_GENRE":      getattr(cfg, "MIN_SONGS_PER_GENRE", 5),
             "MIN_SONGS_PER_ARTIST":     getattr(cfg, "MIN_SONGS_PER_ARTIST", 8),
-            "COHESION_THRESHOLD":       getattr(cfg, "COHESION_THRESHOLD", 0.60),
-            "W_METADATA_AUDIO":         getattr(cfg, "W_METADATA_AUDIO", 0.10),
-            "W_TAGS":                   getattr(cfg, "W_TAGS", 0.46),
-            "W_SEMANTIC":               getattr(cfg, "W_SEMANTIC", 0.26),
+            "COHESION_THRESHOLD":       getattr(cfg, "COHESION_THRESHOLD", 0.55),
+            "NICHE_MOODS_GENRE_GATE":   getattr(cfg, "NICHE_MOODS_GENRE_GATE", 3),
+            "W_METADATA_AUDIO":         getattr(cfg, "W_METADATA_AUDIO", 0.15),
+            "W_TAGS":                   getattr(cfg, "W_TAGS", 0.45),
+            "W_SEMANTIC":               getattr(cfg, "W_SEMANTIC", 0.22),
             "W_GENRE":                  getattr(cfg, "W_GENRE", 0.18),
             "ALLOW_MVP_FALLBACK":       getattr(cfg, "ALLOW_MVP_FALLBACK", True),
             "MVP_MIN_PLAYLIST_SIZE":    getattr(cfg, "MVP_MIN_PLAYLIST_SIZE", 22),
@@ -542,9 +545,12 @@ with st.expander("View current values and explanations"):
             """
 - `PLAYLIST_PREFIX` — prefix on all deployed playlist names
 - `MAX_TRACKS_PER_PLAYLIST` — hard cap per mood/genre playlist
+- `RECS_PER_PLAYLIST` — max Spotify recommendations added to pad a playlist
+- `MIN_PLAYLIST_TOTAL` — minimum tracks (library + recs) a mood must reach to survive; playlists shorter than this are dropped
 - `MIN_SONGS_PER_GENRE` — min tracks for a genre playlist to appear
 - `MIN_SONGS_PER_ARTIST` — min tracks for an artist spotlight
-- `COHESION_THRESHOLD` — baseline for audio outlier trimming
+- `COHESION_THRESHOLD` — baseline cohesion gate (adjusted by strictness slider)
+- `NICHE_MOODS_GENRE_GATE` — min library tracks matching a mood's genres before that mood is even attempted; lower to 1–2 in Dev Mode for wider coverage
 - `W_METADATA_AUDIO` / `W_TAGS` / `W_SEMANTIC` / `W_GENRE` — scoring weights (must sum to 1.0)
 - `ALLOW_MVP_FALLBACK` — relax scoring when a mood has very few matches
 - `MVP_MIN_PLAYLIST_SIZE` / `MVP_SCORE_FLOOR` — MVP pass trigger and floor
@@ -588,14 +594,23 @@ LISTENBRAINZ_TOKEN=
 LISTENBRAINZ_USERNAME=
 
 # ── Playlist settings
-PLAYLIST_PREFIX=Vibesort:
-MAX_TRACKS_PER_PLAYLIST=50
+# PLAYLIST_PREFIX omitted — defaults to "Vibesort: " (with space) from config.py
+MAX_TRACKS_PER_PLAYLIST=75
+RECS_PER_PLAYLIST=22
+MIN_PLAYLIST_TOTAL=30
 MIN_SONGS_PER_GENRE=5
 MIN_SONGS_PER_ARTIST=8
-COHESION_THRESHOLD=0.60
+COHESION_THRESHOLD=0.55
+# NICHE_MOODS_GENRE_GATE=3   # lower to 1-2 in Dev Mode for wider mood coverage
 ALLOW_MVP_FALLBACK=true
 MVP_MIN_PLAYLIST_SIZE=22
 MVP_SCORE_FLOOR=0.15
+
+# ── Scoring weights (must sum to 1.0)
+W_METADATA_AUDIO=0.15
+W_TAGS=0.45
+W_SEMANTIC=0.22
+W_GENRE=0.18
 """
 st.code(env_template, language="bash")
 

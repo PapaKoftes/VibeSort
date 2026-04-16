@@ -228,9 +228,9 @@ for staged in staged_playlists:
                 except Exception:
                     pass
         try:
-            _min_t = int(getattr(cfg, "MIN_PLAYLIST_TOTAL", 25)) if cfg else 25
+            _min_t = int(getattr(cfg, "MIN_PLAYLIST_TOTAL", 30)) if cfg else 30
         except Exception:
-            _min_t = 25
+            _min_t = 30
         _pred_total = len(track_uris) + (len(rec_uris) if expand_recs else 0)
         if _pred_total < _min_t and expand_recs:
             st.caption(

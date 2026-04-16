@@ -461,7 +461,7 @@ if _show_custom:
         st.session_state["playlist_min_size"] = st.slider(
             "Minimum tracks per mood",
             min_value=15, max_value=60,
-            value=int(st.session_state.get("playlist_min_size", 25)),
+            value=int(st.session_state.get("playlist_min_size", 20)),
             key="custom_pl_min",
         )
         st.session_state["scan_max_tracks"] = st.slider(

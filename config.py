@@ -38,6 +38,9 @@ MIN_SONGS_PER_GENRE    = int(os.getenv("MIN_SONGS_PER_GENRE", "5"))
 MIN_SONGS_PER_ERA      = int(os.getenv("MIN_SONGS_PER_ERA", "5"))
 MIN_SONGS_PER_ARTIST   = int(os.getenv("MIN_SONGS_PER_ARTIST", "8"))
 COHESION_THRESHOLD     = float(os.getenv("COHESION_THRESHOLD", "0.55"))
+# Min library tracks matching a mood's preferred genres before that mood is considered.
+# Lower = more moods attempted (useful in Dev Mode with thin genre data).
+NICHE_MOODS_GENRE_GATE = int(os.getenv("NICHE_MOODS_GENRE_GATE", "3"))
 
 # When a mood has fewer than this many passing tracks, rank_tracks can relax gates (MVP pass).
 MVP_MIN_PLAYLIST_SIZE  = int(os.getenv("MVP_MIN_PLAYLIST_SIZE", "22"))

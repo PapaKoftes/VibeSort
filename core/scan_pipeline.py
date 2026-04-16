@@ -883,7 +883,7 @@ def execute_library_scan(
             # We can still fetch their public top tracks for a play-count boost.
             _lf_fallback_user = (
                 getattr(cfg, "LASTFM_USERNAME", "").strip()
-                or (st_session.get("lastfm_username_runtime") if "st_session" in dir() else "")
+                or ""  # st.session_state not available in pipeline scope; use cfg.LASTFM_USERNAME
             )
             _lf_fallback_key = (
                 getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
@@ -1351,10 +1351,10 @@ def execute_library_scan(
     _has_tags = bool(track_tags)
     _has_genres = any(v for v in artist_genres_map.values() if v)
 
-    _w_tags = float(getattr(cfg, "W_TAGS", 0.46))
-    _w_sem = float(getattr(cfg, "W_SEMANTIC", 0.26))
+    _w_tags = float(getattr(cfg, "W_TAGS", 0.45))
+    _w_sem = float(getattr(cfg, "W_SEMANTIC", 0.22))
     _w_gen = float(getattr(cfg, "W_GENRE", 0.18))
-    _w_proxy = float(getattr(cfg, "W_METADATA_AUDIO", 0.10))
+    _w_proxy = float(getattr(cfg, "W_METADATA_AUDIO", 0.15))
     if _has_genres and _has_tags:
         _weights = (_w_proxy, _w_tags, _w_sem, _w_gen)
     elif _has_tags:
@@ -1454,7 +1454,7 @@ def execute_library_scan(
 
     _aw, _tw, _sw = scorer.cohesion_signal_weights(profiles)
 
-    _NICHE_MOODS_GENRE_GATE = 3
+    _NICHE_MOODS_GENRE_GATE = int(getattr(cfg, "NICHE_MOODS_GENRE_GATE", 3))
 
     def _library_genre_count(mood_nm: str) -> int:
         pref = scorer.mood_preferred_genres(mood_nm)
@@ -1503,7 +1503,7 @@ def execute_library_scan(
             pool,
             profiles,
             mood_name,
-            threshold=None,
+            threshold=_cohesion_thresh,
             audio_weight=_aw,
             tag_weight=_tw,
             semantic_weight=_sw,
@@ -1516,7 +1516,7 @@ def execute_library_scan(
 
         # Artist diversity — without audio features tags are artist-level signals,
         # so one artist dominates. Cap at 3 tracks per artist per playlist.
-        _max_artist = int(getattr(cfg, "MAX_TRACKS_PER_ARTIST", 3))
+        _max_artist = int(getattr(cfg, "MAX_TRACKS_PER_ARTIST", 4))
         trimmed = scorer.enforce_artist_diversity(trimmed, profiles, max_per_artist=_max_artist)
 
         c_raw = cohesion_mod.cohesion_score([u for u, _ in trimmed], profiles)
@@ -1756,6 +1756,11 @@ def execute_library_scan(
             "corpus_mode": corpus_mode,
             "min_playlist_target": _fill_floor,
             "max_tracks_cap": _max_tracks_cap,
+            "strictness": strictness,
+            "playlist_min_size": playlist_min_size,
+            "playlist_expansion": bool(playlist_expansion),
+            "cohesion_threshold_effective": float(_cohesion_thresh),
+            "cohesion_drop_ratio": float(_drop_ratio),
         },
         "lyrics_language_map": dict(_lyrics_lang_map) if _lyrics_lang_map else {},
         "artist_popularity": artist_popularity,

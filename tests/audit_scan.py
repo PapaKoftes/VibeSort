@@ -1,5 +1,5 @@
 """
-tests/audit_scan.py — Post-scan audit for scan quality and regression detection.
+tests/audit_scan.py - Post-scan audit for scan quality and regression detection.
 
 Usage:
   python tests/audit_scan.py [snapshot_path]
@@ -11,13 +11,13 @@ Usage:
   python tests/audit_scan.py path/to/snapshot.json
 
 What this checks:
-  1. Library stats        — track count, source coverage
-  2. Tag pipeline health  — anchor hits, graph hits, lyr_ coverage
-  3. Score distribution   — no wild outliers (>2.5), reasonable spread
-  4. Mood coverage        — every mood has ≥ 8 qualifying tracks
-  5. Known anchor tracks  — curated tracks appear in correct moods
-  6. False positive check — random known-misfit tracks score low for wrong moods
-  7. Spotify flags        — mining_blocked / playlist_items_blocked detected
+  1. Library stats        - track count, source coverage
+  2. Tag pipeline health  - anchor hits, graph hits, lyr_ coverage
+  3. Score distribution   - no wild outliers (>2.5), reasonable spread
+  4. Mood coverage        - every mood has >= 8 qualifying tracks
+  5. Known anchor tracks  - curated tracks appear in correct moods
+  6. False positive check - random known-misfit tracks score low for wrong moods
+  7. Spotify flags        - mining_blocked / playlist_items_blocked detected
 
 Exit code: 0 = pass, 1 = critical failures, 2 = warnings only.
 
@@ -40,7 +40,7 @@ SNAPSHOT_DEFAULT = os.path.join(
 # If the library contains these tracks, they MUST appear in the top-30 ranked
 # list for the given mood.  These are curated entries from data/mood_anchors.json
 # that are expected to be widely held in personal libraries.
-# Keep this list conservative — only tracks almost everyone would have.
+# Keep this list conservative - only tracks almost everyone would have.
 ANCHOR_CHECKS: list[tuple[str, str, str]] = [
     ("Neighbourhood", "How",          "Hollow"),
     ("Radiohead",     "My Iron Lung", "Hollow"),
@@ -91,7 +91,7 @@ def _name(track_dict: dict) -> str:
         a.get("name", "") for a in (track_dict.get("artists") or [])
     )
     title = track_dict.get("name", "")
-    return f"{artist} – {title}"
+    return f"{artist} - {title}"
 
 
 def run_audit(snapshot_path: str) -> AuditResult:
@@ -129,14 +129,14 @@ def run_audit(snapshot_path: str) -> AuditResult:
     print(f"  Profiles built : {n_profiles}")
 
     if n_tracks == 0:
-        r.crit("No tracks in library — scan produced empty result")
+        r.crit("No tracks in library - scan produced empty result")
     elif n_tracks < 100:
-        r.warn(f"Library is very small ({n_tracks} tracks) — results may be thin")
+        r.warn(f"Library is very small ({n_tracks} tracks) - results may be thin")
     else:
         r.good(f"{n_tracks} tracks ingested")
 
     if n_profiles < n_tracks * 0.95:
-        r.warn(f"Only {n_profiles}/{n_tracks} tracks have profiles — profile build may have errors")
+        r.warn(f"Only {n_profiles}/{n_tracks} tracks have profiles - profile build may have errors")
     else:
         r.good(f"{n_profiles} profiles built ({n_profiles/max(n_tracks,1)*100:.1f}%)")
 
@@ -149,12 +149,12 @@ def run_audit(snapshot_path: str) -> AuditResult:
     playlist_blocked = data.get("playlist_items_blocked", False)
 
     if mining_blocked:
-        r.warn("mining_blocked=True — Spotify playlist mining unavailable (Dev Mode)")
+        r.warn("mining_blocked=True - Spotify playlist mining unavailable (Dev Mode)")
     else:
         r.good("Playlist mining active")
 
     if playlist_blocked:
-        r.warn("playlist_items_blocked=True — Own playlists inaccessible (Dev Mode)")
+        r.warn("playlist_items_blocked=True - Own playlists inaccessible (Dev Mode)")
     else:
         r.good("Own playlist items accessible")
 
@@ -181,21 +181,21 @@ def run_audit(snapshot_path: str) -> AuditResult:
     print(f"  Tracks with dz_bpm    : {n_dz_bpm} ({n_dz_bpm/max(n_tracks,1)*100:.1f}%)")
 
     if tag_rate < 20:
-        r.crit(f"Only {tag_rate:.1f}% of tracks have tags — enrichment is failing")
+        r.crit(f"Only {tag_rate:.1f}% of tracks have tags - enrichment is failing")
     elif tag_rate < 50:
-        r.warn(f"Tag coverage is low ({tag_rate:.1f}%) — Last.fm or AudioDB may be rate-limited")
+        r.warn(f"Tag coverage is low ({tag_rate:.1f}%) - Last.fm or AudioDB may be rate-limited")
     else:
         r.good(f"Tag coverage: {tag_rate:.1f}%")
 
     if n_anchor == 0:
-        r.crit("ZERO anchor_ tags — mood_anchors.json not matching any library tracks")
+        r.crit("ZERO anchor_ tags - mood_anchors.json not matching any library tracks")
     else:
         r.good(f"{n_anchor} tracks with anchor labels")
 
     if n_graph == 0:
-        r.warn("ZERO graph_mood_ tags — graph pipeline may have failed (no Last.fm API key?)")
+        r.warn("ZERO graph_mood_ tags - graph pipeline may have failed (no Last.fm API key?)")
     elif graph_rate < 2:
-        r.warn(f"Very few graph_mood_ tags ({graph_rate:.1f}%) — graph coverage is minimal")
+        r.warn(f"Very few graph_mood_ tags ({graph_rate:.1f}%) - graph coverage is minimal")
     else:
         r.good(f"{n_graph} tracks with graph propagation ({graph_rate:.1f}%)")
 
@@ -237,7 +237,7 @@ def run_audit(snapshot_path: str) -> AuditResult:
                 anomalous.append((mood, uri, score))
 
     if not all_scores:
-        r.crit("mood_results is empty — no tracks scored for any mood")
+        r.crit("mood_results is empty - no tracks scored for any mood")
     else:
         all_scores_sorted = sorted(all_scores, reverse=True)
         median_score = all_scores_sorted[len(all_scores_sorted) // 2]
@@ -252,17 +252,17 @@ def run_audit(snapshot_path: str) -> AuditResult:
 
         if anomalous:
             r.crit(
-                f"{len(anomalous)} tracks scored above {MAX_SANE_SCORE} — "
+                f"{len(anomalous)} tracks scored above {MAX_SANE_SCORE} - "
                 "unclamped multiplier or raw numeric value in scoring pipeline. "
                 f"First offender: {anomalous[0][0]} | {uri_to_name.get(anomalous[0][1], anomalous[0][1])[:40]} = {anomalous[0][2]:.3f}"
             )
         else:
-            r.good(f"All scores ≤ {MAX_SANE_SCORE} — multiplier chain bounded correctly")
+            r.good(f"All scores <= {MAX_SANE_SCORE} - multiplier chain bounded correctly")
 
         if median_score < 0.20:
-            r.warn(f"Median score {median_score:.4f} is very low — scoring may be too strict")
+            r.warn(f"Median score {median_score:.4f} is very low - scoring may be too strict")
         elif median_score > 1.5:
-            r.warn(f"Median score {median_score:.4f} is suspiciously high — thresholds may be too loose")
+            r.warn(f"Median score {median_score:.4f} is suspiciously high - thresholds may be too loose")
         else:
             r.good(f"Score distribution looks reasonable (median={median_score:.4f})")
 
@@ -284,10 +284,10 @@ def run_audit(snapshot_path: str) -> AuditResult:
     elif thin_moods:
         r.warn(f"{len(thin_moods)} moods have <{MIN_TRACKS_PER_MOOD} tracks: {[m for m, _ in thin_moods[:5]]}")
     else:
-        r.good(f"All {n_moods_total} scored moods have ≥{MIN_TRACKS_PER_MOOD} tracks")
+        r.good(f"All {n_moods_total} scored moods have >={MIN_TRACKS_PER_MOOD} tracks")
 
     if n_moods_total < 40:
-        r.warn(f"Only {n_moods_total} moods scored — library may be too small or genre filters too strict")
+        r.warn(f"Only {n_moods_total} moods scored - library may be too small or genre filters too strict")
     else:
         r.good(f"{n_moods_total} moods scored")
 
@@ -307,7 +307,7 @@ def run_audit(snapshot_path: str) -> AuditResult:
     for artist_frag, title_frag, mood in ANCHOR_CHECKS:
         uri_found = _find_uri(artist_frag, title_frag)
         if not uri_found:
-            print(f"  [{mood}] {artist_frag} – {title_frag}: not in library (skip)")
+            print(f"  [{mood}] {artist_frag} - {title_frag}: not in library (skip)")
             continue
 
         # Check it appears in the mood's ranked list (top 30)
@@ -317,17 +317,17 @@ def run_audit(snapshot_path: str) -> AuditResult:
 
         if score is None:
             r.warn(
-                f"Anchor not in ranked list: {artist_frag} – {title_frag} "
+                f"Anchor not in ranked list: {artist_frag} - {title_frag} "
                 f"for '{mood}' (track IS in library but scored below threshold)"
             )
         elif uri_found not in top_uris:
             r.warn(
-                f"Anchor ranked too low: {artist_frag} – {title_frag} for '{mood}' "
+                f"Anchor ranked too low: {artist_frag} - {title_frag} for '{mood}' "
                 f"(score={score:.4f}, rank >{30})"
             )
         else:
             rank = top_uris.index(uri_found) + 1
-            r.good(f"Anchor OK: {artist_frag} – {title_frag} for '{mood}' → rank #{rank} (score={score:.4f})")
+            r.good(f"Anchor OK: {artist_frag} - {title_frag} for '{mood}' -> rank #{rank} (score={score:.4f})")
 
     # ── Section 7: Misfit track checks ────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -337,22 +337,22 @@ def run_audit(snapshot_path: str) -> AuditResult:
     for artist_frag, title_frag, mood in MISFIT_CHECKS:
         uri_found = _find_uri(artist_frag, title_frag)
         if not uri_found:
-            print(f"  [{mood}] {artist_frag} – {title_frag}: not in library (skip)")
+            print(f"  [{mood}] {artist_frag} - {title_frag}: not in library (skip)")
             continue
 
         mood_ranked = mood_results.get(mood, {}).get("ranked", [])
         score = next((s for u, s in mood_ranked if u == uri_found), None)
 
         if score is None:
-            r.good(f"Misfit OK (not scored): {artist_frag} – {title_frag} not in '{mood}'")
+            r.good(f"Misfit OK (not scored): {artist_frag} - {title_frag} not in '{mood}'")
         elif score > 1.0:
             r.warn(
-                f"Misfit scoring high: {artist_frag} – {title_frag} in '{mood}' "
-                f"scores {score:.4f} — should be low or absent"
+                f"Misfit scoring high: {artist_frag} - {title_frag} in '{mood}' "
+                f"scores {score:.4f} - should be low or absent"
             )
         else:
             r.good(
-                f"Misfit scoring low: {artist_frag} – {title_frag} in '{mood}' "
+                f"Misfit scoring low: {artist_frag} - {title_frag} in '{mood}' "
                 f"= {score:.4f} (acceptable)"
             )
 

@@ -55,7 +55,7 @@ def deploy_one(
     # If expand is on but recs were never fetched, fetch them now
     if expand and not rec_uris and profiles is not None and existing_uris is not None:
         try:
-            _min_total = int(getattr(config, "MIN_PLAYLIST_TOTAL", 25))
+            _min_total = int(getattr(config, "MIN_PLAYLIST_TOTAL", 30))
             _short = max(0, _min_total - len(track_uris))
             _n = max(int(getattr(config, "RECS_PER_PLAYLIST", 22)), _short + 10, 15)
             rec_uris = fetch_recs_for_staged(
