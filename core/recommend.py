@@ -8,6 +8,29 @@ import spotipy
 from core.mood_graph import cosine_similarity, mood_audio_target
 from core.cohesion import cohesion_score
 
+# ── User market cache ─────────────────────────────────────────────────────────
+# Lazily detected from the Spotify token — avoids threading a new argument
+# through every caller while ensuring recommendations respect the user's actual
+# country/market (critical for non-US users who would otherwise receive US-only
+# recommendations).
+_cached_market: str | None = None
+_market_fetched: bool = False
+
+
+def _get_user_market(sp: spotipy.Spotify) -> str | None:
+    """Return the user's Spotify country code, cached after first call."""
+    global _cached_market, _market_fetched
+    if _market_fetched:
+        return _cached_market
+    try:
+        me = sp.current_user()
+        _cached_market = (me.get("country") or "").strip() or None
+    except Exception:
+        _cached_market = None
+    finally:
+        _market_fetched = True
+    return _cached_market
+
 
 def spotify_recommendations(
     sp: spotipy.Spotify,
@@ -19,6 +42,9 @@ def spotify_recommendations(
     Fetch track recommendations from Spotify seeded by up to 5 tracks.
     Uses audio feature targets if mood_name is provided.
     Returns list of track URIs (not in user's existing library).
+
+    Passes the user's own market so that international users receive tracks
+    available in their country rather than defaulting to the US catalogue.
     """
     if not seed_uris or n == 0:
         return []
@@ -28,6 +54,13 @@ def spotify_recommendations(
     seeds = [u.split(":")[-1] for u in pool[:5]]
 
     kwargs: dict = {"seed_tracks": seeds, "limit": min(n, 100)}
+
+    # Pass user market — without this Spotify defaults to the app's registered
+    # country (usually US), silently excluding region-locked tracks for users
+    # in MENA, Europe, Asia, Brazil, etc.
+    market = _get_user_market(sp)
+    if market:
+        kwargs["market"] = market
 
     # Add audio target parameters if we have a mood
     if mood_name:
