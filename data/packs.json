@@ -7,7 +7,11 @@
         "night drive",
         "driving at night",
         "midnight drive",
-        "night cruise"
+        "night cruise",
+        "rap nocturno",
+        "conducir de noche música",
+        "gece rap türkçe",
+        "musique nuit conduire"
       ],
       "audio_target": {
         "energy": 0.45,
@@ -67,7 +71,10 @@
         "R&B / Soul",
         "Electronic / House",
         "Electronic / Techno",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "French Rap",
+        "World / Regional",
+        "Brazilian Phonk"
       ],
       "semantic_core": [
         "night",
@@ -95,7 +102,11 @@
         "numb songs",
         "feel hollow",
         "sad hours",
-        "cry to this"
+        "cry to this",
+        "trap arabe sombre",
+        "rap français mélancolie",
+        "arabic sad rap",
+        "música triste rap"
       ],
       "audio_target": {
         "energy": 0.25,
@@ -143,7 +154,10 @@
         "Indie / Alternative",
         "R&B / Soul",
         "Pop",
-        "Folk / Americana"
+        "Folk / Americana",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "sad",
@@ -168,7 +182,11 @@
         "festival banger",
         "summer euphoria",
         "pure joy",
-        "feel amazing"
+        "feel amazing",
+        "funk carioca euforia",
+        "afrobeats euphoria",
+        "reggaeton eufórico",
+        "coşku müzik"
       ],
       "audio_target": {
         "energy": 0.85,
@@ -229,7 +247,10 @@
         "Pop",
         "East Coast Rap",
         "West Coast Rap",
-        "Southern Rap"
+        "Southern Rap",
+        "Brazilian / Funk Carioca",
+        "Afrobeats / Amapiano",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "euphoric",
@@ -253,7 +274,11 @@
         "hype music",
         "aggressive energy",
         "power music",
-        "beast mode"
+        "beast mode",
+        "rap agressif français",
+        "música adrenalina trap",
+        "hızlı agresif rap",
+        "musica agressiva brasileira"
       ],
       "audio_target": {
         "energy": 0.91,
@@ -323,7 +348,11 @@
         "Southern Rap",
         "Electronic / House",
         "Electronic / Techno",
-        "Rock"
+        "Rock",
+        "French Rap",
+        "UK Rap / Grime",
+        "Brazilian Phonk",
+        "World / Regional"
       ],
       "semantic_core": [
         "hype",
@@ -348,7 +377,11 @@
         "dark confident",
         "menacing energy",
         "power moves",
-        "main character energy"
+        "main character energy",
+        "rap français agressif",
+        "trap arabe hype",
+        "deutschrap aggro",
+        "rap vilão brasileiro"
       ],
       "audio_target": {
         "energy": 0.78,
@@ -418,7 +451,11 @@
         "Southern Rap",
         "Electronic / Techno",
         "Phonk",
-        "Metal"
+        "Metal",
+        "French Rap",
+        "UK Rap / Grime",
+        "Brazilian Phonk",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -442,7 +479,11 @@
         "good vibes",
         "happy songs",
         "sunshine music",
-        "warm music"
+        "warm music",
+        "hora dorada música latina",
+        "golden hour afrobeats",
+        "altın saat müzik",
+        "hora de ouro afrobeats"
       ],
       "audio_target": {
         "energy": 0.55,
@@ -502,7 +543,10 @@
         "Pop",
         "Indie / Alternative",
         "Folk / Americana",
-        "R&B / Soul"
+        "R&B / Soul",
+        "Latin / Reggaeton",
+        "Afrobeats / Amapiano",
+        "World / Regional"
       ],
       "semantic_core": [
         "warm",
@@ -526,7 +570,11 @@
         "floating music",
         "ambient dream",
         "hazy vibes",
-        "cloud music"
+        "cloud music",
+        "música sin peso etéreo",
+        "musique apesanteur française",
+        "무중력 음악",
+        "hafiflik müzik"
       ],
       "audio_target": {
         "energy": 0.28,
@@ -584,7 +632,9 @@
         "Indie / Alternative",
         "Electronic / Ambient",
         "Shoegaze / Dream Pop",
-        "Folk / Americana"
+        "Folk / Americana",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "introspective",
@@ -608,7 +658,11 @@
         "deep work music",
         "concentration music",
         "lo-fi study",
-        "coding music"
+        "coding music",
+        "música para estudar",
+        "musique concentration française",
+        "공부 음악",
+        "çalışma müzik"
       ],
       "audio_target": {
         "energy": 0.35,
@@ -665,7 +719,10 @@
         "Electronic / Ambient",
         "Lo-Fi",
         "Classical / Orchestral",
-        "Jazz / Blues"
+        "Jazz / Blues",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "focus",
@@ -689,7 +746,11 @@
         "late night party",
         "winding down",
         "2am club",
-        "after hours"
+        "after hours",
+        "baile funk depois da festa",
+        "afrobeats after party",
+        "reggaeton madrugada",
+        "fiesta después de noche"
       ],
       "audio_target": {
         "energy": 0.58,
@@ -751,7 +812,11 @@
         "West Coast Rap",
         "Southern Rap",
         "Electronic / House",
-        "Electronic / Techno"
+        "Electronic / Techno",
+        "Brazilian / Funk Carioca",
+        "Afrobeats / Amapiano",
+        "Caribbean / Reggae",
+        "Mexican Regional"
       ],
       "semantic_core": [
         "party",
@@ -775,7 +840,10 @@
         "peak hour techno",
         "festival techno",
         "warehouse rave",
-        "club techno"
+        "club techno",
+        "baile funk rave",
+        "afrobeats rave clube",
+        "coşku rave müzik"
       ],
       "audio_target": {
         "energy": 0.92,
@@ -834,7 +902,10 @@
         "Electronic / Techno",
         "Electronic / House",
         "Electronic / Trance",
-        "Electronic / Drum & Bass"
+        "Electronic / Drum & Bass",
+        "Brazilian / Funk Carioca",
+        "Afrobeats / Amapiano",
+        "World / Regional"
       ],
       "semantic_core": [
         "hype",
@@ -859,7 +930,11 @@
         "morning coffee",
         "good morning songs",
         "sunrise music",
-        "morning vibes"
+        "morning vibes",
+        "música mañana positiva",
+        "musique matin positive française",
+        "sabah ritüeli müzik",
+        "afrobeats morning"
       ],
       "audio_target": {
         "energy": 0.45,
@@ -916,7 +991,10 @@
         "Folk / Americana",
         "Pop",
         "Indie / Alternative",
-        "Jazz / Blues"
+        "Jazz / Blues",
+        "Latin / Reggaeton",
+        "Afrobeats / Amapiano",
+        "World / Regional"
       ],
       "semantic_core": [
         "morning",
@@ -940,7 +1018,11 @@
         "memories music",
         "nostalgic songs",
         "reminisce",
-        "back in the day"
+        "back in the day",
+        "canciones nostalgia latina",
+        "chansons nostalgie françaises",
+        "nostalji müzik türkçe",
+        "추억 노래"
       ],
       "audio_target": {
         "energy": 0.5,
@@ -994,7 +1076,10 @@
         "Southern Rap",
         "UK Rap / Grime",
         "Rock",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "nostalgic",
@@ -1018,7 +1103,10 @@
         "unplugged music",
         "folk acoustic",
         "stripped songs",
-        "just guitar"
+        "just guitar",
+        "música acústica española guitarra",
+        "musique acoustique française",
+        "akustik köşe müzik"
       ],
       "audio_target": {
         "energy": 0.35,
@@ -1071,7 +1159,9 @@
       "preferred_macro_genres": [
         "Folk / Americana",
         "Country",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "Latin / Reggaeton",
+        "World / Regional"
       ],
       "semantic_core": [
         "introspective",
@@ -1095,7 +1185,11 @@
         "introspective music",
         "anxious thoughts music",
         "late night feels",
-        "can't sleep music"
+        "can't sleep music",
+        "rap français pensées",
+        "música pensar demasiado",
+        "aşırı düşünme rap",
+        "rap arabe introspectif"
       ],
       "audio_target": {
         "energy": 0.3,
@@ -1142,7 +1236,10 @@
         "East Coast Rap",
         "West Coast Rap",
         "Southern Rap",
-        "Folk / Americana"
+        "Folk / Americana",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "introspective",
@@ -1166,7 +1263,11 @@
         "blunt music",
         "weed playlist",
         "hazy rap",
-        "slow chill"
+        "slow chill",
+        "rap français fumée",
+        "música humo nocturna",
+        "gece duman müzik",
+        "rap arabe mystère"
       ],
       "audio_target": {
         "energy": 0.42,
@@ -1219,7 +1320,11 @@
         "Southern Rap",
         "Lo-Fi",
         "R&B / Soul",
-        "Houston Rap"
+        "Houston Rap",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional",
+        "Brazilian Phonk"
       ],
       "semantic_core": [
         "dark",
@@ -1244,7 +1349,11 @@
         "tropical music",
         "latin hits",
         "latin vibes",
-        "afrobeats playlist"
+        "afrobeats playlist",
+        "reggaeton tropical",
+        "funk carioca praia",
+        "afrobeats island vibes",
+        "tropical corridos"
       ],
       "audio_target": {
         "energy": 0.75,
@@ -1300,7 +1409,9 @@
         "Latin / Reggaeton",
         "Caribbean / Reggae",
         "Brazilian / Funk Carioca",
-        "Afrobeats / Amapiano"
+        "Afrobeats / Amapiano",
+        "Mexican Regional",
+        "World / Regional"
       ],
       "semantic_core": [
         "happy",
@@ -1324,7 +1435,11 @@
         "tender playlist",
         "soft r&b",
         "gentle pop",
-        "quiet hours"
+        "quiet hours",
+        "canciones suaves latinas",
+        "musique douce française",
+        "부드러운 음악",
+        "yumuşak müzik"
       ],
       "audio_target": {
         "energy": 0.28,
@@ -1378,7 +1493,10 @@
         "Dark R&B",
         "Pop",
         "Indie / Alternative",
-        "Folk / Americana"
+        "Folk / Americana",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "love",
@@ -1403,7 +1521,10 @@
         "clarity music",
         "introspective night",
         "self reflection",
-        "late night epiphany"
+        "late night epiphany",
+        "rap français minuit réflexion",
+        "canciones claridad nocturna",
+        "gece farkındalık müzik"
       ],
       "audio_target": {
         "energy": 0.32,
@@ -1455,7 +1576,10 @@
         "R&B / Soul",
         "Indie / Alternative",
         "East Coast Rap",
-        "Folk / Americana"
+        "Folk / Americana",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "introspective",
@@ -1479,7 +1603,11 @@
         "drift phonk",
         "aggressive phonk",
         "phonk music",
-        "memphis phonk"
+        "memphis phonk",
+        "phonk brasileiro",
+        "phonk arabe",
+        "drift phonk türkçe",
+        "phonk français sombre"
       ],
       "audio_target": {
         "energy": 0.8,
@@ -1532,7 +1660,10 @@
       "preferred_macro_genres": [
         "Phonk",
         "Brazilian Phonk",
-        "Southern Rap"
+        "Southern Rap",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -1557,7 +1688,10 @@
         "intense emotions",
         "crying playlist",
         "deep feelings",
-        "feels deeply"
+        "feels deeply",
+        "canciones sentimientos crudos",
+        "chansons émotions brutes",
+        "ham duygu müzik"
       ],
       "audio_target": {
         "energy": 0.55,
@@ -1610,7 +1744,10 @@
         "Emo / Post-Hardcore",
         "Indie / Alternative",
         "R&B / Soul",
-        "Folk / Americana"
+        "Folk / Americana",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "sad",
@@ -1635,7 +1772,10 @@
         "eerie ambient",
         "unsettling calm",
         "void music",
-        "backrooms music"
+        "backrooms music",
+        "musique liminal française",
+        "música liminal oscura",
+        "eerie müzik geçiş"
       ],
       "audio_target": {
         "energy": 0.22,
@@ -1691,7 +1831,9 @@
         "Ambient / Experimental",
         "Electronic / Ambient",
         "Electronic / Techno",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -1716,7 +1858,11 @@
         "highway music",
         "car playlist",
         "open road",
-        "windows down"
+        "windows down",
+        "música ruta carretera",
+        "musique route ouverte française",
+        "açık yol müzik",
+        "reggaeton ruta"
       ],
       "audio_target": {
         "energy": 0.62,
@@ -1771,7 +1917,10 @@
         "Country",
         "Classic Rock",
         "Pop",
-        "Folk / Americana"
+        "Folk / Americana",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "hype",
@@ -1795,7 +1944,11 @@
         "sunset music",
         "wind down",
         "relaxing evening",
-        "end of day"
+        "end of day",
+        "atardecer música latina",
+        "coucher de soleil musique",
+        "gün batımı müzik",
+        "afrobeats sunset"
       ],
       "audio_target": {
         "energy": 0.38,
@@ -1848,7 +2001,10 @@
         "Indie / Alternative",
         "R&B / Soul",
         "Folk / Americana",
-        "Pop"
+        "Pop",
+        "Latin / Reggaeton",
+        "Afrobeats / Amapiano",
+        "World / Regional"
       ],
       "semantic_core": [
         "introspective",
@@ -1872,7 +2028,11 @@
         "balling playlist",
         "swagger music",
         "flex rap",
-        "rich music"
+        "rich music",
+        "rap swag français",
+        "rap flow latino",
+        "swag rap türkçe",
+        "rap arabe flex"
       ],
       "audio_target": {
         "energy": 0.82,
@@ -1930,7 +2090,10 @@
         "Southern Rap",
         "West Coast Rap",
         "East Coast Rap",
-        "Phonk"
+        "Phonk",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "hype",
@@ -1953,7 +2116,11 @@
         "scream playlist",
         "rage metal",
         "breakdown music",
-        "heavy music"
+        "heavy music",
+        "rap rage français",
+        "música ira reset",
+        "öfke müzik",
+        "rap arabe rage"
       ],
       "audio_target": {
         "energy": 0.96,
@@ -2012,7 +2179,11 @@
         "Metal",
         "Punk / Hardcore",
         "Emo / Post-Hardcore",
-        "Rock"
+        "Rock",
+        "French Rap",
+        "UK Rap / Grime",
+        "Brazilian Phonk",
+        "World / Regional"
       ],
       "semantic_core": [
         "angry",
@@ -2036,7 +2207,10 @@
         "alternative pop dark",
         "aesthetic dark music",
         "lana del rey vibes",
-        "billie eilish type"
+        "billie eilish type",
+        "pop sombre français",
+        "pop oscuro español",
+        "karanlık pop türkçe"
       ],
       "audio_target": {
         "energy": 0.4,
@@ -2089,7 +2263,10 @@
         "Pop",
         "Indie / Alternative",
         "Dark R&B",
-        "Shoegaze / Dream Pop"
+        "Shoegaze / Dream Pop",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -2113,7 +2290,11 @@
         "sensual music",
         "slow r&b",
         "late night r&b",
-        "romantic songs"
+        "romantic songs",
+        "slow jams latino romantico",
+        "musique lente romantic française",
+        "슬로우 잼 한국",
+        "yavaş romantik müzik"
       ],
       "audio_target": {
         "energy": 0.36,
@@ -2168,7 +2349,10 @@
       ],
       "preferred_macro_genres": [
         "R&B / Soul",
-        "Dark R&B"
+        "Dark R&B",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "love",
@@ -2193,7 +2377,10 @@
         "emo music",
         "fall out boy type",
         "mcr playlist",
-        "angsty music"
+        "angsty music",
+        "emo rap français",
+        "emo en español",
+        "emo rap türkçe"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -2252,7 +2439,10 @@
         "Emo / Post-Hardcore",
         "Rock",
         "Punk / Hardcore",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "sad",
@@ -2277,7 +2467,10 @@
         "jazz bar music",
         "smooth jazz",
         "jazz vibes",
-        "blues music"
+        "blues music",
+        "jazz latino nocturno",
+        "jazz manouche français nuit",
+        "gece caz müzik"
       ],
       "audio_target": {
         "energy": 0.35,
@@ -2334,7 +2527,9 @@
       "preferred_macro_genres": [
         "Jazz / Blues",
         "R&B / Soul",
-        "Classical / Orchestral"
+        "Classical / Orchestral",
+        "Latin / Reggaeton",
+        "World / Regional"
       ],
       "semantic_core": [
         "chill",
@@ -2358,7 +2553,11 @@
         "ny drill",
         "chicago drill",
         "drill beats",
-        "dark drill"
+        "dark drill",
+        "drill uk",
+        "drill français",
+        "trap arabe drill",
+        "drill türkçe"
       ],
       "audio_target": {
         "energy": 0.78,
@@ -2422,7 +2621,9 @@
         "Midwest Rap",
         "UK Rap / Grime",
         "East Coast Rap",
-        "Southern Rap"
+        "Southern Rap",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -2447,7 +2648,11 @@
         "soulful music",
         "d'angelo vibes",
         "erykah badu type",
-        "organic r&b"
+        "organic r&b",
+        "neo soul latino",
+        "neo soul africain",
+        "neo soul türkçe",
+        "afrobeats soul fusion"
       ],
       "audio_target": {
         "energy": 0.42,
@@ -2504,7 +2709,10 @@
         "R&B / Soul",
         "Indie / Alternative",
         "Jazz / Blues",
-        "Folk / Americana"
+        "Folk / Americana",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "Afrobeats / Amapiano"
       ],
       "semantic_core": [
         "love",
@@ -2529,7 +2737,10 @@
         "mind bending music",
         "psychedelic rock",
         "tame impala vibes",
-        "trippy songs"
+        "trippy songs",
+        "música psicodélica latina",
+        "musique psychédélique française",
+        "psikedelik müzik"
       ],
       "audio_target": {
         "energy": 0.55,
@@ -2583,7 +2794,9 @@
         "Indie / Alternative",
         "Ambient / Experimental",
         "Shoegaze / Dream Pop",
-        "Electronic / Ambient"
+        "Electronic / Ambient",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "euphoric",
@@ -2609,7 +2822,11 @@
         "revenge playlist",
         "bitter songs",
         "f*** you songs",
-        "post breakup"
+        "post breakup",
+        "canciones de desamor",
+        "chansons tristes françaises",
+        "hindi sad songs",
+        "kalpten gelen şarkılar"
       ],
       "audio_target": {
         "energy": 0.62,
@@ -2667,7 +2884,11 @@
         "Indie / Alternative",
         "Emo / Post-Hardcore",
         "R&B / Soul",
-        "Rock"
+        "Rock",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "sad",
@@ -2691,7 +2912,11 @@
         "lo-fi indie",
         "clairo type songs",
         "soft indie",
-        "bedroom indie"
+        "bedroom indie",
+        "indie chambre français",
+        "indie habitación español",
+        "indie bedroom 한국",
+        "indie yatak odası türkçe"
       ],
       "audio_target": {
         "energy": 0.28,
@@ -2747,7 +2972,10 @@
         "Indie / Alternative",
         "Lo-Fi",
         "Shoegaze / Dream Pop",
-        "Pop"
+        "Pop",
+        "French Rap",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "love",
@@ -2771,7 +2999,10 @@
         "americana songs",
         "zach bryan type",
         "country heartbreak",
-        "country vibes"
+        "country vibes",
+        "country carretera latino",
+        "country route campagne français",
+        "country yol türkçe"
       ],
       "audio_target": {
         "energy": 0.56,
@@ -2826,7 +3057,9 @@
       ],
       "preferred_macro_genres": [
         "Country",
-        "Folk / Americana"
+        "Folk / Americana",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "love",
@@ -2850,7 +3083,11 @@
         "gospel playlist",
         "church music",
         "uplifting gospel",
-        "praise music"
+        "praise music",
+        "gospel africano fuego",
+        "gospel latino adoración",
+        "afrobeats worship",
+        "gospel türkçe övgü"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -2910,7 +3147,10 @@
       "preferred_macro_genres": [
         "R&B / Soul",
         "Folk / Americana",
-        "Pop"
+        "Pop",
+        "World / Regional",
+        "Afrobeats / Amapiano",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "euphoric",
@@ -2935,7 +3175,11 @@
         "boom bap music",
         "classic rap",
         "golden era hip hop",
-        "lyrical rap"
+        "lyrical rap",
+        "rap classique français 90s",
+        "uk rap classic",
+        "klasik rap türkçe",
+        "rap vintage arabe"
       ],
       "audio_target": {
         "energy": 0.68,
@@ -2987,7 +3231,10 @@
       "preferred_macro_genres": [
         "East Coast Rap",
         "West Coast Rap",
-        "Midwest Rap"
+        "Midwest Rap",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "hype",
@@ -3011,7 +3258,10 @@
         "bts playlist",
         "blackpink songs",
         "kpop banger",
-        "j-pop playlist"
+        "j-pop playlist",
+        "kpop français playlist",
+        "kpop español playlist",
+        "kpop türkçe liste"
       ],
       "audio_target": {
         "energy": 0.8,
@@ -3092,7 +3342,11 @@
         "rest day songs",
         "cozy sunday",
         "healing playlist",
-        "slow sunday"
+        "slow sunday",
+        "música domingo descanso",
+        "musique dimanche recharge",
+        "일요일 힐링 음악",
+        "pazar dinlenme müzik"
       ],
       "audio_target": {
         "energy": 0.26,
@@ -3151,7 +3405,10 @@
         "Folk / Americana",
         "Indie / Alternative",
         "Lo-Fi",
-        "Jazz / Blues"
+        "Jazz / Blues",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "chill",
@@ -3175,7 +3432,10 @@
         "80s synth music",
         "cyberpunk music",
         "outrun music",
-        "vaporwave"
+        "vaporwave",
+        "synthwave noche español",
+        "synthwave nuit française",
+        "synthwave gece türkçe"
       ],
       "audio_target": {
         "energy": 0.65,
@@ -3232,7 +3492,9 @@
         "Synthwave / Retrowave",
         "Electronic / House",
         "Electronic / Ambient",
-        "Electronic / Techno"
+        "Electronic / Techno",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "night",
@@ -3256,7 +3518,10 @@
         "glitchcore music",
         "digicore playlist",
         "internet pop",
-        "chaotic pop"
+        "chaotic pop",
+        "hyperpop français chaos",
+        "hyperpop japonés",
+        "hyperpop kaotik türkçe"
       ],
       "audio_target": {
         "energy": 0.88,
@@ -3314,7 +3579,9 @@
         "Hyperpop",
         "Electronic / Bass & Dubstep",
         "Electronic / Drum & Bass",
-        "Pop"
+        "Pop",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "hype",
@@ -3338,7 +3605,10 @@
         "post punk songs",
         "dark aesthetic music",
         "gothic music",
-        "the cure type"
+        "the cure type",
+        "goth musique française",
+        "musica oscura gótica",
+        "gotik müzik karanlık"
       ],
       "audio_target": {
         "energy": 0.52,
@@ -3396,7 +3666,9 @@
         "Emo / Post-Hardcore",
         "Indie / Alternative",
         "Rock",
-        "Electronic / Ambient"
+        "Electronic / Ambient",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -3420,7 +3692,11 @@
         "lo fi beats",
         "chill beats study",
         "lofi study music",
-        "beats to relax"
+        "beats to relax",
+        "lofi japonés estudiar",
+        "lofi musique française",
+        "로파이 공부 음악",
+        "lofi çalışma"
       ],
       "audio_target": {
         "energy": 0.32,
@@ -3471,7 +3747,10 @@
         "Electronic / Ambient",
         "Jazz / Blues",
         "Indie / Alternative",
-        "Ambient / Experimental"
+        "Ambient / Experimental",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "calm",
@@ -3495,7 +3774,11 @@
         "rain sounds music",
         "cozy rain",
         "sad rainy day",
-        "melancholic rain"
+        "melancholic rain",
+        "rap pluvieux français",
+        "música lluvia tristeza",
+        "yağmurda dinlenilen müzik",
+        "arabe pluie sombre"
       ],
       "audio_target": {
         "energy": 0.35,
@@ -3545,7 +3828,10 @@
         "Lo-Fi",
         "R&B / Soul",
         "Folk / Americana",
-        "Jazz / Blues"
+        "Jazz / Blues",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "melancholic",
@@ -3569,7 +3855,11 @@
         "latin party music",
         "perreo",
         "baile funk party",
-        "latin dance hits"
+        "latin dance hits",
+        "reggaeton caliente",
+        "baile funk festão",
+        "música latina caliente",
+        "corrido fiesta"
       ],
       "audio_target": {
         "energy": 0.78,
@@ -3618,7 +3908,9 @@
         "Brazilian / Funk Carioca",
         "Caribbean / Reggae",
         "Pop",
-        "Afrobeats / Amapiano"
+        "Afrobeats / Amapiano",
+        "Mexican Regional",
+        "World / Regional"
       ],
       "semantic_core": [
         "party",
@@ -3642,7 +3934,10 @@
         "heavy metal hits",
         "metal workout",
         "headbang",
-        "thrash metal"
+        "thrash metal",
+        "metal stürm français",
+        "metal tormenta español",
+        "metal fırtına türkçe"
       ],
       "audio_target": {
         "energy": 0.92,
@@ -3687,7 +3982,10 @@
         "Metal",
         "Rock",
         "Punk / Hardcore",
-        "Emo / Post-Hardcore"
+        "Emo / Post-Hardcore",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "intense",
@@ -3711,7 +4009,10 @@
         "peaceful classical",
         "classical focus",
         "baroque relax",
-        "orchestral chill"
+        "orchestral chill",
+        "música clásica calma latina",
+        "classique calme français",
+        "klasik sakin müzik"
       ],
       "audio_target": {
         "energy": 0.28,
@@ -3756,7 +4057,8 @@
         "Classical / Orchestral",
         "Jazz / Blues",
         "Ambient / Experimental",
-        "Folk / Americana"
+        "Folk / Americana",
+        "World / Regional"
       ],
       "semantic_core": [
         "peaceful",
@@ -3780,7 +4082,11 @@
         "gym rage playlist",
         "lifting metal rap",
         "aggressive workout",
-        "beast mode metal"
+        "beast mode metal",
+        "rap français salle de sport",
+        "música furia gimnasio",
+        "öfke spor müzik",
+        "trap arabe gym"
       ],
       "audio_target": {
         "energy": 0.88,
@@ -3825,7 +4131,11 @@
         "Punk / Hardcore",
         "Southern Rap",
         "Electronic / Bass & Dubstep",
-        "Rock"
+        "Rock",
+        "French Rap",
+        "UK Rap / Grime",
+        "Brazilian Phonk",
+        "World / Regional"
       ],
       "semantic_core": [
         "gym",
@@ -3849,7 +4159,11 @@
         "healing songs",
         "positive rnb",
         "comfort songs",
-        "gentle soul"
+        "gentle soul",
+        "canciones sanación latina",
+        "chansons guérison françaises",
+        "치유 음악 한국",
+        "iyileşme müzik"
       ],
       "audio_target": {
         "energy": 0.38,
@@ -3900,7 +4214,10 @@
         "Pop",
         "Indie / Alternative",
         "Folk / Americana",
-        "Dark R&B"
+        "Dark R&B",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "tender",
@@ -3924,7 +4241,11 @@
         "funk disco party",
         "70s disco hits",
         "nu disco",
-        "dancefloor classics"
+        "dancefloor classics",
+        "disco reggaeton mix",
+        "afrobeats disco",
+        "baile funk disco",
+        "latein disco latin"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -3971,7 +4292,10 @@
         "Pop",
         "R&B / Soul",
         "Electronic / Trance",
-        "Synthwave / Retrowave"
+        "Synthwave / Retrowave",
+        "Latin / Reggaeton",
+        "Afrobeats / Amapiano",
+        "Brazilian / Funk Carioca"
       ],
       "semantic_core": [
         "party",
@@ -3995,7 +4319,10 @@
         "amapiano chill",
         "south african house",
         "piano house amapiano",
-        "yamz type beat"
+        "yamz type beat",
+        "amapiano tarde relajado",
+        "amapiano coucher soleil",
+        "amapiano günbatımı"
       ],
       "audio_target": {
         "energy": 0.58,
@@ -4041,7 +4368,9 @@
         "Electronic / House",
         "World / Regional",
         "R&B / Soul",
-        "Pop"
+        "Pop",
+        "Latin / Reggaeton",
+        "Caribbean / Reggae"
       ],
       "semantic_core": [
         "groovy",
@@ -4065,7 +4394,10 @@
         "pop punk workout",
         "skate punk",
         "hardcore punk",
-        "fast punk songs"
+        "fast punk songs",
+        "punk français sprint",
+        "punk sprint español",
+        "punk sprint türkçe"
       ],
       "audio_target": {
         "energy": 0.86,
@@ -4110,7 +4442,10 @@
         "Emo / Post-Hardcore",
         "Rock",
         "Indie / Alternative",
-        "Metal"
+        "Metal",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "rebellious",
@@ -4134,7 +4469,10 @@
         "shoegaze",
         "ethereal indie",
         "cocteau twins vibe",
-        "reverb pop"
+        "reverb pop",
+        "dream pop français rêveur",
+        "dream pop japonés ensueño",
+        "rüya pop müzik"
       ],
       "audio_target": {
         "energy": 0.42,
@@ -4181,7 +4519,9 @@
         "Indie / Alternative",
         "Electronic / Ambient",
         "Rock",
-        "Post-Punk / Darkwave"
+        "Post-Punk / Darkwave",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "ethereal",
@@ -4205,7 +4545,10 @@
         "dark techno",
         "warehouse techno",
         "industrial techno",
-        "peak time techno"
+        "peak time techno",
+        "techno almacén alemán",
+        "techno entrepôt français",
+        "depo techno türkçe"
       ],
       "audio_target": {
         "energy": 0.82,
@@ -4251,7 +4594,8 @@
         "Electronic / House",
         "Electronic / Trance",
         "Electronic / Ambient",
-        "Synthwave / Retrowave"
+        "Synthwave / Retrowave",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -4275,7 +4619,10 @@
         "anime openings",
         "jrock anime",
         "weeb playlist",
-        "anime workout"
+        "anime workout",
+        "anime openings japonés workout",
+        "anime ost énergie",
+        "anime ost enerji türkçe"
       ],
       "audio_target": {
         "energy": 0.75,
@@ -4317,7 +4664,8 @@
         "Rock",
         "Electronic / Trance",
         "Metal",
-        "Pop"
+        "Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "emotional",
@@ -4342,7 +4690,11 @@
         "coffee shop beats",
         "chill beats jazz",
         "study jazz hop",
-        "chillhop cafe"
+        "chillhop cafe",
+        "chillhop japonés café",
+        "jazz hop café français",
+        "카페 재즈 힙합",
+        "café müzik relaxant"
       ],
       "audio_target": {
         "energy": 0.36,
@@ -4388,7 +4740,9 @@
         "Lo-Fi",
         "Electronic / House",
         "Indie / Alternative",
-        "Ambient / Experimental"
+        "Ambient / Experimental",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "chill",
@@ -4412,7 +4766,11 @@
         "ambient meditation",
         "sound bath",
         "zen music",
-        "432hz calm"
+        "432hz calm",
+        "meditación música latina",
+        "méditation musique française",
+        "명상 음악 한국",
+        "meditasyon müzik"
       ],
       "audio_target": {
         "energy": 0.18,
@@ -4462,7 +4820,8 @@
         "Electronic / Ambient",
         "Classical / Orchestral",
         "World / Regional",
-        "Lo-Fi"
+        "Lo-Fi",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "peaceful",
@@ -4487,7 +4846,10 @@
         "future funk",
         "mallsoft",
         "chillwave retro",
-        "aesthetic music 80s"
+        "aesthetic music 80s",
+        "vaporwave japonés",
+        "vaporwave esthétique français",
+        "vaporwave estetik türkçe"
       ],
       "audio_target": {
         "energy": 0.38,
@@ -4526,7 +4888,9 @@
         "Electronic / Ambient",
         "Electronic / House",
         "Pop",
-        "Lo-Fi"
+        "Lo-Fi",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "nostalgic",
@@ -4551,7 +4915,10 @@
         "j-pop hits",
         "japanese pop music",
         "anime song jpop",
-        "idol music japan"
+        "idol music japan",
+        "j-pop japonais populaire",
+        "música pop japonesa actual",
+        "japon pop türkçe"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -4608,7 +4975,10 @@
         "j metal playlist",
         "visual kei",
         "jrock metal",
-        "babymetal type"
+        "babymetal type",
+        "metal japonais français",
+        "metal japonés español",
+        "japon metal türkçe"
       ],
       "audio_target": {
         "energy": 0.88,
@@ -4667,7 +5037,10 @@
         "anime op songs",
         "best anime openings",
         "shonen opening",
-        "anime theme songs"
+        "anime theme songs",
+        "anime openings japonais",
+        "aperturas anime español",
+        "anime açılışlar türkçe"
       ],
       "audio_target": {
         "energy": 0.8,
@@ -4717,7 +5090,10 @@
         "anime ending songs",
         "anime ed playlist",
         "sad anime ending",
-        "anime outro"
+        "anime outro",
+        "anime endings japonais",
+        "endings anime español",
+        "anime bitişler türkçe"
       ],
       "audio_target": {
         "energy": 0.48,
@@ -4781,7 +5157,11 @@
         "goodbye songs",
         "moving on playlist",
         "breakup walk away",
-        "songs about endings"
+        "songs about endings",
+        "canciones de despedida",
+        "chansons adieu françaises",
+        "veda şarkıları",
+        "작별 노래"
       ],
       "audio_target": {
         "energy": 0.42,
@@ -4821,7 +5201,10 @@
         "R&B / Soul",
         "Folk / Americana",
         "Rock",
-        "Classic Rock"
+        "Classic Rock",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "melancholic",
@@ -4853,7 +5236,11 @@
         "hometown playlist",
         "missing home songs",
         "roots songs",
-        "family songs nostalgic"
+        "family songs nostalgic",
+        "canciones del hogar latino",
+        "chansons maison française",
+        "고향 노래",
+        "ev özlemi müzik"
       ],
       "audio_target": {
         "energy": 0.4,
@@ -4890,7 +5277,10 @@
         "Indie / Alternative",
         "Pop",
         "Rock",
-        "Country"
+        "Country",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "nostalgic",
@@ -4923,7 +5313,10 @@
         "feel good mix all genres",
         "hype playlist mixed genres",
         "party mix every genre",
-        "main character energy songs"
+        "main character energy songs",
+        "vibra diferente género",
+        "même vibe genre différent",
+        "aynı his farklı tür"
       ],
       "audio_target": {
         "energy": 0.68,
@@ -4948,7 +5341,15 @@
         "lyr_hype",
         "lyr_party"
       ],
-      "preferred_macro_genres": [],
+      "preferred_macro_genres": [
+        "Latin / Reggaeton",
+        "French Rap",
+        "UK Rap / Grime",
+        "Afrobeats / Amapiano",
+        "K-Pop / J-Pop",
+        "Brazilian / Funk Carioca",
+        "World / Regional"
+      ],
       "semantic_core": [
         "energy",
         "celebratory",
@@ -4977,7 +5378,11 @@
         "songs about missing someone",
         "late night miss you songs",
         "songs about texting your ex",
-        "longing playlist"
+        "longing playlist",
+        "rap français 3h du matin",
+        "canciones madrugada soledad",
+        "gece rap türkçe",
+        "rap arabe mélancolie"
       ],
       "audio_target": {
         "energy": 0.38,
@@ -5026,7 +5431,10 @@
         "Dark R&B",
         "Pop",
         "East Coast Rap",
-        "Folk / Americana"
+        "Folk / Americana",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "lonely",
@@ -5057,7 +5465,10 @@
         "revenge songs",
         "villain arc playlist",
         "songs about karma",
-        "petty breakup energy"
+        "petty breakup energy",
+        "rap anti-héros français",
+        "música anti héroe",
+        "rap karakter türkçe"
       ],
       "audio_target": {
         "energy": 0.62,
@@ -5097,7 +5508,10 @@
         "Southern Rap",
         "Rock",
         "Pop",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "angry",
@@ -5127,7 +5541,11 @@
         "money flex songs",
         "rich playlist",
         "hustle rap lyrics",
-        "counting money songs"
+        "counting money songs",
+        "rap argent français",
+        "rap dinero latino",
+        "para rap türkçe",
+        "rap arabe argent"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -5161,7 +5579,9 @@
         "UK Rap / Grime",
         "R&B / Soul",
         "Pop",
-        "Houston Rap"
+        "Houston Rap",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "hype",
@@ -5192,7 +5612,10 @@
         "run away songs",
         "road trip escape playlist",
         "starting over songs",
-        "highway night drive music"
+        "highway night drive music",
+        "escapar música carretera",
+        "fuite route musique française",
+        "kaçış yol müzik"
       ],
       "audio_target": {
         "energy": 0.58,
@@ -5223,7 +5646,10 @@
         "Country",
         "Folk / Americana",
         "Rock",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "freedom",
@@ -5252,7 +5678,11 @@
       "seed_phrases": [
         "confessional drill",
         "drill rap emotional",
-        "dark drill lyrics"
+        "dark drill lyrics",
+        "drill uk",
+        "drill français",
+        "trap arabe drill",
+        "drill emocional espanol"
       ],
       "audio_target": {
         "energy": 0.68,
@@ -5282,7 +5712,9 @@
       "preferred_macro_genres": [
         "UK Rap / Grime",
         "Southern Rap",
-        "East Coast Rap"
+        "East Coast Rap",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -5311,7 +5743,10 @@
       "seed_phrases": [
         "shoegaze sad",
         "dream pop breakup",
-        "slowcore heartbreak"
+        "slowcore heartbreak",
+        "shoegaze ruptura español",
+        "shoegaze rupture français",
+        "shoegaze kırılma türkçe"
       ],
       "audio_target": {
         "energy": 0.42,
@@ -5341,7 +5776,8 @@
       "preferred_macro_genres": [
         "Shoegaze / Dream Pop",
         "Indie / Alternative",
-        "Ambient / Experimental"
+        "Ambient / Experimental",
+        "World / Regional"
       ],
       "semantic_core": [
         "melancholic",
@@ -5370,7 +5806,10 @@
       "seed_phrases": [
         "pride party playlist",
         "queer dance hits",
-        "lgbtq club anthems"
+        "lgbtq club anthems",
+        "reggaeton queer pride",
+        "funk carioca lgbt",
+        "afrobeats pride party"
       ],
       "audio_target": {
         "energy": 0.78,
@@ -5401,7 +5840,10 @@
         "Pop",
         "Electronic / House",
         "Hyperpop",
-        "K-Pop / J-Pop"
+        "K-Pop / J-Pop",
+        "Latin / Reggaeton",
+        "Brazilian / Funk Carioca",
+        "Afrobeats / Amapiano"
       ],
       "semantic_core": [
         "celebratory",
@@ -5430,7 +5872,10 @@
       "seed_phrases": [
         "christian metal playlist",
         "spiritual metal songs",
-        "worship metal"
+        "worship metal",
+        "metal testimony español",
+        "metal témoignage français",
+        "metal tanıklık türkçe"
       ],
       "audio_target": {
         "energy": 0.82,
@@ -5457,7 +5902,8 @@
       ],
       "preferred_macro_genres": [
         "Metal",
-        "Rock"
+        "Rock",
+        "World / Regional"
       ],
       "semantic_core": [
         "spiritual",
@@ -5486,7 +5932,11 @@
       "seed_phrases": [
         "bedroom pop sad",
         "indie bedroom pop",
-        "diary pop playlist"
+        "diary pop playlist",
+        "pop habitación tristeza",
+        "bedroom pop français diary",
+        "방 팝 일기 음악",
+        "rap türkçe iç günlük"
       ],
       "audio_target": {
         "energy": 0.4,
@@ -5515,7 +5965,10 @@
       "preferred_macro_genres": [
         "Indie / Alternative",
         "Pop",
-        "Lo-Fi"
+        "Lo-Fi",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "introspective",
@@ -5544,7 +5997,10 @@
       "seed_phrases": [
         "baroque pop playlist",
         "dramatic art pop",
-        "theatrical pop sad"
+        "theatrical pop sad",
+        "pop barroco melodramático español",
+        "pop baroque mélodramatique français",
+        "barok pop dramatik"
       ],
       "audio_target": {
         "energy": 0.55,
@@ -5573,7 +6029,9 @@
       "preferred_macro_genres": [
         "Indie / Alternative",
         "Pop",
-        "Classical / Orchestral"
+        "Classical / Orchestral",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "theatrical",
@@ -5595,7 +6053,9 @@
       "seed_phrases": [
         "sea shanty playlist",
         "folk nautical songs",
-        "sailor songs acoustic"
+        "sailor songs acoustic",
+        "canciones marineras españolas",
+        "chansons de marin françaises"
       ],
       "audio_target": {
         "energy": 0.58,
@@ -5647,7 +6107,10 @@
       "seed_phrases": [
         "marching band hype",
         "brass and drums playlist",
-        "hbcu band type beats"
+        "hbcu band type beats",
+        "música marcha latina hype",
+        "afrobeats brass energy",
+        "nefesli davul enerji"
       ],
       "audio_target": {
         "energy": 0.85,
@@ -5694,7 +6157,9 @@
         "Pop",
         "World / Regional",
         "R&B / Soul",
-        "East Coast Rap"
+        "East Coast Rap",
+        "Latin / Reggaeton",
+        "Afrobeats / Amapiano"
       ],
       "semantic_core": [
         "marching",
@@ -5723,7 +6188,10 @@
       "seed_phrases": [
         "symphonic metal playlist",
         "epic metal orchestral",
-        "fantasy metal songs"
+        "fantasy metal songs",
+        "metal sinfónico épico español",
+        "métal symphonique épique français",
+        "senfonik metal türkçe"
       ],
       "audio_target": {
         "energy": 0.78,
@@ -5751,7 +6219,8 @@
       ],
       "preferred_macro_genres": [
         "Metal",
-        "Classical / Orchestral"
+        "Classical / Orchestral",
+        "World / Regional"
       ],
       "semantic_core": [
         "cinematic",
@@ -5773,7 +6242,10 @@
       "seed_phrases": [
         "minimal techno focus",
         "hypnotic techno playlist",
-        "berlin minimal techno"
+        "berlin minimal techno",
+        "techno minimal español",
+        "techno minimal français",
+        "minimal techno türkçe"
       ],
       "audio_target": {
         "energy": 0.52,
@@ -5803,7 +6275,8 @@
       "preferred_macro_genres": [
         "Electronic / Techno",
         "Electronic / House",
-        "Electronic / Ambient"
+        "Electronic / Ambient",
+        "World / Regional"
       ],
       "semantic_core": [
         "minimal",
@@ -5825,7 +6298,10 @@
       "seed_phrases": [
         "cloud rap playlist",
         "dreamy hip hop",
-        "ambient rap chill"
+        "ambient rap chill",
+        "cloud rap français rêveur",
+        "rap nube tranquilo",
+        "bulut rap türkçe"
       ],
       "audio_target": {
         "energy": 0.45,
@@ -5853,7 +6329,9 @@
       "preferred_macro_genres": [
         "Southern Rap",
         "Dark R&B",
-        "Lo-Fi"
+        "Lo-Fi",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "hazy",
@@ -5881,7 +6359,10 @@
       "seed_phrases": [
         "salsa romantic playlist",
         "bachata sensual hits",
-        "latin dance party"
+        "latin dance party",
+        "bachata sensual caliente",
+        "salsa romantica caliente",
+        "latin dansı ateşli"
       ],
       "audio_target": {
         "energy": 0.7,
@@ -5910,7 +6391,8 @@
       "preferred_macro_genres": [
         "Latin / Reggaeton",
         "World / Regional",
-        "Pop"
+        "Pop",
+        "Mexican Regional"
       ],
       "semantic_core": [
         "romantic",
@@ -5932,7 +6414,10 @@
       "seed_phrases": [
         "afro fusion playlist",
         "amapiano chill sunset",
-        "afrobeats golden hour"
+        "afrobeats golden hour",
+        "afrobeats fusion dorado",
+        "afro fusion heure dorée",
+        "afro füzyon altın saat"
       ],
       "audio_target": {
         "energy": 0.58,
@@ -5962,7 +6447,9 @@
       "preferred_macro_genres": [
         "Afrobeats / Amapiano",
         "World / Regional",
-        "Pop"
+        "Pop",
+        "Latin / Reggaeton",
+        "Caribbean / Reggae"
       ],
       "semantic_core": [
         "warm",
@@ -5991,7 +6478,10 @@
       "seed_phrases": [
         "sad hyperpop",
         "hyperpop emotional",
-        "digicore heartbreak"
+        "digicore heartbreak",
+        "hyperpop triste français",
+        "hyperpop emocional español",
+        "hyperpop duygusal türkçe"
       ],
       "audio_target": {
         "energy": 0.75,
@@ -6025,7 +6515,9 @@
       "preferred_macro_genres": [
         "Hyperpop",
         "Electronic / Bass & Dubstep",
-        "Pop"
+        "Pop",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "chaotic",
@@ -6047,7 +6539,10 @@
       "seed_phrases": [
         "industrial techno dark",
         "ebm playlist",
-        "gothic electronic club"
+        "gothic electronic club",
+        "industriel gothique français",
+        "industrial gótico español",
+        "endüstriyel gotik müzik"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -6077,7 +6572,9 @@
       "preferred_macro_genres": [
         "Electronic / Techno",
         "Electronic / Bass & Dubstep",
-        "Post-Punk / Darkwave"
+        "Post-Punk / Darkwave",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -6106,7 +6603,10 @@
       "seed_phrases": [
         "storytelling country songs",
         "country lyrics sad",
-        "small town country playlist"
+        "small town country playlist",
+        "country historia español",
+        "country histoire française",
+        "country hikaye türkçe"
       ],
       "audio_target": {
         "energy": 0.48,
@@ -6135,7 +6635,8 @@
       ],
       "preferred_macro_genres": [
         "Country",
-        "Folk / Americana"
+        "Folk / Americana",
+        "World / Regional"
       ],
       "semantic_core": [
         "nostalgic",
@@ -6157,7 +6658,10 @@
       "seed_phrases": [
         "kawaii metal playlist",
         "j metal idol",
-        "cute metal japan"
+        "cute metal japan",
+        "kawaii metal japonais",
+        "kawaii metal español",
+        "kawaii metal türkçe"
       ],
       "audio_target": {
         "energy": 0.88,
@@ -6215,7 +6719,10 @@
       "seed_phrases": [
         "pluggnb playlist",
         "melodic trap sad",
-        "dark plugg music"
+        "dark plugg music",
+        "pluggnb français",
+        "trap melodique arabe triste",
+        "plugg rap türkçe"
       ],
       "audio_target": {
         "energy": 0.52,
@@ -6244,7 +6751,9 @@
       "preferred_macro_genres": [
         "Dark R&B",
         "Southern Rap",
-        "Electronic / Bass & Dubstep"
+        "Electronic / Bass & Dubstep",
+        "French Rap",
+        "World / Regional"
       ],
       "semantic_core": [
         "melancholic",
@@ -6274,7 +6783,10 @@
         "epic orchestral swells",
         "emotional movie music",
         "strings orchestral dramatic",
-        "hans zimmer type music"
+        "hans zimmer type music",
+        "música cinematográfica latina",
+        "musique cinématographique française",
+        "sinematik müzik"
       ],
       "audio_target": {
         "energy": 0.72,
@@ -6322,7 +6834,9 @@
         "Classical / Orchestral",
         "Ambient / Experimental",
         "Electronic / Ambient",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "cinematic",
@@ -6347,7 +6861,10 @@
         "better off without you songs",
         "empowerment after breakup",
         "post breakup confidence",
-        "done with you songs"
+        "done with you songs",
+        "canciones empoderamiento ruptura",
+        "chansons rupture fierté",
+        "ayrılık güç şarkıları"
       ],
       "audio_target": {
         "energy": 0.68,
@@ -6395,7 +6912,11 @@
         "R&B / Soul",
         "Indie / Alternative",
         "East Coast Rap",
-        "West Coast Rap"
+        "West Coast Rap",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "confident",
@@ -6419,7 +6940,10 @@
         "campfire acoustic music",
         "folk singalong songs",
         "bonfire music playlist",
-        "campfire guitar songs"
+        "campfire guitar songs",
+        "canciones campamento guitarra",
+        "chansons guitare feu de camp",
+        "kamp ateşi müzik gitar"
       ],
       "audio_target": {
         "energy": 0.5,
@@ -6467,7 +6991,9 @@
       "preferred_macro_genres": [
         "Folk / Americana",
         "Country",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "Latin / Reggaeton",
+        "World / Regional"
       ],
       "semantic_core": [
         "warm",
@@ -6491,7 +7017,11 @@
         "jogging songs",
         "run faster playlist",
         "5k run music",
-        "marathon running songs"
+        "marathon running songs",
+        "rap français courir",
+        "música correr motivación",
+        "koşu müzik trap",
+        "musica corrida brasileira"
       ],
       "audio_target": {
         "energy": 0.82,
@@ -6541,7 +7071,11 @@
         "East Coast Rap",
         "Southern Rap",
         "Electronic / Drum & Bass",
-        "Rock"
+        "Rock",
+        "French Rap",
+        "UK Rap / Grime",
+        "Brazilian Phonk",
+        "World / Regional"
       ],
       "semantic_core": [
         "energy",
@@ -6565,7 +7099,11 @@
         "mourning music",
         "sad songs about death",
         "processing grief songs",
-        "funeral playlist gentle"
+        "funeral playlist gentle",
+        "canciones de duelo",
+        "chansons de deuil françaises",
+        "müzik yas",
+        "hindi sad songs loss"
       ],
       "audio_target": {
         "energy": 0.22,
@@ -6614,7 +7152,10 @@
         "Folk / Americana",
         "Indie / Alternative",
         "Classical / Orchestral",
-        "R&B / Soul"
+        "R&B / Soul",
+        "French Rap",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "sad",
@@ -6638,7 +7179,10 @@
         "lounge piano jazz",
         "late night piano bar",
         "sophisticated jazz playlist",
-        "piano jazz standards"
+        "piano jazz standards",
+        "bar de piano latino",
+        "bar à piano jazz français",
+        "piyano bar müzik"
       ],
       "audio_target": {
         "energy": 0.3,
@@ -6685,7 +7229,9 @@
       "preferred_macro_genres": [
         "Jazz / Blues",
         "Classical / Orchestral",
-        "R&B / Soul"
+        "R&B / Soul",
+        "Latin / Reggaeton",
+        "World / Regional"
       ],
       "semantic_core": [
         "sophisticated",
@@ -6710,7 +7256,11 @@
         "hazy trap playlist",
         "mellow trap songs",
         "trap chill vibes",
-        "slow trap beats"
+        "slow trap beats",
+        "trap chill français",
+        "trap tranquilo nocturno",
+        "trap sakin türkçe",
+        "trap arabe chill"
       ],
       "audio_target": {
         "energy": 0.48,
@@ -6758,7 +7308,10 @@
         "Southern Rap",
         "Dark R&B",
         "West Coast Rap",
-        "East Coast Rap"
+        "East Coast Rap",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "chill",
@@ -6782,7 +7335,11 @@
         "small venue folk playlist",
         "singer songwriter cafe",
         "quiet folk songs",
-        "intimate acoustic indie"
+        "intimate acoustic indie",
+        "café música acústica española",
+        "musique café folk français",
+        "카페 음악 한국",
+        "kahve dükkanı müzik"
       ],
       "audio_target": {
         "energy": 0.32,
@@ -6829,7 +7386,10 @@
       "preferred_macro_genres": [
         "Folk / Americana",
         "Indie / Alternative",
-        "Country"
+        "Country",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "acoustic",
@@ -6853,7 +7413,11 @@
         "pre fight hype songs",
         "mma entrance music",
         "aggressive combat music",
-        "ring walk songs"
+        "ring walk songs",
+        "rap combat français",
+        "música pelea entrada",
+        "dövüş müzik trap",
+        "trap arabe boxe"
       ],
       "audio_target": {
         "energy": 0.94,
@@ -6904,7 +7468,11 @@
         "Metal",
         "Punk / Hardcore",
         "Electronic / Bass & Dubstep",
-        "Rock"
+        "Rock",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional",
+        "Brazilian Phonk"
       ],
       "semantic_core": [
         "aggressive",
@@ -6928,7 +7496,10 @@
         "moving to a new place songs",
         "arrival energy music",
         "adventure new place playlist",
-        "city exploration vibes"
+        "city exploration vibes",
+        "nueva ciudad energía latina",
+        "nouvelle ville énergie française",
+        "yeni şehir enerji müzik"
       ],
       "audio_target": {
         "energy": 0.7,
@@ -6976,7 +7547,10 @@
         "Indie / Alternative",
         "R&B / Soul",
         "East Coast Rap",
-        "Electronic / House"
+        "Electronic / House",
+        "Latin / Reggaeton",
+        "Afrobeats / Amapiano",
+        "World / Regional"
       ],
       "semantic_core": [
         "hopeful",
@@ -7000,7 +7574,10 @@
         "stripped back soul",
         "acoustic gospel soul",
         "unplugged soul music",
-        "raw soul acoustic"
+        "raw soul acoustic",
+        "soul acústico latino",
+        "soul acoustique français",
+        "akustik ruh müzik"
       ],
       "audio_target": {
         "energy": 0.4,
@@ -7048,7 +7625,9 @@
         "R&B / Soul",
         "Folk / Americana",
         "Indie / Alternative",
-        "Jazz / Blues"
+        "Jazz / Blues",
+        "Latin / Reggaeton",
+        "World / Regional"
       ],
       "semantic_core": [
         "soulful",
@@ -7072,7 +7651,11 @@
         "new wave 80s songs",
         "cassette tape vibes",
         "neon 80s music",
-        "retro pop 80s"
+        "retro pop 80s",
+        "synthpop retro latino",
+        "rétrofuturisme synthpop français",
+        "retro synthpop Türkiye",
+        "시티팝 레트로"
       ],
       "audio_target": {
         "energy": 0.68,
@@ -7119,7 +7702,10 @@
         "Synthwave / Retrowave",
         "Pop",
         "Electronic / House",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "nostalgic",
@@ -7143,7 +7729,11 @@
         "cold isolation songs",
         "winter sad music",
         "dark winter vibes",
-        "scandinavian melancholy"
+        "scandinavian melancholy",
+        "rap français hiver sombre",
+        "música invierno oscuro",
+        "kış depresyon müzik",
+        "nordisk vinter sorg"
       ],
       "audio_target": {
         "energy": 0.3,
@@ -7192,7 +7782,10 @@
         "Folk / Americana",
         "Electronic / Ambient",
         "Ambient / Experimental",
-        "Post-Punk / Darkwave"
+        "Post-Punk / Darkwave",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "dark",
@@ -7216,7 +7809,11 @@
         "political songs",
         "fight the power music",
         "social justice songs",
-        "revolution music"
+        "revolution music",
+        "canciones protesta latina",
+        "rap contestataire français",
+        "isyan müzik türkçe",
+        "musik protes dunia"
       ],
       "audio_target": {
         "energy": 0.7,
@@ -7264,7 +7861,10 @@
         "Indie / Alternative",
         "Rock",
         "Metal",
-        "R&B / Soul"
+        "R&B / Soul",
+        "Latin / Reggaeton",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "angry",
@@ -7288,7 +7888,11 @@
         "boss fight music",
         "game soundtrack epic",
         "adventure game music",
-        "rpg battle music"
+        "rpg battle music",
+        "música épica gaming latina",
+        "musique épique jeu vidéo",
+        "epik oyun müzik",
+        "서사적 게임 음악"
       ],
       "audio_target": {
         "energy": 0.8,
@@ -7334,7 +7938,9 @@
         "Electronic / Ambient",
         "Metal",
         "Rock",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "epic",
@@ -7358,7 +7964,11 @@
         "early night club music",
         "building energy playlist",
         "pre dance floor songs",
-        "warm up dj set"
+        "warm up dj set",
+        "baile funk aquecimento",
+        "reggaeton club apertura",
+        "afrobeats warm up",
+        "club açılış müzik"
       ],
       "audio_target": {
         "energy": 0.65,
@@ -7406,7 +8016,11 @@
         "Electronic / Techno",
         "R&B / Soul",
         "Afrobeats / Amapiano",
-        "Pop"
+        "Pop",
+        "Brazilian / Funk Carioca",
+        "Caribbean / Reggae",
+        "Mexican Regional",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "groovy",
@@ -7430,7 +8044,10 @@
         "midnight philosophical songs",
         "cosmic music late night",
         "introspective strange vibes",
-        "meditation existential music"
+        "meditation existential music",
+        "musique existentielle nuit",
+        "música existencial madrugada",
+        "gece felsefî müzik"
       ],
       "audio_target": {
         "energy": 0.28,
@@ -7477,7 +8094,9 @@
         "Ambient / Experimental",
         "Electronic / Ambient",
         "Indie / Alternative",
-        "Folk / Americana"
+        "Folk / Americana",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "introspective",
@@ -7501,7 +8120,11 @@
         "working from home songs",
         "office music focus",
         "study with energy",
-        "focus but upbeat"
+        "focus but upbeat",
+        "música para estudar",
+        "musique concentration française",
+        "공부 집중 음악",
+        "çalışma odak müzik"
       ],
       "audio_target": {
         "energy": 0.55,
@@ -7548,7 +8171,10 @@
         "Electronic / Ambient",
         "Lo-Fi",
         "Jazz / Blues",
-        "Indie / Alternative"
+        "Indie / Alternative",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "focus",
@@ -7572,7 +8198,11 @@
         "late night honest playlist",
         "very quiet introspective songs",
         "bedroom sad whisper",
-        "3am quiet confession"
+        "3am quiet confession",
+        "confessions rap français",
+        "canciones íntimas habitación",
+        "방 안 고백 노래",
+        "rap türkçe iç dünya"
       ],
       "audio_target": {
         "energy": 0.2,
@@ -7621,7 +8251,10 @@
         "Indie / Alternative",
         "Folk / Americana",
         "R&B / Soul",
-        "Dark R&B"
+        "Dark R&B",
+        "French Rap",
+        "World / Regional",
+        "K-Pop / J-Pop"
       ],
       "semantic_core": [
         "introspective",
@@ -7645,7 +8278,11 @@
         "deeply emotional music",
         "cry it out playlist",
         "overwhelming feelings songs",
-        "cathartic emotional music"
+        "cathartic emotional music",
+        "canciones llorar desahogo",
+        "chansons émotions débordantes",
+        "감정 폭발 음악",
+        "hissiyat müzik"
       ],
       "audio_target": {
         "energy": 0.45,
@@ -7693,7 +8330,11 @@
         "Folk / Americana",
         "R&B / Soul",
         "Pop",
-        "Classical / Orchestral"
+        "Classical / Orchestral",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional",
+        "French Rap"
       ],
       "semantic_core": [
         "sad",
@@ -7717,7 +8358,11 @@
         "private dance party",
         "bedroom dance music",
         "solo dance party songs",
-        "2am dance playlist"
+        "2am dance playlist",
+        "baile funk sozinho",
+        "reggaeton bailar sola",
+        "afrobeats dançar sozinho",
+        "tek başına dans müzik"
       ],
       "audio_target": {
         "energy": 0.75,
@@ -7765,7 +8410,10 @@
         "Electronic / House",
         "R&B / Soul",
         "Hyperpop",
-        "K-Pop / J-Pop"
+        "K-Pop / J-Pop",
+        "Brazilian / Funk Carioca",
+        "Afrobeats / Amapiano",
+        "Latin / Reggaeton"
       ],
       "semantic_core": [
         "euphoric",
@@ -7789,7 +8437,10 @@
         "frustration songs",
         "rage music playlist",
         "cathartic anger songs",
-        "scream it out playlist"
+        "scream it out playlist",
+        "rap rage français gaming",
+        "música rabia videojuegos",
+        "öfke oyun rap"
       ],
       "audio_target": {
         "energy": 0.9,
@@ -7839,7 +8490,10 @@
         "Punk / Hardcore",
         "Emo / Post-Hardcore",
         "Electronic / Bass & Dubstep",
-        "Rock"
+        "Rock",
+        "French Rap",
+        "UK Rap / Grime",
+        "World / Regional"
       ],
       "semantic_core": [
         "angry",
@@ -7863,7 +8517,11 @@
         "soft romantic playlist",
         "warmth music tender",
         "quiet love songs",
-        "gentle connection music"
+        "gentle connection music",
+        "canciones ternura romántica",
+        "chansons tendresse françaises",
+        "사랑 부드러운 음악",
+        "nazik aşk müzik"
       ],
       "audio_target": {
         "energy": 0.3,
@@ -7912,7 +8570,10 @@
         "R&B / Soul",
         "Folk / Americana",
         "Indie / Alternative",
-        "Pop"
+        "Pop",
+        "Latin / Reggaeton",
+        "K-Pop / J-Pop",
+        "World / Regional"
       ],
       "semantic_core": [
         "love",

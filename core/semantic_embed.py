@@ -37,7 +37,12 @@ os.makedirs(_CACHE_DIR, exist_ok=True)
 
 # ── Model singleton ───────────────────────────────────────────────────────────
 _MODEL = None
-_MODEL_NAME = "all-MiniLM-L6-v2"
+# paraphrase-multilingual-MiniLM-L12-v2 supports 50+ languages at the same
+# size/speed as all-MiniLM-L6-v2 (English-only). This is the critical swap
+# for international users — Arabic, French, German, Hindi, Korean, Japanese,
+# Portuguese, Turkish, Russian, Spanish, Italian, etc. all embed correctly.
+# Model size: ~120MB. First run downloads it automatically.
+_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 
 
 def _get_model():

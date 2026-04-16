@@ -45,16 +45,40 @@ _ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_PATH = os.path.join(_ROOT, "outputs", ".mining_cache.json")
 CACHE_TTL_DAYS = 30  # tag.getTopTracks results are stable; 7-day was too aggressive
 
-# Stopwords to remove when extracting tags from playlist names
+# Stopwords to remove when extracting tags from playlist names.
+# Includes common functional words across major languages so non-English
+# playlist names don't bloat the tag index with grammatical noise.
 STOPWORDS = {
+    # English
     "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
     "of", "with", "by", "from", "is", "are", "was", "be", "been", "my",
     "your", "our", "their", "its", "this", "that", "these", "those", "it",
     "playlist", "music", "songs", "tracks", "mix", "hits", "vol",
     "best", "top", "new", "i", "you", "we", "they", "he", "she",
+    # French
+    "les", "des", "une", "pour", "avec", "dans", "sur", "par", "est",
+    "que", "qui", "je", "tu", "il", "elle", "nous", "vous", "ils",
+    "de", "du", "le", "la", "au", "aux",
+    # Spanish
+    "los", "las", "del", "con", "para", "por", "una", "unos", "que",
+    "como", "más", "muy", "sus", "este", "esta",
+    # German
+    "die", "der", "das", "und", "mit", "von", "für", "auf", "ist",
+    "ein", "eine", "nicht", "auch", "sind",
+    # Portuguese
+    "dos", "das", "com", "para", "por", "uma", "que", "mais", "como",
+    "seu", "sua", "este", "essa",
+    # Italian
+    "dei", "della", "con", "per", "una", "che", "più", "molto",
+    "questo", "questa",
+    # Turkish
+    "bir", "ile", "için", "var", "ve", "bu", "da", "de",
+    # Arabic (transliterated common words)
+    "min", "ila", "ala", "fee", "waw",
 }
 
 COMPOUND_TAGS = [
+    # ── English compound mood phrases
     "late night", "night drive", "late night drive", "dark phonk",
     "gym rage", "deep focus", "chill vibes", "sad songs", "feel good",
     "good vibes", "golden hour", "after hours", "lo fi", "lo-fi",
@@ -64,6 +88,32 @@ COMPOUND_TAGS = [
     "road trip", "open road", "night drive", "sad hours", "soft hours",
     "early morning", "late night", "feel good friday", "after party",
     "smoke session", "hard reset", "signal lost", "deep work",
+    # ── French
+    "rap français", "rap francais", "rap sombre", "nuit sombre",
+    "chanson triste", "musique triste", "rap mélancolique",
+    "rap dur", "soirée", "musique de nuit",
+    # ── Arabic / MENA
+    "trap arabe", "rap arabe", "arabic rap", "arabic trap",
+    "rap egyptien", "arabic sad", "arabic drill",
+    # ── German
+    "deutschrap nacht", "deutschrap aggro",
+    # ── Portuguese / Brazilian
+    "phonk brasileiro", "baile funk", "funk brasileiro",
+    "rap brasileiro", "trap brasileiro", "música brasileira",
+    # ── Spanish
+    "trap espanol", "rap en español", "canciones de desamor",
+    "rap latino", "musica nocturna",
+    # ── Turkish
+    "türkçe rap", "gece müzik", "türkçe trap",
+    # ── Hindi / South Asian
+    "hindi sad songs", "bollywood sad", "desi trap",
+    # ── Korean / Japanese
+    "공부 음악", "감성 음악", "kpop sad", "jpop sad",
+    "日本語ラップ", "夜の音楽",
+    # ── Italian
+    "trap italiano", "rap italiano",
+    # ── Russian
+    "русский рэп", "грустная музыка",
 ]
 
 # ── Phrase boost weights ───────────────────────────────────────────────────────
@@ -127,6 +177,22 @@ PHRASE_BOOST: dict[str, float] = {
     "classical":        1.8,
     "vaporwave":        2.2,
     "jpop":             2.0,
+    # ── International compound phrases (same weight as English equivalents)
+    "rap_français":         2.5,  "rap_francais":       2.5,
+    "rap_sombre":           2.5,  "chanson_triste":     2.5,
+    "musique_triste":       2.5,  "nuit_sombre":        2.0,
+    "trap_arabe":           2.5,  "rap_arabe":          2.5,
+    "arabic_rap":           2.5,  "arabic_trap":        2.5,
+    "arabic_sad":           2.5,  "arabic_drill":       2.5,
+    "phonk_brasileiro":     2.5,  "baile_funk":         2.0,
+    "funk_brasileiro":      2.0,  "rap_brasileiro":     2.5,
+    "trap_espanol":         2.5,  "rap_latino":         2.0,
+    "türkçe_rap":           2.5,  "türkçe_trap":        2.5,
+    "hindi_sad_songs":      2.5,  "bollywood_sad":      2.5,
+    "desi_trap":            2.5,
+    "trap_italiano":        2.5,  "rap_italiano":       2.5,
+    "deutschrap_nacht":     2.5,  "deutschrap_aggro":   2.5,
+    "kpop_sad":             2.5,  "jpop_sad":           2.5,
 }
 
 # ── Tag normalisation groups ───────────────────────────────────────────────────
@@ -356,27 +422,102 @@ def _apply_semantic_expansion(
     return expanded
 
 
+# ── Script detection helpers ──────────────────────────────────────────────────
+# Detect non-Latin scripts in playlist names and inject a language tag so the
+# scorer can apply the correct macro genre boost even when the playlist name
+# contains no Latin characters at all (e.g. "مزاج هادئ", "공부 음악", "夜の運転").
+#
+# Uses Unicode block ranges — no external dependency required.
+
+def _detect_script_tags(text: str) -> list[str]:
+    """
+    Return language macro-tags inferred from Unicode scripts present in text.
+    These are injected alongside normal word tags so the genre scorer can match
+    international playlists even when the name contains no ASCII.
+    """
+    lang_tags: list[str] = []
+    has_arabic    = any('\u0600' <= c <= '\u06FF' or '\u0750' <= c <= '\u077F' for c in text)
+    has_hebrew    = any('\u0590' <= c <= '\u05FF' for c in text)
+    has_cyrillic  = any('\u0400' <= c <= '\u04FF' for c in text)
+    has_greek     = any('\u0370' <= c <= '\u03FF' for c in text)
+    has_devanagari= any('\u0900' <= c <= '\u097F' for c in text)  # Hindi/Sanskrit
+    has_hangul    = any('\uAC00' <= c <= '\uD7AF' or '\u1100' <= c <= '\u11FF' for c in text)
+    has_hiragana  = any('\u3040' <= c <= '\u309F' for c in text)
+    has_katakana  = any('\u30A0' <= c <= '\u30FF' for c in text)
+    has_cjk       = any('\u4E00' <= c <= '\u9FFF' for c in text)
+    has_thai      = any('\u0E00' <= c <= '\u0E7F' for c in text)
+
+    if has_arabic:    lang_tags.extend(["arabic", "mena"])
+    if has_hebrew:    lang_tags.append("hebrew")
+    if has_cyrillic:  lang_tags.extend(["russian", "cyrillic"])
+    if has_greek:     lang_tags.append("greek")
+    if has_devanagari:lang_tags.extend(["hindi", "indian"])
+    if has_hangul:    lang_tags.extend(["korean", "kpop"])
+    if has_hiragana or has_katakana:
+                      lang_tags.extend(["japanese", "jpop"])
+    if has_cjk and not has_hiragana and not has_katakana:
+                      lang_tags.extend(["chinese", "mandarin"])
+    if has_thai:      lang_tags.append("thai")
+
+    # Latin-script language hints from common keyword patterns
+    text_lower = text.lower()
+    _fr_markers = {"français", "francais", "française", "chanson", "musique",
+                   "nuit", "sombre", "mélancolie", "melancolie", "tristesse"}
+    _de_markers = {"deutsch", "deutschrap", "nacht", "musik", "straße"}
+    _pt_markers = {"brasileiro", "brasil", "baile", "funk brasileiro", "pagode",
+                   "sertanejo", "forró"}
+    _tr_markers = {"türkçe", "turkce", "türk", "gece", "müzik"}
+    _es_markers = {"español", "espanol", "música", "musica", "canciones",
+                   "noche", "reggaeton", "latin"}
+    _it_markers = {"italiano", "italiana", "italiana", "musica italiana",
+                   "trap italiano"}
+
+    if any(m in text_lower for m in _fr_markers): lang_tags.append("french")
+    if any(m in text_lower for m in _de_markers): lang_tags.append("german")
+    if any(m in text_lower for m in _pt_markers): lang_tags.extend(["portuguese", "brazilian"])
+    if any(m in text_lower for m in _tr_markers): lang_tags.append("turkish")
+    if any(m in text_lower for m in _es_markers): lang_tags.append("spanish")
+    if any(m in text_lower for m in _it_markers): lang_tags.append("italian")
+
+    return lang_tags
+
+
 # ── Tag extraction ─────────────────────────────────────────────────────────────
 
 def extract_tags(text: str) -> list[str]:
     """
-    Extract tags from a playlist name.
+    Extract tags from a playlist name — language-agnostic.
 
     1. Compound phrases (COMPOUND_TAGS) are extracted first and underscore-joined.
-    2. Remaining individual words (filtered by STOPWORDS) are extracted.
-    3. Each tag is normalised to its canonical form via normalize_tag().
+    2. Unicode words (not just ASCII) are extracted and filtered.
+    3. Script detection injects language macro-tags for non-Latin playlists.
+    4. Each tag is normalised to its canonical form via normalize_tag().
+
+    Using re.UNICODE ensures "rap français", "Türkçe Rap", "trap arabe" all
+    tokenize correctly instead of being silently mangled by ASCII-only [a-z]+.
 
     Returns a deduplicated list in extraction order.
     """
     text_lower = text.lower()
     tags: list[str] = []
+
+    # Step 1: compound phrase extraction (unchanged)
     for phrase in COMPOUND_TAGS:
         if phrase in text_lower:
             tags.append(normalize_tag(phrase.replace(" ", "_")))
-    words = re.findall(r"[a-z]+", text_lower)
+
+    # Step 2: Unicode word extraction (replaces ASCII-only [a-z]+)
+    # \w+ with re.UNICODE matches letters in any script: Latin, Arabic,
+    # Cyrillic, Devanagari, Hangul, CJK, etc.
+    words = re.findall(r"[^\W\d_]+", text_lower, re.UNICODE)
     for word in words:
         if word not in STOPWORDS and len(word) > 2:
             tags.append(normalize_tag(word))
+
+    # Step 3: inject script/language tags for non-Latin content
+    lang_tags = _detect_script_tags(text)
+    tags.extend(lang_tags)
+
     return list(dict.fromkeys(tags))
 
 
