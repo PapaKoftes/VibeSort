@@ -69,17 +69,18 @@ Go to **Scan** in the sidebar (or click the button on the Connect page).
   <img src="screenshots/scan.png" alt="Scan page" width="700"/>
 </p>
 
-**Scan corpus options:**
-- **Full Library** — Liked Songs + followed playlists + top tracks (recommended)
-- **Liked Songs only** — faster, if your library is huge
+**Scan modes (Scan page):**
+- **Full scan** — full library corpus (liked songs, followed artists, top tracks, saved playlists where enabled)
+- **Custom scan** — refresh selected enrichment caches only (mining, lyrics, Last.fm, …)
+- **Local library** — optional Chromaprint / AcoustID fingerprinting for files under `LOCAL_MUSIC_PATH`
 
-Click **Scan Library**. The first scan takes **3–10 minutes** depending on library size. It:
+Click **Scan Library**. The first scan takes **about 3–15 minutes** depending on library size and caches. It:
 1. Fetches your tracks from Spotify
-2. Pulls genre tags from MusicBrainz and Last.fm
-3. Mines public Spotify playlists to label tracks with human-verified mood signals
-4. Builds profiles for every track combining audio features, genres, tags, and lyrics
-5. Runs each track through 110 mood scorers
-6. Saves a cache so re-scans are instant
+2. Pulls genre tags from MusicBrainz and Last.fm (and optional sources you enabled)
+3. Mines public Spotify playlists when the API allows — in Spotify Development Mode this may be limited; enrichment backfills from other sources
+4. Builds profiles for every track combining genres, tags, lyrics, and metadata-derived signals (Spotify audio-features are not available for third-party apps)
+5. Runs each track through **110** mood scorers (see `data/packs.json`)
+6. Writes caches under `outputs/` so re-scans are much faster
 
 After scanning, the results are cached — future launches load in under a second.
 
@@ -101,7 +102,7 @@ You'll see mood playlist cards sorted by match quality (how strongly your tracks
 
 **Filter** by tag (e.g. `dark`, `lo-fi`, `rap`) or sort by match quality/size.
 
-Click **Build Playlist** to add a mood to your Playlist Queue for review before deploying.
+Click **Build Playlist** on a card to stage that mood for review. Open **Staging** in the sidebar (some buttons still say “Playlist Queue”) to rename, preview, and deploy.
 
 ---
 
@@ -115,13 +116,13 @@ The sidebar has dedicated pages for each dimension:
 
 ---
 
-## 6. The Playlist Queue
+## 6. Staging (playlist queue)
 
 <p align="center">
-  <img src="screenshots/staging.png" alt="Playlist Queue" width="700"/>
+  <img src="screenshots/staging.png" alt="Staging shelf — rename, preview, deploy" width="700"/>
 </p>
 
-The Playlist Queue is your staging area before deploying to Spotify. Here you can:
+**Staging** is your shelf before playlists exist in Spotify. Here you can:
 - **Rename** any playlist before it's created
 - **Preview** the full tracklist
 - Toggle **Spotify Recommendations** to pad a playlist with similar tracks Spotify suggests
@@ -170,7 +171,7 @@ Spotify's API only returns your top 50 tracks per time window. To unlock your *c
 1. Go to [spotify.com/account/privacy](https://www.spotify.com/account/privacy/)
 2. Request **Extended streaming history** (takes up to 30 days to receive)
 3. Drop the `StreamingHistory_music_*.json` files into the `data/` folder
-4. Re-scan
+4. Launch Vibesort and run **Scan Library** so files in `data/` are picked up
 
 ### Discogs
 

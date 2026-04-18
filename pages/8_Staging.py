@@ -1,5 +1,5 @@
 """
-pages/7_Staging.py — The staging shelf.
+pages/8_Staging.py — The staging shelf.
 The most important UI page: review, rename, and deploy playlists to Spotify.
 """
 import os

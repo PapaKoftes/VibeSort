@@ -113,6 +113,18 @@ Before submitting anchor additions, verify:
 
 ---
 
+## Demo screenshots & GIF (maintainers)
+
+README and `docs/GUIDE.md` reference images under `docs/screenshots/` plus `docs/vibesort_demo.gif`. Regenerate them **after a full scan** so numbers match real data:
+
+```bash
+python scripts/gen_screenshots.py
+```
+
+Requires `outputs/.last_scan_snapshot.json` from a completed scan and the dependencies in `requirements.txt` (including **Pillow** and **matplotlib**).
+
+---
+
 ## Questions?
 
 Open an issue or start a Discussion at [github.com/PapaKoftes/VibeSort](https://github.com/PapaKoftes/VibeSort). We're friendly.

@@ -166,7 +166,7 @@ PRs welcome. Good places to start:
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/mood_atlas.png" alt="Mood Atlas — top 30 vibes bar chart" width="900"/>
+  <img src="docs/screenshots/mood_atlas.png" alt="Mood Atlas — top 30 moods by track count after scan" width="900"/>
 </p>
 
 ---

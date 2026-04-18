@@ -60,7 +60,7 @@ with st.sidebar:
 
     st.divider()
     if st.button("Go to Staging Shelf", use_container_width=True):
-        st.switch_page("pages/7_Staging.py")
+        st.switch_page("pages/8_Staging.py")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
