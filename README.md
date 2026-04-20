@@ -28,19 +28,6 @@ Full guide: **[docs/GUIDE.md](docs/GUIDE.md)**
 
 ---
 
-## How it works
-
-Vibesort uses a multi-signal scoring engine — not just one data source, but five layered together:
-
-Vibesort layers five signals — tags (Last.fm, lyrics, Deezer, Discogs), semantic matching, genre hierarchy, and metadata proxy — weighted and combined per track. The result is playlists that feel right, not just sound similar.
-
-**Spotify killed their audio-features API in late 2024.** Vibesort routes around it via three ground-truth pillars:
-1. **110 mood anchors** — 12+ hand-curated seed tracks per mood that inject the strongest possible signal when found in your library
-2. **Last.fm similarity graph** — BFS propagation through your library using track similarity data
-3. **Last.fm tag chart mining** — crowd-sourced mood tags from millions of listeners
-
----
-
 ## What you get
 
 - **110 mood playlists** — Hollow, Villain Arc, Late Night Drive, Phonk Season, Rewire, Dissolve, and 104 more
@@ -58,14 +45,14 @@ Vibesort layers five signals — tags (Last.fm, lyrics, Deezer, Discogs), semant
 
 </details>
 
-- **42 genre playlists** — mapped with 500+ rules (East Coast Rap, UK Rap, Brazilian Phonk, Funk Carioca, etc.)
+- **42 genre playlists** — mapped with 691 rules (East Coast Rap, UK Rap, Brazilian Phonk, Funk Carioca, etc.)
 - **Era playlists** — by decade
 - **Artist spotlights** — one playlist per artist with 8+ songs in your library
 - **Emotional Fingerprint** — a visual breakdown of your library's emotional DNA (DARK / POWER / CHILL / PARTY / STORY)
 - **Mood Atlas** — see all 110 moods and which ones are missing from your library (with discovery suggestions)
-- **Taste Map** — explore your library's clusters visually
+- **Taste Map** — your library's emotional clusters visualised
 - **Staging shelf** — queue playlists, rename them, preview tracks, then batch-deploy to Spotify in one click
-- **Blend** — multi-user blend, genre-aware, better than Spotify's (supports 3+ people)
+- **Blend** — multi-user mood blend (supports 3+ people, better than Spotify's)
 - **Last.fm integration** — play history, personal listening anchors, time-of-day tags
 
 ---
@@ -90,29 +77,65 @@ Deploy All → Spotify  (one click)
 
 ---
 
+## How it's built
+
+Spotify killed their audio-features API in late 2024. Every tool that relied on danceability/energy/valence scores broke overnight. Vibesort routes around it.
+
+Instead of one data source, it layers five signals per track and weights them:
+
+| Signal | Source | Weight |
+|--------|--------|--------|
+| Mood tags | Last.fm, Deezer, Discogs, lyrics (VADER sentiment) | 0.45 |
+| Semantic similarity | Sentence-transformer embeddings of mood descriptions vs track metadata | 0.22 |
+| Genre match | 691-rule genre hierarchy, matched against Spotify artist genres | 0.18 |
+| Audio proxy | Metadata-derived BPM/energy estimates (Deezer, track duration, key signals) | 0.15 |
+
+The anchor system is the core of why it works: **1,679 hand-curated seed tracks** across 110 moods. When an anchor track is found in your library, it becomes a strong directional signal — the scoring engine uses it to pull similar tracks toward that mood. It's the difference between a model that guesses and one that knows what "Hollow" actually sounds like.
+
+On top of that:
+- **Graph propagation** — Last.fm similarity BFS spreads mood labels through your library from anchor seeds
+- **Chart mining** — Last.fm tag charts inject crowd-sourced mood tags without needing Spotify's playlist API
+- **Multilingual support** — `paraphrase-multilingual-MiniLM-L12-v2` handles 50+ languages; Arabic, Hindi, German, Turkish, Japanese libraries all work
+- **PKCE auth** — no backend server, no user secrets stored anywhere, fully client-side OAuth
+
+<p align="center">
+  <img src="docs/screenshots/signal_badges.png" alt="Signal badges — anchor, personal, similarity, Last.fm, lyrics" width="440" style="display:inline-block; margin-right:8px"/>
+  <img src="docs/screenshots/fingerprint.png" alt="Emotional Fingerprint chart" width="440" style="display:inline-block"/>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/vibes_cards.png" alt="Vibes page — mood cards with fit quality and Build Playlist" width="900"/>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/mood_atlas.png" alt="Mood Atlas — top 30 moods by track count after scan" width="900"/>
+</p>
+
+---
+
 ## Optional: Last.fm
 
-Add your key to `.env` for richer mood matching and personal anchor seeding:
+Strongly recommended — adds personal listening history as anchors and enables chart-based tag injection:
 
 ```
 LASTFM_API_KEY=your_key
-LASTFM_API_SECRET=your_secret  
+LASTFM_API_SECRET=your_secret
 LASTFM_USERNAME=your_username
 ```
 
-Free key at [last.fm/api](https://www.last.fm/api). With Last.fm connected, your most-played tracks get promoted to **personal anchors** — they pull their moods harder because the data proves you actually listen to them.
+Free key at [last.fm/api](https://www.last.fm/api). With Last.fm connected, your most-played tracks become **personal anchors** — they pull their moods harder because the data proves you actually listen to them.
 
 ---
 
 ## Optional: your own Spotify app
 
+If the shared app's 25-user Dev Mode limit is a problem, use your own:
+
 ```
 VIBESORT_CLIENT_ID=your_client_id
-SPOTIFY_CLIENT_ID=your_client_id
-SPOTIFY_CLIENT_SECRET=your_client_secret
 ```
 
-Register `https://papakoftes.github.io/VibeSort/callback.html` as your redirect URI.
+Register `https://papakoftes.github.io/VibeSort/callback.html` as your redirect URI. PKCE — no secret needed.
 
 ---
 
@@ -123,17 +146,37 @@ Vibesort/
 ├── app.py              Home + routing
 ├── config.py           Settings (.env)
 ├── launch.py           Entrypoint
-├── run.bat / run.sh    User launchers
+├── run.bat / run.sh    One-click launchers
 │
-├── pages/              Streamlit UI (Connect, Scan, Vibes, Genres, …)
-├── core/               Scoring engine, enrichers, integrations
-├── staging/            Playlist staging + deploy
-├── tests/              60+ unit tests + audit script
+├── pages/              10-page Streamlit UI
+│   ├── 1_Connect.py    Spotify + Last.fm auth
+│   ├── 2_Scan.py       Library scan + progress
+│   ├── 3_Vibes.py      Mood playlist browser
+│   ├── 4_Genres.py     Genre playlists
+│   ├── 5_Artists.py    Artist spotlights
+│   ├── 6_Blend.py      Multi-user blend
+│   ├── 7_Taste_Map.py  Music DNA visualisation
+│   ├── 8_Staging.py    Queue + deploy
+│   ├── 9_Stats.py      Taste report + stats
+│   └── 10_Settings.py  Config + custom builder
+│
+├── core/               Scoring engine + enrichers
+│   ├── scan_pipeline.py  Full ingest → tag → score → playlist pipeline
+│   ├── scorer.py         Multi-signal weighted scoring
+│   ├── semantic_embed.py Multilingual sentence embeddings
+│   ├── lastfm.py         Last.fm API + graph propagation
+│   ├── mood_graph.py     BFS similarity graph
+│   ├── enrich.py         Deezer / Discogs / AudioDB enrichment
+│   └── deploy.py         Spotify playlist creation
+│
+├── staging/            Staging shelf (disk-backed playlist queue)
+├── tests/              111 unit tests + audit script
 │
 └── data/
-    ├── packs.json          110 mood definitions
-    ├── mood_anchors.json   1,389 curated seed tracks (12+ per mood)
-    └── macro_genres.json   Genre mapping rules
+    ├── packs.json          110 mood definitions + vibe sentences
+    ├── mood_anchors.json   1,679 curated seed tracks (110 moods)
+    ├── mood_lastfm_tags.json  Last.fm tag vocabulary per mood
+    └── macro_genres.json   691-rule genre mapping
 ```
 
 ---
@@ -142,7 +185,7 @@ Vibesort/
 
 - Python 3.10+
 - Free Spotify account
-- Optional: Last.fm account
+- Optional: Last.fm account (strongly recommended)
 
 ---
 
@@ -156,35 +199,16 @@ PRs welcome. Good places to start:
 
 ---
 
-<p align="center">
-  <img src="docs/screenshots/vibes_cards.png" alt="Vibes page — mood cards with fit quality and Build Playlist" width="900"/>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/signal_badges.png" alt="Signal badges — anchor, personal, similarity, Last.fm, lyrics" width="440" style="display:inline-block; margin-right:8px"/>
-  <img src="docs/screenshots/fingerprint.png" alt="Emotional Fingerprint chart" width="440" style="display:inline-block"/>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/mood_atlas.png" alt="Mood Atlas — top 30 moods by track count after scan" width="900"/>
-</p>
-
----
-
-## Related tools
-
-| Tool | What it adds |
-|------|-------------|
-| [Last.fm](https://last.fm) | Permanent scrobble history |
-| [stats.fm](https://stats.fm) | Full play history |
-| [Every Noise at Once](https://everynoise.com) | Spotify's map of ~6000 genres |
-| [Obscurify](https://obscurify.com) | Obscurity score |
-| [Soundiiz](https://soundiiz.com) | Transfer playlists between platforms |
-
----
-
 ## About
 
 Vibesort started as a personal tool — a way to properly sort a music library that had grown too big to navigate by feel alone. The impetus was a friend whose musical taste was too specific and too good to be served by Spotify's algorithmic playlists.
 
+The Spotify API situation forced the interesting architecture: when they killed audio features, the project had to actually think about *why* certain music feels the way it does — which led to the anchor system, the semantic embeddings, the hand-curation. It ended up being a better answer than the original float-based one anyway.
+
 If your library has moods that Spotify's recommendations never quite catch — this was built for that.
+
+---
+
+## License
+
+[MIT](LICENSE)
