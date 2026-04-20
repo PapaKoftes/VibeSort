@@ -38,6 +38,11 @@ if not vibesort:
     )
 
 sp = st.session_state.get("sp")
+if sp is None:
+    st.warning("Spotify session expired. Please reconnect.")
+    if st.button("Reconnect"):
+        st.switch_page("pages/1_Connect.py")
+    st.stop()
 
 # Input: playlist URLs
 st.subheader("User Playlists")

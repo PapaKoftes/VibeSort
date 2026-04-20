@@ -349,6 +349,7 @@ with r5a:
 with r5b:
     with st.container(border=True):
         st.markdown("**AcoustID** · Audio fingerprinting")
+        _aidm = None
         try:
             from core import acoustid as _aidm
             _fpcalc_ok = _aidm.is_available()

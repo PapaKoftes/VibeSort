@@ -115,6 +115,7 @@ try:
     USER_ID    = (cfg.SPOTIFY_CLIENT_ID     or "").strip()
     USER_SEC   = (cfg.SPOTIFY_CLIENT_SECRET or "").strip()
 except Exception:
+    cfg = None  # type: ignore[assignment]
     SHARED_ID = USER_ID = USER_SEC = ""
 
 USE_PKCE  = bool(SHARED_ID)
