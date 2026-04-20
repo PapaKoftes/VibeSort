@@ -32,7 +32,8 @@ SCOPE = (
     "playlist-read-private playlist-read-collaborative "
     "playlist-modify-private playlist-modify-public"
 )
-REDIRECT_URI = "https://papakoftes.github.io/VibeSort/callback.html"
+import config as _connect_cfg
+REDIRECT_URI = _connect_cfg.SPOTIFY_REDIRECT_URI or "https://papakoftes.github.io/VibeSort/callback.html"
 PLACEHOLDERS = {"your_client_id_here", "your_id_here", "", "paste_here",
                 "your_client_id", "paste_your_client_id_here"}
 

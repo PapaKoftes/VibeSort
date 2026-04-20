@@ -1,5 +1,5 @@
 """
-pages/8_Stats.py — Taste report and stats dashboard.
+pages/9_Stats.py — Taste report and stats dashboard.
 """
 import os
 import sys
@@ -484,10 +484,13 @@ if st.button("Export Taste Report as .txt", use_container_width=False):
         for g, uris in _top_genres[:10]:
             lines.append(f"  {g}: {len(uris)} tracks")
         lines += ["", "TOP MOODS (by track count)"]
-        for name, info in _mood_by_count[:10]:
+        _mood_export = sorted(mood_results.items(), key=lambda x: -x[1].get("count", 0)) if mood_results else []
+        for name, info in _mood_export[:10]:
             lines.append(f"  {name}: {info['count']} tracks ({info.get('cohesion',0)*100:.0f}% cohesion)")
         lines += ["", f"Taste: {taste_profile_line()}"]
-        report_path = os.path.join("outputs", "taste_report.txt")
+        _out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "outputs")
+        report_path = os.path.join(_out_dir, "taste_report.txt")
+        os.makedirs(_out_dir, exist_ok=True)
         with open(report_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
         st.success(f"Saved to {os.path.abspath(report_path)}")

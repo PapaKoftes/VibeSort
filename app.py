@@ -105,7 +105,7 @@ if _is_first_run:
         st.markdown("#### Step 3 · Scan & Sort")
         st.markdown(
             "Hit Scan after connecting. Vibesort scores your entire library against "
-            "87 mood packs in 1–3 minutes. Playlists are ready to deploy immediately."
+            "110 mood packs in 1–3 minutes. Playlists are ready to deploy immediately."
         )
         st.markdown("*Connect first, then scan.*")
 

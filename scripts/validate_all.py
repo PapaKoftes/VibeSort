@@ -266,9 +266,9 @@ _am_missing = [n for n, m in packs.items() if not m.get("anti_mood")]
 check("All moods have anti_mood", len(_am_missing) == 0,
       f"{len(_am_missing)} missing — run scripts/patch_packs.py", warn=len(_am_missing) > 0)
 
-# Mood count target (≥ 87 after new moods added)
-check("Mood count ≥ 87 (target with new moods)", len(packs) >= 87,
-      f"actual={len(packs)} — run scripts/patch_packs.py to add new moods", warn=len(packs) < 87)
+# Mood count target (≥ 110 as of current release)
+check("Mood count ≥ 110", len(packs) >= 110,
+      f"actual={len(packs)} — run scripts/patch_packs.py to add new moods", warn=len(packs) < 110)
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 print("\n── Summary ─────────────────────────────────────────────────────────────")

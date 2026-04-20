@@ -1,5 +1,5 @@
 """
-pages/6_Taste_Map.py — Music DNA & Taste Compatibility.
+pages/7_Taste_Map.py — Music DNA & Taste Compatibility.
 
 Your library fingerprinted into a shareable profile.
 Export yours, import a friend's, see where you overlap.

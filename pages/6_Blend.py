@@ -63,7 +63,7 @@ if st.button("Find Common Ground", type="primary", use_container_width=False):
     else:
         with st.spinner("Fetching playlists and computing blend..."):
             try:
-                from core.blend import fetch_user_library, blend_profiles, generate_blend_playlists
+                from core.blend import fetch_user_library, generate_blend_playlists
                 import config as cfg
 
                 # fetch_user_library() returns simplified track dicts.

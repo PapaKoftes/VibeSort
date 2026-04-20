@@ -76,7 +76,7 @@ def deploy_one(
     else:
         all_uris = list(dict.fromkeys(track_uris))
 
-    max_tracks = int(getattr(config, "MAX_TRACKS_PER_PLAYLIST", 50))
+    max_tracks = int(getattr(config, "MAX_TRACKS_PER_PLAYLIST", 75))
     all_uris = all_uris[:max_tracks]
 
     # Create the Spotify playlist (retry on 429 — burst deploys can rate-limit)

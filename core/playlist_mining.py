@@ -657,7 +657,7 @@ def _mine_lastfm_tag_charts(
     but the matched ones lift the scored tracks to Top-N across that mood.
 
     Rate: ~210ms gap (enforced inside lastfm._api_get).
-    First run for 87 moods × 3 tags: ~260 API calls ≈ 55s.
+    First run for 110 moods × 3 tags: ~330 API calls ≈ 70s.
     All results cached in .lastfm_cache.json (no TTL — tag charts are stable).
     """
     if not api_key or not api_key.strip() or not mood_lastfm_tags:

@@ -802,13 +802,21 @@ else:
             _sc1, _sc2 = st.columns(2)
             with _sc1:
                 if st.button("Stage it →", use_container_width=True, key="custom_stage"):
-                    _staged = st.session_state.setdefault("staged_playlists", {})
-                    _staged[_playlist_name] = {
-                        "name":  _playlist_name,
-                        "uris":  [u for u, _ in _final],
-                        "count": len(_final),
-                    }
-                    st.success(f"Staged as **{_playlist_name}** — deploy from the Staging page.")
+                    try:
+                        from staging import staging as _staging_mod
+                        _staging_mod.save({
+                            "suggested_name": _playlist_name,
+                            "track_uris":     [u for u, _ in _final],
+                            "rec_uris":       [],
+                            "expand_with_recs": False,
+                            "cohesion":       0.0,
+                            "source_type":    "custom",
+                            "source_label":   "Custom Builder",
+                            "playlist_type":  "custom",
+                        })
+                        st.success(f"Staged as **{_playlist_name}** — deploy from the Staging page.")
+                    except Exception as _se:
+                        st.error(f"Could not stage playlist: {_se}")
             with _sc2:
                 if _sp and st.button("Deploy to Spotify now →", use_container_width=True, key="custom_deploy"):
                     try:

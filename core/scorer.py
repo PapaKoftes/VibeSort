@@ -2,13 +2,13 @@
 scorer.py — Multi-signal scoring engine.
 
 Formula:
-  score = w_audio * audio_similarity
-        + w_tags  * tag_similarity
-        + w_genre * genre_match
-        + w_pref  * user_preference_boost
+  score = w_proxy  * metadata_audio_proxy
+        + w_tags   * tag_similarity
+        + w_sem    * semantic_similarity
+        + w_genre  * genre_match
 
-Weights default to: 0.45, 0.35, 0.20
-User preference boost multiplies the final score when tuned.
+Default weights: W_METADATA_AUDIO=0.15, W_TAGS=0.45, W_SEMANTIC=0.22, W_GENRE=0.18 (sum=1.0)
+User preference boosts and listen-history multipliers are applied post-score.
 
 This produces a ranked list of tracks for any target mood.
 """
