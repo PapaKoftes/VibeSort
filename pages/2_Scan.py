@@ -11,6 +11,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import config as cfg
 import streamlit as st
 
 st.set_page_config(
@@ -120,7 +121,6 @@ def _clear_deezer_tracks() -> None:
 
 def run_scan(sp, user_id: str, force: bool = False, local_path: str = ""):
     """Run the full library scan and store results in st.session_state['vibesort']."""
-    import config as cfg
     from core.scan_pipeline import execute_library_scan
 
     if st.session_state.get("scan_running"):
