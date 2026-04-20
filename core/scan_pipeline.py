@@ -1648,7 +1648,17 @@ def execute_library_scan(
             _deduped[_mn] = {**_md, "uris": _kept_uris, "count": len(_kept_uris)}
     mood_results = _deduped
 
-    _fill_floor = max(int(getattr(cfg, "MIN_PLAYLIST_TOTAL", 25)), min(playlist_min_size, _max_tracks_cap))
+    # Build per-URI mood-appearance counts post-dedup so the refill step can
+    # respect both the _MAX_PL cap (relaxed to 2×) and MAX_TRACKS_PER_ARTIST.
+    _uri_mood_count: dict[str, int] = {}
+    for _mn_d, _md_d in mood_results.items():
+        for _uri_d in _md_d["uris"]:
+            _uri_mood_count[_uri_d] = _uri_mood_count.get(_uri_d, 0) + 1
+
+    _refill_max = _MAX_PL * 2        # relaxed cap for backfill (hard cap applied in dedup)
+    _refill_max_artist = int(getattr(cfg, "MAX_TRACKS_PER_ARTIST", 4))
+
+    _fill_floor = max(int(getattr(cfg, "MIN_PLAYLIST_TOTAL", 30)), min(playlist_min_size, _max_tracks_cap))
     _refilled: dict = {}
     for _mn, _md in mood_results.items():
         uris = list(_md["uris"])
@@ -1657,12 +1667,27 @@ def execute_library_scan(
             continue
         ranked_full = _md.get("ranked", [])
         _seen_u = set(uris)
+        # Count artists already in this playlist so we can enforce the per-artist cap
+        _artist_fill: dict[str, int] = {}
+        for _u in uris:
+            _a0 = (profiles.get(_u, {}).get("artists") or [""])[0]
+            _artist_fill[_a0] = _artist_fill.get(_a0, 0) + 1
         for u, _sc in ranked_full:
             if len(uris) >= _fill_floor:
                 break
-            if u not in _seen_u:
-                _seen_u.add(u)
-                uris.append(u)
+            if u in _seen_u:
+                continue
+            # Respect relaxed _MAX_PL cap — don't bloat tracks into dozens of playlists
+            if _uri_mood_count.get(u, 0) >= _refill_max:
+                continue
+            # Respect per-artist cap — prevent one artist dominating a backfilled playlist
+            _a0 = (profiles.get(u, {}).get("artists") or [""])[0]
+            if _artist_fill.get(_a0, 0) >= _refill_max_artist:
+                continue
+            _seen_u.add(u)
+            uris.append(u)
+            _uri_mood_count[u] = _uri_mood_count.get(u, 0) + 1
+            _artist_fill[_a0] = _artist_fill.get(_a0, 0) + 1
         if len(uris) >= 5:
             _refilled[_mn] = {**_md, "uris": uris, "count": len(uris)}
     mood_results = _refilled
