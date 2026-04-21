@@ -65,10 +65,6 @@ Click **Connect to Spotify**. Your browser will open Spotify's authorization pag
 
 Go to **Scan** in the sidebar (or click the button on the Connect page).
 
-<p align="center">
-  <img src="screenshots/scan.png" alt="Scan page — Full scan, custom refresh, local audio options" width="700"/>
-</p>
-
 **Scan modes:**
 - **Full library** — liked songs, top tracks, followed artists, saved playlists
 - **Custom scan** — refresh selected enrichment caches only (mining, lyrics, Last.fm, …)
@@ -89,10 +85,6 @@ After scanning, the results are cached — future launches load in under a secon
 ## 4. Browse Your Vibes
 
 Open **Vibes** in the sidebar.
-
-<p align="center">
-  <img src="screenshots/vibes.png" alt="Vibes page — 110 mood playlist cards sorted by fit quality" width="700"/>
-</p>
 
 You'll see mood playlist cards sorted by match quality (how strongly your tracks fit that vibe). Each card shows:
 - The mood name and description
@@ -137,10 +129,6 @@ Your library's emotional DNA: genre distribution chart, audio profile (energy, p
 ---
 
 ## 6. Staging (playlist queue)
-
-<p align="center">
-  <img src="screenshots/staging.png" alt="Staging shelf — queued playlists with rename, preview, toggle recs, Deploy All" width="700"/>
-</p>
 
 **Staging** is your shelf before playlists exist in Spotify. Here you can:
 - **Rename** any playlist before it's created

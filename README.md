@@ -100,20 +100,7 @@ On top of that:
 - **PKCE auth** — no backend server, no user secrets stored anywhere, fully client-side OAuth
 
 <p align="center">
-  <img src="docs/screenshots/signal_badges.png" alt="Signal badges — anchor, personal, similarity, Last.fm, lyrics" width="440" style="display:inline-block; margin-right:8px"/>
-  <img src="docs/screenshots/fingerprint.png" alt="Emotional Fingerprint — library DNA bars" width="440" style="display:inline-block"/>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/vibes_cards.png" alt="Vibes page — mood cards sorted by fit quality with Build Playlist" width="900"/>
-</p>
-
-<p align="center">
   <img src="docs/screenshots/genres.png" alt="Genre Playlists — 38 genre groups with cohesion scores and Add to Staging" width="900"/>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/mood_atlas.png" alt="Mood Atlas — top 30 moods by track count" width="900"/>
 </p>
 
 ---
