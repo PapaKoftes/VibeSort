@@ -52,7 +52,7 @@ python launch.py
 When the app opens, you'll land on the **Connect** page.
 
 <p align="center">
-  <img src="screenshots/connect.png" alt="Connect page" width="700"/>
+  <img src="screenshots/connect.png" alt="Connect page — Connect to Spotify (PKCE)" width="700"/>
 </p>
 
 Click **Connect to Spotify**. Your browser will open Spotify's authorization page. Log in, click **Agree**, and you'll be redirected back. The app reads your token automatically — no copy-pasting.
@@ -66,19 +66,19 @@ Click **Connect to Spotify**. Your browser will open Spotify's authorization pag
 Go to **Scan** in the sidebar (or click the button on the Connect page).
 
 <p align="center">
-  <img src="screenshots/scan.png" alt="Scan page" width="700"/>
+  <img src="screenshots/scan.png" alt="Scan page — Full scan, custom refresh, local audio options" width="700"/>
 </p>
 
-**Scan modes (Scan page):**
-- **Full scan** — full library corpus (liked songs, followed artists, top tracks, saved playlists where enabled)
+**Scan modes:**
+- **Full library** — liked songs, top tracks, followed artists, saved playlists
 - **Custom scan** — refresh selected enrichment caches only (mining, lyrics, Last.fm, …)
-- **Local library** — optional Chromaprint / AcoustID fingerprinting for files under `LOCAL_MUSIC_PATH`
+- **Local audio** — optional Chromaprint / AcoustID fingerprinting for files under `LOCAL_MUSIC_PATH`
 
-Click **Scan Library**. The first scan takes **about 3–15 minutes** depending on library size and caches. It:
+Click **Scan Library**. The first scan takes **3–15 minutes** depending on library size and which enrichment sources are enabled. It:
 1. Fetches your tracks from Spotify
-2. Pulls genre tags from MusicBrainz and Last.fm (and optional sources you enabled)
-3. Mines public Spotify playlists when the API allows — in Spotify Development Mode this may be limited; enrichment backfills from other sources
-4. Builds profiles for every track combining genres, tags, lyrics, and metadata-derived signals (Spotify audio-features are not available for third-party apps)
+2. Pulls genre and mood tags from Last.fm, Deezer, Discogs, MusicBrainz, and lyrics
+3. Mines public Spotify playlists where the API permits (Development Mode may restrict this; other sources backfill)
+4. Builds a per-track profile combining genres, tags, lyrics, and audio proxy signals — Spotify's audio-features endpoint was deprecated in November 2024 and is no longer used
 5. Runs each track through **110** mood scorers (see `data/packs.json`)
 6. Writes caches under `outputs/` so re-scans are much faster
 
@@ -91,45 +91,67 @@ After scanning, the results are cached — future launches load in under a secon
 Open **Vibes** in the sidebar.
 
 <p align="center">
-  <img src="screenshots/vibes.png" alt="Vibes page" width="700"/>
+  <img src="screenshots/vibes.png" alt="Vibes page — 110 mood playlist cards sorted by fit quality" width="700"/>
 </p>
 
 You'll see mood playlist cards sorted by match quality (how strongly your tracks fit that vibe). Each card shows:
 - The mood name and description
 - Track count + match quality label (Perfect fit / Great fit / Good fit / Mixed / Broad)
-- Signal badges for each track (curated anchor · personal · similarity · Last.fm · lyrics)
+- Signal badges for each track: **[Anchor]** curated seed · **[Personal]** your play history · **[Similar]** graph propagation · **[Last.fm]** crowd tags · **[Lyrics]** lyric sentiment
 - Insight lines: how many tracks you personally return to, how many were found via similarity graph
 
 **Filter** by tag (e.g. `dark`, `lo-fi`, `rap`) or sort by match quality/size.
 
-Click **Build Playlist** on a card to stage that mood for review. Open **Staging** in the sidebar (some buttons still say “Playlist Queue”) to rename, preview, and deploy.
+Click **Build Playlist** on a card to stage that mood for review, then open **Staging** to rename, preview, and deploy.
 
 ---
 
 ## 5. Browse by Genre, Artist, or Era
 
-The sidebar has dedicated pages for each dimension:
+The sidebar has dedicated pages for each dimension.
 
-- **Genres** — 42-genre hierarchy (East Coast Rap, Synthwave, Folk/Americana, etc.). Filter by family (Genre / Decade / Language / Tempo / BPM / Sound Character).
-- **Artists** — One playlist per artist with 8+ songs in your library
-- **Taste Map** — Visual cluster map of your library in 2D mood-space
+### Genres
+
+<p align="center">
+  <img src="screenshots/genres.png" alt="Genre Playlists — genre list with track counts, cohesion scores, and Add to Staging" width="900"/>
+</p>
+
+42-genre hierarchy (East Coast Rap, Synthwave, Folk/Americana, etc.) plus era, language, tempo, and sound-character views. The **Scan Data Quality** badge at the top shows which signal layers are active for this scan. Each row shows track count and cohesion score.
+
+### Artists
+
+<p align="center">
+  <img src="screenshots/artists.png" alt="Artist Playlists — artist list with track counts and genre labels" width="900"/>
+</p>
+
+One playlist per artist with 8+ songs in your library, sorted by track count. Each row shows genre labels so you can spot your heaviest-listened genre pools at a glance.
+
+### Taste Map
+
+<p align="center">
+  <img src="screenshots/taste_map.png" alt="Taste Map — genre distribution, audio profile, and Compare with Someone tab" width="900"/>
+</p>
+
+Your library's emotional DNA: genre distribution chart, audio profile (energy, positivity, danceability, tempo, acousticness, instrumentalness), top artists, and eras. The **Compare with Someone** tab lets you paste a second user's export to see how libraries overlap.
 
 ---
 
 ## 6. Staging (playlist queue)
 
 <p align="center">
-  <img src="screenshots/staging.png" alt="Staging shelf — rename, preview, deploy" width="700"/>
+  <img src="screenshots/staging.png" alt="Staging shelf — queued playlists with rename, preview, toggle recs, Deploy All" width="700"/>
 </p>
 
 **Staging** is your shelf before playlists exist in Spotify. Here you can:
 - **Rename** any playlist before it's created
 - **Preview** the full tracklist
-- Toggle **Spotify Recommendations** to pad a playlist with similar tracks Spotify suggests
+- Toggle **Expand with similar songs** — pads the playlist with tracks from Last.fm `track.getSimilar` that match the mood (requires a Last.fm API key)
 - Remove playlists you've changed your mind about
 - Click **Deploy All** to create everything in one shot
 
 Deployed playlists appear in your Spotify account immediately.
+
+> **Recommendations note:** Spotify's `/v1/recommendations` endpoint was deprecated November 2024. Similar-song expansion now uses Last.fm `track.getSimilar` — it works in any Spotify mode (Dev Mode and Extended Quota) and requires no Spotify quota upgrade. Add `LASTFM_API_KEY=your_key` to your `.env` file if not already configured.
 
 ---
 
@@ -137,20 +159,16 @@ Deployed playlists appear in your Spotify account immediately.
 
 Open **Stats** to see a breakdown of your library.
 
-<p align="center">
-  <img src="screenshots/stats.png" alt="Stats / Taste Report" width="700"/>
-</p>
-
 Includes:
 - Track count, unique artists, genres, eras, moods detected
 - **Obscurity score** (0–100, higher = more underground)
 - Genre breakdown chart
 - Era distribution
 - Top detected moods and their cohesion
-- Audio fingerprint (energy, valence, danceability, tempo, acousticness, instrumentalness)
+- **Audio profile** — energy, valence, danceability, tempo, acousticness, instrumentalness derived from the metadata proxy (Deezer BPM/gain + genre heuristics; Spotify audio features are not used)
 - Top artists by library count
 - Vibe tag cloud
-- Enrichment coverage (how much signal was collected per track)
+- Enrichment coverage (signal layers active per track)
 
 ---
 
@@ -158,7 +176,7 @@ Includes:
 
 ### Last.fm
 
-Adds your full scrobble history as a listening-weight signal. Go to **Connect** and enter your Last.fm username (no API key needed — the app ships with a shared key).
+Adds your full scrobble history as a listening-weight signal, enables chart-based mood tag injection, and powers similar-song recommendations. Go to **Connect** and enter your Last.fm username (no API key needed for history — the app ships with a shared key; for full recommendations support add your own key in Settings).
 
 ### ListenBrainz
 
@@ -171,11 +189,11 @@ Spotify's API only returns your top 50 tracks per time window. To unlock your *c
 1. Go to [spotify.com/account/privacy](https://www.spotify.com/account/privacy/)
 2. Request **Extended streaming history** (takes up to 30 days to receive)
 3. Drop the `StreamingHistory_music_*.json` files into the `data/` folder
-4. Launch Vibesort and run **Scan Library** so files in `data/` are picked up
+4. Launch Vibesort and run **Scan Library** — the files are picked up automatically
 
 ### Discogs
 
-Adds genre and style tags from Discogs releases. Enable in **Settings → Enrichment Sources**.
+Adds genre and style tags from Discogs releases. Enable in **Settings → Enrichment**.
 
 ---
 
@@ -184,24 +202,23 @@ Adds genre and style tags from Discogs releases. Enable in **Settings → Enrich
 Open **Settings** in the sidebar.
 
 <p align="center">
-  <img src="screenshots/settings.png" alt="Settings page" width="700"/>
+  <img src="screenshots/settings.png" alt="Settings page — connections, playlist generation, enrichment, caching" width="700"/>
 </p>
 
 | Section | What it controls |
 |---|---|
-| **Connections** | Manage Spotify, Last.fm, ListenBrainz credentials |
-| **Playlist generation** | Scoring strictness, expansion fallback, MVP mood filter |
-| **Enrichment sources** | Toggle MusicBrainz, Last.fm tags, AudioDB, Discogs, lyrics |
-| **Quick tests** | Test each API connection instantly |
-| **Playlist defaults** | Default size, naming engine, description format |
+| **Connections** | Spotify app override (Client ID), Last.fm API key, ListenBrainz token |
+| **Playlist generation** | Scoring strictness, expansion fallback, MVP mood filter, minimum totals |
+| **Enrichment** | Toggle AudioDB, Discogs, lyrics, MusicBrainz, Musixmatch |
+| **Caching** | Clear per-source caches or reset the full scan snapshot |
+| **Dev Mode info** | Table of deprecated Spotify endpoints and their working replacements |
 | **.env template** | Copy a starter config file for manual setup |
-| **Cache management** | Clear scan cache, reset all data |
 
 ---
 
 ## 10. Blend (Multi-user)
 
-The **Blend** page lets multiple people merge their libraries for a shared playlist. Supports 3+ users, genre-aware weighting, and multiple "angles" (shared taste vs. compromise vs. discovery). Each user connects their own Spotify account.
+The **Blend** page lets multiple people merge their libraries for a shared playlist. Supports 3+ users, genre-aware weighting, and multiple angles (shared taste vs. compromise vs. discovery). Each user connects their own Spotify account.
 
 ---
 
@@ -215,6 +232,7 @@ The **Blend** page lets multiple people merge their libraries for a shared playl
 | App won't start (Windows) | Make sure Python 3.10+ is on PATH and `run.bat` was used |
 | Port 8501 already in use | Another Streamlit app is running. Close it or set `STREAMLIT_PORT` in `.env` |
 | Spotify "access denied" | The shared app has a 25-user limit. Use your own free Spotify developer app — takes 5 minutes. See the Connect page for instructions. |
+| "Expand with similar songs" adds nothing | Add `LASTFM_API_KEY=your_key` to your `.env` file (free key at [last.fm/api](https://www.last.fm/api/account/create)) |
 
 ---
 
@@ -231,27 +249,37 @@ Vibesort/
 │   ├── 1_Connect.py         Spotify / Last.fm / ListenBrainz auth
 │   ├── 2_Scan.py            Library scan trigger + progress
 │   ├── 3_Vibes.py           Mood playlist browser
-│   ├── 4_Genres.py          Genre playlist browser
+│   ├── 4_Genres.py          Genre / era / language / tempo playlists
 │   ├── 5_Artists.py         Artist playlist browser
-│   ├── 6_Taste_Map.py       2D cluster visualization
-│   ├── 7_Blend.py           Multi-user blend
-│   ├── 8_Stats.py           Taste report + charts
-│   └── 9_Settings.py        All settings
+│   ├── 6_Blend.py           Multi-user mood blend
+│   ├── 7_Taste_Map.py       Music DNA + library comparison
+│   ├── 8_Staging.py         Rename, preview, expand, deploy
+│   ├── 9_Stats.py           Taste report + enrichment coverage
+│   └── 10_Settings.py       API keys, scoring weights, cache control
 │
 ├── core/
 │   ├── scan_pipeline.py     Orchestrates the full scan
-│   ├── ingest.py            Spotify API calls + caching
-│   ├── enrich.py            MusicBrainz, Last.fm, AudioDB enrichment
-│   ├── playlist_mining.py   Public playlist tag mining
 │   ├── scorer.py            Multi-signal mood scoring engine
+│   ├── semantic_embed.py    Multilingual sentence embeddings
+│   ├── audio_proxy.py       Metadata-derived audio proxy (Deezer BPM/gain, genre heuristics)
+│   ├── lastfm.py            Last.fm tags, graph propagation, similar-track lookup
+│   ├── recommend.py         Recommendations via Last.fm getSimilar + Spotify search
+│   ├── mood_graph.py        BFS similarity graph
+│   ├── enrich.py            Artist genre enrichment (Spotify + search fallback)
 │   ├── profile.py           Per-track signal profiles
-│   ├── genre.py             Genre normalization (42 macro genres)
+│   ├── genre.py             Genre normalisation (42 macro genres)
+│   ├── namer.py             Playlist name + description generation
 │   ├── deploy.py            Spotify playlist creation
 │   └── theme.py             App CSS / design tokens
 │
+├── staging/                 Disk-backed playlist queue
+├── tests/                   Unit tests + audit script
+│
 └── data/
     ├── packs.json           110 mood preset definitions
-    ├── macro_genres.json    500+ genre normalization rules
+    ├── mood_anchors.json    1,679 curated seed tracks
+    ├── mood_lastfm_tags.json  Last.fm tag vocabulary per mood
+    ├── macro_genres.json    691-rule genre normalisation
     └── HOW_TO_GET_FULL_HISTORY.md
 ```
 
