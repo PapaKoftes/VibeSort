@@ -72,7 +72,7 @@ Deploy All → Spotify  (one click)
 ```
 
 <p align="center">
-  <img src="docs/screenshots/home_dashboard.png" alt="Home dashboard — emotional fingerprint, top mood CTA, library stats" width="900"/>
+  <img src="docs/screenshots/home.png" alt="Vibesort home — connect CTA, data sources status, what you get" width="900"/>
 </p>
 
 ---

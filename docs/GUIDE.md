@@ -52,7 +52,7 @@ python launch.py
 When the app opens, you'll land on the **Connect** page.
 
 <p align="center">
-  <img src="screenshots/connect.png" alt="Connect page — Connect to Spotify (PKCE)" width="700"/>
+  <img src="screenshots/connect_loaded.png" alt="Connect page — connected state with sidebar and Scan Library button" width="700"/>
 </p>
 
 Click **Connect to Spotify**. Your browser will open Spotify's authorization page. Log in, click **Agree**, and you'll be redirected back. The app reads your token automatically — no copy-pasting.
@@ -200,10 +200,6 @@ Adds genre and style tags from Discogs releases. Enable in **Settings → Enrich
 ## 9. Settings Reference
 
 Open **Settings** in the sidebar.
-
-<p align="center">
-  <img src="screenshots/settings.png" alt="Settings page — connections, playlist generation, enrichment, caching" width="700"/>
-</p>
 
 | Section | What it controls |
 |---|---|
