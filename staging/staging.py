@@ -46,6 +46,29 @@ def _playlist_path(playlist_id: str) -> str:
     return os.path.join(_ensure_dir(), f"{playlist_id}.json")
 
 
+def _atomic_write_json(path: str, data: dict) -> None:
+    """
+    Write JSON to disk atomically via temp-file + os.replace().
+
+    Prevents corruption if the process is interrupted (crash, Ctrl+C, power
+    loss) mid-write. Without this, a half-written file looks like a valid
+    path but fails to parse, which load_all() silently skips — user sees
+    their playlist vanish.
+
+    Note: os.replace() is atomic on POSIX and atomic-enough on Windows
+    (Win32 MoveFileEx with MOVEFILE_REPLACE_EXISTING).
+    """
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.flush()
+        try:
+            os.fsync(f.fileno())
+        except OSError:
+            pass  # some filesystems (network mounts) don't support fsync
+    os.replace(tmp_path, path)
+
+
 def _new_playlist(data: dict) -> dict:
     """
     Merge provided data into a full playlist record with all required fields
@@ -99,8 +122,7 @@ def save(playlist_dict: dict) -> str:
         record = _new_playlist(playlist_dict)
 
     path = _playlist_path(record["id"])
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(record, f, indent=2, ensure_ascii=False)
+    _atomic_write_json(path, record)
 
     return record["id"]
 
@@ -125,6 +147,12 @@ def load_all() -> list[dict]:
 
     Returns:
         List of playlist dicts where deployed == False.
+
+    Note:
+        Corrupt playlist files (caused by e.g. an interrupted pre-atomic-write
+        save) are quarantined by appending ``.corrupt`` to the filename so the
+        user can see something went wrong instead of assuming the playlist
+        just vanished.
     """
     staging_dir = _ensure_dir()
     playlists = []
@@ -137,7 +165,15 @@ def load_all() -> list[dict]:
                 data = json.load(f)
             if not data.get("deployed", False):
                 playlists.append(data)
-        except (json.JSONDecodeError, OSError):
+        except json.JSONDecodeError:
+            # Quarantine corrupt JSON so it's visible on disk instead of
+            # silently vanishing from the staging shelf.
+            try:
+                os.rename(fpath, f"{fpath}.corrupt")
+            except OSError:
+                pass
+            continue
+        except OSError:
             continue
 
     playlists.sort(key=lambda p: p.get("created_at", ""), reverse=True)
@@ -187,8 +223,7 @@ def update(playlist_id: str, updates: dict) -> dict:
         raise KeyError(f"Staged playlist not found: {playlist_id}")
     record.update(updates)
     path = _playlist_path(playlist_id)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(record, f, indent=2, ensure_ascii=False)
+    _atomic_write_json(path, record)
     return record
 
 

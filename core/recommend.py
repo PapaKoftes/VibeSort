@@ -32,6 +32,20 @@ def _get_user_market(sp: spotipy.Spotify) -> str | None:
     return _cached_market
 
 
+def reset_market_cache() -> None:
+    """
+    Clear the cached user market so the next call to _get_user_market()
+    re-fetches from the current Spotify session.
+
+    Must be called on disconnect / re-login, otherwise a second user logging
+    in on the same process inherits the first user's country code — which
+    silently filters out recommendations not available in that market.
+    """
+    global _cached_market, _market_fetched
+    _cached_market = None
+    _market_fetched = False
+
+
 def spotify_recommendations(
     sp: spotipy.Spotify,
     seed_uris: list[str],

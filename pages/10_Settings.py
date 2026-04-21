@@ -74,8 +74,32 @@ with c_sp:
             uname = st.session_state.get("me", {}).get("display_name", "Connected")
             st.success(f"✅ {uname}")
             if st.button("Disconnect", key="sp_disc", use_container_width=True):
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
+                # Surgical disconnect — only Spotify-related session keys.
+                # The old code wiped ALL of st.session_state including unrelated
+                # app state (theme, navigation flags, scan results, etc.),
+                # which forced a full re-wizard on every disconnect.
+                _spotify_keys = {
+                    "spotify_token",    "sp",           "me",
+                    "vibesort",         "existing_playlist_names",
+                    "existing_uris",    "library_hash", "staged_ids",
+                }
+                for _k in list(st.session_state.keys()):
+                    if _k in _spotify_keys or _k.startswith("spotify_"):
+                        del st.session_state[_k]
+                # Also drop the persisted PKCE token so the Connect page
+                # shows the auth prompt instead of silently re-logging in.
+                try:
+                    from core import pkce as _pkce_clear
+                    _pkce_clear.clear_token()
+                except Exception:
+                    pass
+                # Reset recommend.py's module-level market cache so the next
+                # user doesn't inherit the previous user's country code.
+                try:
+                    from core import recommend as _rec_clear
+                    _rec_clear.reset_market_cache()
+                except Exception:
+                    pass
                 st.switch_page("pages/1_Connect.py")
         else:
             st.error("❌ Not connected")
