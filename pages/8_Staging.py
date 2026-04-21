@@ -81,16 +81,21 @@ def _deploy_all(staged_list: list) -> list[dict]:
 
 st.title("Staging Shelf")
 
-# Warn if Spotify recommendations will also be blocked (Dev Mode restriction).
-# sp.recommendations() requires the same Extended Quota Mode as playlist_items.
-_mining_blocked = (vibesort or {}).get("mining_blocked", False)
-if _mining_blocked:
+# Note: Spotify's /v1/recommendations endpoint was deprecated November 2024.
+# Recommendations now use Last.fm track.getSimilar + Spotify search instead,
+# so they work in all modes (Dev Mode and Extended Quota) as long as a
+# Last.fm API key is configured.
+_has_lastfm = bool(
+    getattr(cfg, "VIBESORT_LASTFM_API_KEY", "").strip()
+    or getattr(cfg, "LASTFM_API_KEY", "").strip()
+)
+if not _has_lastfm:
     st.info(
-        "ℹ️ **Spotify Dev Mode:** the 'Expand with recs' toggle won't add new songs "
-        "because `recommendations` is also blocked in Development Mode. "
-        "Playlists will still deploy with your library tracks. "
-        "Apply for [Extended Quota Mode](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) "
-        "to enable recommendations.",
+        "ℹ️ **Recommendations need Last.fm:** the 'Expand with similar songs' toggle "
+        "requires a Last.fm API key to find tracks similar to your playlist seeds. "
+        "Add `LASTFM_API_KEY=your_key` to your `.env` file — free at "
+        "[last.fm/api](https://www.last.fm/api/account/create). "
+        "Playlists will still deploy with your library tracks.",
         icon="🎧",
     )
 
@@ -239,8 +244,8 @@ for staged in staged_playlists:
         _pred_total = len(track_uris) + (len(rec_uris) if expand_recs else 0)
         if _pred_total < _min_t and expand_recs:
             st.caption(
-                f"Target ≥{_min_t} songs — deploy will request extra Spotify recommendations "
-                "when your app quota allows (not in Dev Mode)."
+                f"Target ≥{_min_t} songs — deploy will fetch similar songs via Last.fm "
+                "to pad the playlist to the target length."
             )
         elif _pred_total < _min_t:
             st.caption(

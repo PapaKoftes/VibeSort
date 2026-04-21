@@ -164,7 +164,10 @@ def fetch_recs_for_staged(
     n: int = 15,
 ) -> list[str]:
     """
-    Fetch Spotify recommendations for a staged playlist and store them in staging.
+    Fetch recommendations for a staged playlist and store them in staging.
+
+    Uses Last.fm track.getSimilar + Spotify search as the recommendation
+    source (Spotify's /v1/recommendations was deprecated November 2024).
 
     Uses the playlist's track_uris as seeds and the source_type/source_label
     to determine the mood context (if applicable).
@@ -181,14 +184,20 @@ def fetch_recs_for_staged(
     """
     from core.recommend import filtered_recommendations
 
-    track_uris  = staged.get("track_uris", [])
-    source_type = staged.get("source_type", "genre")
+    track_uris   = staged.get("track_uris", [])
+    source_type  = staged.get("source_type", "genre")
     source_label = staged.get("source_label", "")
 
     if not track_uris:
         return []
 
-    # Determine mood name for recommendations (only relevant for mood-type playlists)
+    # Resolve Last.fm API key from config (shared Vibesort key or per-user key)
+    lastfm_api_key = (
+        getattr(config, "VIBESORT_LASTFM_API_KEY", "").strip()
+        or getattr(config, "LASTFM_API_KEY", "").strip()
+    )
+
+    # Mood name is only relevant for mood-type playlists
     mood_name: Optional[str] = source_label if source_type == "mood" else None
 
     rec_uris, _fallback = filtered_recommendations(
@@ -199,6 +208,7 @@ def fetch_recs_for_staged(
         mood_name=mood_name or "",
         n=n,
         cohesion_threshold=config.COHESION_THRESHOLD,
+        lastfm_api_key=lastfm_api_key,
     )
 
     # Persist the recs into the staged record

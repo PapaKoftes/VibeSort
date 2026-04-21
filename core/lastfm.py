@@ -310,11 +310,168 @@ def get_tag_top_tracks(
     return result
 
 
-# ---- Similar-track mood inference (M2.7) ------------------------------------
+# ---- Shared similar-track/artist helpers ------------------------------------
 
 # Confidence multiplier for similar-inferred tags.
 # Below direct track tags (1.0×) and tag-chart anchor tags (0.75×).
 _SIMILAR_CONFIDENCE = 0.55
+
+
+def get_similar_tracks(
+    artist: str,
+    title: str,
+    api_key: str,
+    limit: int = 20,
+    cache: dict | None = None,
+) -> list[dict]:
+    """
+    Fetch similar tracks from Last.fm track.getSimilar.
+
+    Used both for mood-tag inference and for building recommendations when
+    Spotify's /v1/recommendations endpoint is unavailable.
+
+    Args:
+        artist:  Artist name.
+        title:   Track title.
+        api_key: Last.fm API key.
+        limit:   Max similar tracks to fetch (up to ~100 from Last.fm).
+        cache:   Shared in-memory cache dict; results persist under "similar".
+
+    Returns:
+        [{"artist": str, "title": str, "match": float}] sorted by match score.
+        [] on failure or no results.
+    """
+    if not api_key or not artist or not title:
+        return []
+
+    sim_key = f"sim|||{_normalize_tag(artist)}|||{_normalize_tag(title)}"
+    if cache is not None and sim_key in cache.get("similar", {}):
+        return cache["similar"][sim_key]
+
+    data = _api_get(
+        "track.getSimilar",
+        {"artist": artist, "track": title, "limit": limit},
+        api_key,
+    )
+    if data is None:
+        return []   # transient failure — don't cache, will retry next call
+
+    raw = (data.get("similartracks") or {}).get("track") or []
+    if isinstance(raw, dict):
+        raw = [raw]  # Last.fm returns dict instead of list when only 1 result
+
+    similar: list[dict] = []
+    for t in raw:
+        name    = (t.get("name") or "").strip()
+        art_obj = t.get("artist") or {}
+        art_name = (
+            art_obj.get("name", "") if isinstance(art_obj, dict) else str(art_obj)
+        ).strip()
+        try:
+            match = float(t.get("match") or 0)
+        except (ValueError, TypeError):
+            match = 0.0
+        if name and art_name and match > 0:
+            similar.append({"artist": art_name, "title": name, "match": match})
+
+    if cache is not None:
+        cache.setdefault("similar", {})[sim_key] = similar
+
+    return similar
+
+
+def get_similar_artists(
+    artist: str,
+    api_key: str,
+    limit: int = 10,
+    cache: dict | None = None,
+) -> list[dict]:
+    """
+    Fetch similar artists via Last.fm artist.getSimilar.
+
+    Used as a fallback in recommendations when track similarity is sparse
+    (e.g. obscure tracks or very new releases with no Last.fm profile).
+
+    Returns:
+        [{"artist": str, "match": float}] sorted by match score.
+        [] on failure or no results.
+    """
+    if not api_key or not artist:
+        return []
+
+    sim_key = f"sim_artist|||{_normalize_tag(artist)}"
+    if cache is not None and sim_key in cache.get("similar", {}):
+        return cache["similar"][sim_key]
+
+    data = _api_get("artist.getSimilar", {"artist": artist, "limit": limit}, api_key)
+    if data is None:
+        return []
+
+    raw = (data.get("similarartists") or {}).get("artist") or []
+    if isinstance(raw, dict):
+        raw = [raw]
+
+    result: list[dict] = []
+    for a in raw:
+        name = (a.get("name") or "").strip()
+        try:
+            match = float(a.get("match") or 0)
+        except (ValueError, TypeError):
+            match = 0.0
+        if name:
+            result.append({"artist": name, "match": match})
+
+    if cache is not None:
+        cache.setdefault("similar", {})[sim_key] = result
+
+    return result
+
+
+def get_artist_top_tracks(
+    artist: str,
+    api_key: str,
+    limit: int = 5,
+    cache: dict | None = None,
+) -> list[dict]:
+    """
+    Fetch an artist's top tracks via Last.fm artist.getTopTracks.
+
+    Used as a secondary recommendations source: when similar-artist data is
+    available but track-level similarity is sparse, pull top tracks from each
+    similar artist and search Spotify for their URIs.
+
+    Returns:
+        [{"artist": str, "title": str}] in playcount-descending order.
+        [] on failure or no results.
+    """
+    if not api_key or not artist:
+        return []
+
+    cache_key = f"top_tracks|||{_normalize_tag(artist)}:{limit}"
+    if cache is not None and cache_key in cache.get("similar", {}):
+        return cache["similar"][cache_key]
+
+    data = _api_get("artist.getTopTracks", {"artist": artist, "limit": limit}, api_key)
+    if data is None:
+        return []
+
+    raw = (data.get("toptracks") or {}).get("track") or []
+    if isinstance(raw, dict):
+        raw = [raw]
+
+    result = [
+        {"artist": artist, "title": (t.get("name") or "").strip()}
+        for t in raw
+        if (t.get("name") or "").strip()
+    ]
+
+    if cache is not None:
+        cache.setdefault("similar", {})[cache_key] = result
+
+    return result
+
+
+# ---- Similar-track mood inference (M2.7) ------------------------------------
 
 
 def get_similar_track_tags(
@@ -328,7 +485,7 @@ def get_similar_track_tags(
     Infer mood tags for a low-confidence track via track.getSimilar.
 
     Algorithm:
-      1. Call track.getSimilar (cached permanently under "similar" sub-cache).
+      1. Call get_similar_tracks() (cached permanently under "similar" sub-cache).
       2. For each similar track (up to `limit`, sorted by match score):
          look up or fetch its top tags via get_track_tags().
       3. Blend tags weighted by match score, normalise, scale to
@@ -348,38 +505,7 @@ def get_similar_track_tags(
         return {}
 
     # ── Step 1: fetch similar tracks ─────────────────────────────────────────
-    sim_key = f"sim|||{_normalize_tag(artist)}|||{_normalize_tag(title)}"
-    if cache is not None and sim_key in cache.get("similar", {}):
-        similar = cache["similar"][sim_key]
-    else:
-        data = _api_get(
-            "track.getSimilar",
-            {"artist": artist, "track": title, "limit": limit},
-            api_key,
-        )
-        if data is None:
-            return {}   # transient failure — don't cache
-        raw = (data.get("similartracks") or {}).get("track") or []
-        if isinstance(raw, dict):
-            raw = [raw]  # Last.fm single-result edge case
-
-        similar: list[dict] = []
-        for t in raw:
-            name = (t.get("name") or "").strip()
-            art_obj  = t.get("artist") or {}
-            art_name = (
-                art_obj.get("name", "") if isinstance(art_obj, dict) else str(art_obj)
-            ).strip()
-            try:
-                match = float(t.get("match") or 0)
-            except (ValueError, TypeError):
-                match = 0.0
-            if name and art_name and match > 0:
-                similar.append({"artist": art_name, "title": name, "match": match})
-
-        if cache is not None:
-            cache.setdefault("similar", {})[sim_key] = similar
-
+    similar = get_similar_tracks(artist, title, api_key, limit=limit, cache=cache)
     if not similar:
         return {}
 
@@ -440,38 +566,7 @@ def get_library_neighbors(
     if not api_key or not artist or not title:
         return []
 
-    sim_key = f"sim|||{_normalize_tag(artist)}|||{_normalize_tag(title)}"
-    if cache is not None and sim_key in cache.get("similar", {}):
-        similar = cache["similar"][sim_key]
-    else:
-        data = _api_get(
-            "track.getSimilar",
-            {"artist": artist, "track": title, "limit": limit},
-            api_key,
-        )
-        if data is None:
-            return []
-        raw = (data.get("similartracks") or {}).get("track") or []
-        if isinstance(raw, dict):
-            raw = [raw]
-
-        similar: list[dict] = []
-        for t in raw:
-            name = (t.get("name") or "").strip()
-            art_obj  = t.get("artist") or {}
-            art_name = (
-                art_obj.get("name", "") if isinstance(art_obj, dict) else str(art_obj)
-            ).strip()
-            try:
-                match = float(t.get("match") or 0)
-            except (ValueError, TypeError):
-                match = 0.0
-            if name and art_name and match > 0:
-                similar.append({"artist": art_name, "title": name, "match": match})
-
-        if cache is not None:
-            cache.setdefault("similar", {})[sim_key] = similar
-
+    similar = get_similar_tracks(artist, title, api_key, limit=limit, cache=cache)
     if not similar:
         return []
 

@@ -1,18 +1,17 @@
 """
-core/acousticbrainz.py — Acoustic feature extraction for Vibesort.
+core/acousticbrainz.py — Local audio analysis via librosa.
 
-AcoustBrainz (acousticbrainz.org) was shut down by the MetaBrainz Foundation
-in December 2022.  This module provides a drop-in replacement using:
+AcousticBrainz (acousticbrainz.org) was shut down by the MetaBrainz Foundation
+in December 2022 and is no longer available.  Spotify's audio-features endpoint
+was deprecated in November 2024.
 
-  1. Spotify Audio Features API  — primary source (BPM, energy, valence, etc.)
-     Already consumed by scan_pipeline.py via sp.audio_features().  No extra
-     work needed when the user is connected to Spotify.
+This module handles LOCAL FILE analysis only — it uses librosa to extract
+acoustic features from audio files on disk.  It is activated when the user
+sets LOCAL_MUSIC_PATH in config / .env and librosa is installed.
 
-  2. Local audio analysis via librosa — optional, activated when the user sets
-     LOCAL_MUSIC_PATH in config / .env and librosa is installed.
-     Provides BPM, RMS energy, spectral centroid, and zero-crossing rate from
-     actual audio files.  Useful for tracks that Spotify audio features doesn't
-     cover (local files, very new releases, missing IDs).
+For Spotify tracks the scoring pipeline uses the metadata proxy (audio_proxy.py)
+which derives energy, valence, danceability, tempo, acousticness, and
+instrumentalness from Deezer BPM/gain, genre heuristics, and lyric sentiment.
 
 Usage
 -----
@@ -25,15 +24,14 @@ Usage
 
 Integration
 -----------
-scan_pipeline.py calls sp.audio_features() for Spotify tracks.  For local
-files (uri starts with "spotify:local:"), the pipeline falls back to this
-module if librosa is installed and LOCAL_MUSIC_PATH is set.
+scan_pipeline.py falls back to this module for spotify:local: URIs when
+librosa is installed and LOCAL_MUSIC_PATH points to the local music folder.
 
-The returned feature dict uses the same key names as Spotify Audio Features
-where possible so the scoring engine treats both sources identically:
-  bpm            → Spotify "tempo"
-  energy         → Spotify "energy" (0–1 RMS-normalised)
-  spectral_centroid → no Spotify equivalent; used for brightness heuristics
+The returned feature dict uses the same axis names as audio_proxy.py where
+possible so the scoring engine treats both sources identically:
+  bpm            → maps to "tempo" in profile.py
+  energy         → 0–1 RMS-normalised, same axis as proxy energy
+  spectral_centroid → brightness heuristic (no proxy equivalent)
   zcr            → zero-crossing rate; proxy for noisiness / distortion
 """
 

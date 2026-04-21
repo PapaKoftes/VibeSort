@@ -128,20 +128,26 @@ with c_lb:
         if st.button("Manage →", key="lb_goto", use_container_width=True):
             st.switch_page("pages/1_Connect.py")
 
-with st.expander("Spotify Dev Mode limitations & workarounds"):
+with st.expander("Spotify deprecated endpoints & workarounds"):
     st.markdown(
         """
-| Endpoint | Status | Workaround |
+| Endpoint | Status | Replacement |
 |---|---|---|
-| `GET /audio-features` | ❌ Deprecated Nov 2024 | AudioDB `intBPM` (partial) |
-| `GET /artists?ids=` | ❌ 403 in Dev Mode | `/v1/search` fallback ✅ |
-| `GET /playlists/{id}/items` | ❌ 403 for all playlists | Last.fm / Deezer / AudioDB ✅ |
+| `GET /audio-features` | ❌ Deprecated Nov 2024 | Deezer BPM + replay-gain · genre/lyric heuristics ✅ |
+| `GET /recommendations` | ❌ Deprecated Nov 2024 | Last.fm `track.getSimilar` + `sp.search()` ✅ |
+| `GET /artists?ids=` | ❌ 403 in Dev Mode | `/v1/search` artist fallback ✅ |
+| `GET /playlists/{id}/items` | ❌ 403 for 3rd-party playlists | Last.fm · Deezer · AudioDB tag enrichment ✅ |
 
-**Permanent fix:** Apply for [Extended Quota Mode](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)
-to remove the 403 restrictions and unlock full playlist mining.
+**Audio scoring** uses Deezer BPM/gain, VADER lyric-valence, and genre-based heuristics
+assembled in `audio_proxy.py` — same signal axes as the old Spotify features (energy,
+valence, danceability, tempo, acousticness, instrumentalness).
 
-**Note:** Audio features (`energy`, `valence`, etc.) are permanently removed from the Spotify
-API — Extended Quota Mode will **not** bring them back.
+**Recommendations** now use Last.fm `track.getSimilar` seeded from your playlist tracks,
+then resolve each result to a Spotify URI via `sp.search()`.  A Last.fm API key is required
+(free — set `LASTFM_API_KEY` in your `.env`).
+
+**Extended Quota Mode** removes the Dev Mode 403 restrictions on artist/playlist endpoints
+but will **not** restore audio features or recommendations — those are gone permanently.
         """
     )
 
@@ -570,7 +576,7 @@ with st.expander("View current values and explanations"):
             """
 - `PLAYLIST_PREFIX` — prefix on all deployed playlist names
 - `MAX_TRACKS_PER_PLAYLIST` — hard cap per mood/genre playlist
-- `RECS_PER_PLAYLIST` — max Spotify recommendations added to pad a playlist
+- `RECS_PER_PLAYLIST` — max similar songs (via Last.fm) added to pad a playlist
 - `MIN_PLAYLIST_TOTAL` — minimum tracks (library + recs) a mood must reach to survive; playlists shorter than this are dropped
 - `MIN_SONGS_PER_GENRE` — min tracks for a genre playlist to appear
 - `MIN_SONGS_PER_ARTIST` — min tracks for an artist spotlight

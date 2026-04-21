@@ -207,6 +207,10 @@ def action_create_vibe(data: dict, mood_name: str, info: dict):
             existing_uris=data["existing_uris"],
             mood_name=mood_name,
             n=config.RECS_PER_PLAYLIST,
+            lastfm_api_key=(
+                getattr(config, "VIBESORT_LASTFM_API_KEY", "").strip()
+                or getattr(config, "LASTFM_API_KEY", "").strip()
+            ),
         )
         _fb_note = " (fallback)" if _fb else ""
         print(f"\r  Recommendations: {len(rec_uris)} similar songs found{_fb_note}")
@@ -289,6 +293,10 @@ def action_create_all_vibes(data: dict):
             rec_uris, _ = recommend.filtered_recommendations(
                 data["sp"], info["uris"], data["profiles"],
                 data["existing_uris"], mood_name, n=config.RECS_PER_PLAYLIST,
+                lastfm_api_key=(
+                    getattr(config, "VIBESORT_LASTFM_API_KEY", "").strip()
+                    or getattr(config, "LASTFM_API_KEY", "").strip()
+                ),
             )
         url = builder.build_mood_playlist(
             data["sp"],
@@ -327,6 +335,10 @@ def action_genre_playlists(data: dict):
             rec_uris, _ = recommend.filtered_recommendations(
                 data["sp"], uris, data["profiles"], data["existing_uris"],
                 mood_name=None, n=config.RECS_PER_PLAYLIST,
+                lastfm_api_key=(
+                    getattr(config, "VIBESORT_LASTFM_API_KEY", "").strip()
+                    or getattr(config, "LASTFM_API_KEY", "").strip()
+                ),
             )
         url = builder.build_genre_playlist(
             data["sp"], data["user_id"], g, uris,
@@ -404,6 +416,10 @@ def action_heavy_rotation(data: dict):
         rec_uris, _ = recommend.filtered_recommendations(
             data["sp"], uris, data["profiles"], data["existing_uris"],
             mood_name=None, n=config.RECS_PER_PLAYLIST,
+            lastfm_api_key=(
+                getattr(config, "VIBESORT_LASTFM_API_KEY", "").strip()
+                or getattr(config, "LASTFM_API_KEY", "").strip()
+            ),
         )
 
     url = builder.build_generic_playlist(
