@@ -85,9 +85,8 @@ def _load_genre_disk_cache() -> dict[str, list[str]]:
 
 def _save_genre_disk_cache(cache: dict[str, list[str]]) -> None:
     try:
-        os.makedirs(os.path.dirname(_SPOTIFY_GENRE_CACHE), exist_ok=True)
-        with open(_SPOTIFY_GENRE_CACHE, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False)
+        from core.cache_io import atomic_write_json
+        atomic_write_json(_SPOTIFY_GENRE_CACHE, cache)
     except OSError:
         pass
 

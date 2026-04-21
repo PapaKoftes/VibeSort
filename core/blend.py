@@ -50,10 +50,18 @@ def fetch_user_library(sp, playlist_urls: list[str]) -> dict[str, dict]:
                     if not track or not track.get("uri"):
                         continue
                     uri = track["uri"]
+                    # Preserve the full artist object (id + name) so that
+                    # downstream genre enrichment can key by the Spotify artist
+                    # ID — this disambiguates distinct artists that share a
+                    # name (e.g. two unrelated acts called "Shadow") which
+                    # otherwise collapse into a single Deezer search result.
                     tracks[uri] = {
                         "uri":        uri,
                         "name":       track.get("name", ""),
-                        "artists":    [a["name"] for a in track.get("artists", [])],
+                        "artists":    [
+                            {"id": a.get("id", ""), "name": a.get("name", "")}
+                            for a in track.get("artists", []) if a
+                        ],
                         "popularity": track.get("popularity", 50),
                     }
                 if not result.get("next"):

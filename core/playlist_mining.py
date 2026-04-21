@@ -613,11 +613,10 @@ def _load_cache() -> dict | None:
 
 def _save_cache(data: dict) -> None:
     import datetime
-    os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
     data["_timestamp"] = datetime.datetime.now().isoformat()
     try:
-        with open(CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f)
+        from core.cache_io import atomic_write_json
+        atomic_write_json(CACHE_PATH, data)
     except Exception:
         pass
 

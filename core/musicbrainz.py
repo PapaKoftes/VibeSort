@@ -43,8 +43,8 @@ def _save_cache() -> None:
     if _cache is None:
         return
     try:
-        with open(CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(_cache, f, ensure_ascii=False)
+        from core.cache_io import atomic_write_json
+        atomic_write_json(CACHE_PATH, _cache)
     except OSError:
         pass
 

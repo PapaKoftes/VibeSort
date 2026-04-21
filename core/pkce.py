@@ -56,8 +56,11 @@ def generate_auth_url(client_id: str, redirect_uri: str, scope: str) -> str:
     challenge = _challenge(verifier)
     state     = secrets.token_hex(16)
 
-    with open(_STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump({"verifier": verifier, "state": state, "ts": time.time()}, f)
+    from core.cache_io import atomic_write_json
+    atomic_write_json(
+        _STATE_FILE,
+        {"verifier": verifier, "state": state, "ts": time.time()},
+    )
 
     params = {
         "client_id":             client_id,
@@ -146,8 +149,8 @@ def refresh_access_token(refresh_token: str, client_id: str) -> dict:
 def save_token(token: dict) -> None:
     """Persist PKCE token to disk so it survives app restarts."""
     try:
-        with open(_TOKEN_FILE, "w", encoding="utf-8") as f:
-            json.dump({"pkce": token}, f)
+        from core.cache_io import atomic_write_json
+        atomic_write_json(_TOKEN_FILE, {"pkce": token})
     except OSError:
         pass
 

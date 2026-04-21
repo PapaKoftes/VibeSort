@@ -19,6 +19,34 @@ from core import scorer, cohesion as cohesion_mod
 from core.mood_graph import all_moods
 
 
+def _ensure_scan_lyric_weight_cleanup(fn):
+    """
+    Guarantee cfg.SCAN_LYRIC_WEIGHT is cleared from the cfg module even when
+    the wrapped function raises, so a failed scan doesn't leak the previous
+    run's lyric weight into subsequent scorer.score_track() calls.
+
+    ``execute_library_scan`` mutates ``cfg.SCAN_LYRIC_WEIGHT`` near the top of
+    its body. Previously cleanup only happened on the success path at the end
+    of the function — any exception between the set and the delattr left the
+    global polluted for the rest of the process lifetime.
+    """
+
+    def wrapper(*args, **kwargs):
+        # cfg is the third positional arg in execute_library_scan; also allow kw.
+        cfg_arg = args[2] if len(args) > 2 else kwargs.get("cfg")
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            if cfg_arg is not None:
+                try:
+                    delattr(cfg_arg, "SCAN_LYRIC_WEIGHT")
+                except AttributeError:
+                    pass
+
+    return wrapper
+
+
+@_ensure_scan_lyric_weight_cleanup
 def execute_library_scan(
     sp,
     user_id: str,
@@ -1790,10 +1818,8 @@ def execute_library_scan(
         "lyrics_language_map": dict(_lyrics_lang_map) if _lyrics_lang_map else {},
         "artist_popularity": artist_popularity,
     }
-    try:
-        delattr(cfg, "SCAN_LYRIC_WEIGHT")
-    except AttributeError:
-        pass
+    # cfg.SCAN_LYRIC_WEIGHT cleanup is handled by @_ensure_scan_lyric_weight_cleanup
+    # so it fires on both the success path and on any exception.
 
     # ── Auto-save serializable snapshot (so browser refresh doesn't lose scan) ─
     _snapshot_path = os.path.join(_ROOT if "_ROOT" in dir() else os.path.dirname(os.path.abspath(__file__)), "..", "outputs", ".last_scan_snapshot.json")

@@ -78,23 +78,43 @@ if st.button("Find Common Ground", type="primary", use_container_width=False):
                 from core import profile as _profile_mod
                 from core.genre import to_macro as _to_macro
 
-                def _minimal_profile(track_dict: dict, artist_genres_by_name: dict = None) -> dict:
-                    """Wrap a raw track dict in the minimal profile shape."""
-                    # Build real macro_genres from Deezer-enriched artist data if available
+                def _minimal_profile(track_dict: dict, artist_genres_by_key: dict = None) -> dict:
+                    """Wrap a raw track dict in the minimal profile shape.
+
+                    Genre lookup prefers Spotify artist ID when present so that
+                    distinct artists with the same name don't collapse into one
+                    shared genre bucket. Falls back to lowercase name for any
+                    record that only has names (defensive against old data).
+                    """
                     macro_genres = []
-                    if artist_genres_by_name:
+                    if artist_genres_by_key:
                         _seen: set[str] = set()
                         for _a in track_dict.get("artists", []):
-                            _aname = (_a if isinstance(_a, str) else _a.get("name", "")).lower().strip()
-                            for _genre in artist_genres_by_name.get(_aname, []):
+                            if isinstance(_a, dict):
+                                _aid = (_a.get("id") or "").strip()
+                                _aname_lc = (_a.get("name") or "").lower().strip()
+                            else:
+                                _aid = ""
+                                _aname_lc = str(_a).lower().strip()
+                            _genres = (
+                                artist_genres_by_key.get(_aid)
+                                if _aid else None
+                            ) or artist_genres_by_key.get(_aname_lc) or []
+                            for _genre in _genres:
                                 _macro = _to_macro(_genre)
                                 if _macro not in _seen:
                                     _seen.add(_macro)
                                     macro_genres.append(_macro)
+                    # Normalise artists to the list-of-strings shape the rest of
+                    # the Blend pipeline (cohesion, naming) expects.
+                    _artist_names = [
+                        (_a.get("name", "") if isinstance(_a, dict) else str(_a))
+                        for _a in track_dict.get("artists", [])
+                    ]
                     return {
                         "uri":          track_dict.get("uri", ""),
                         "name":         track_dict.get("name", ""),
-                        "artists":      track_dict.get("artists", []),
+                        "artists":      _artist_names,
                         "audio_vector": [0.5] * 6,   # neutral — no audio features for other users
                         "raw_genres":   [],
                         "macro_genres": macro_genres or ["Other"],
@@ -112,32 +132,42 @@ if st.button("Find Common Ground", type="primary", use_container_width=False):
                 # Collect unique artist names across all external playlists,
                 # enrich via Deezer, then pass the result to _minimal_profile()
                 # so genre-overlap playlists work for Blend users too.
-                _blend_artist_genres_by_name: dict[str, list[str]] = {}
+                _blend_artist_genres_by_key: dict[str, list[str]] = {}
                 try:
                     from core import deezer as _dz_blend
 
-                    # Build artist-name frequency map (name_lower → (name, count))
+                    # Build artist frequency map keyed by Spotify artist ID
+                    # when available (prevents same-name artists from
+                    # collapsing into one entry), falling back to lowercase
+                    # name for rows that only carry a name string.
                     _blend_artist_freq: dict[str, tuple[str, int]] = {}
                     for _, _rt in user_raw_tracks:
                         for _t in _rt.values():
                             for _a in _t.get("artists", []):
-                                _aname = _a if isinstance(_a, str) else ""
-                                if _aname:
-                                    _akey = _aname.lower().strip()
-                                    _prev = _blend_artist_freq.get(_akey, (_aname, 0))[1]
-                                    _blend_artist_freq[_akey] = (_aname, _prev + 1)
+                                if isinstance(_a, dict):
+                                    _aid = (_a.get("id") or "").strip()
+                                    _aname = (_a.get("name") or "").strip()
+                                elif isinstance(_a, str):
+                                    _aid = ""
+                                    _aname = _a.strip()
+                                else:
+                                    continue
+                                if not _aname:
+                                    continue
+                                _akey = _aid or _aname.lower()
+                                _prev = _blend_artist_freq.get(_akey, (_aname, 0))[1]
+                                _blend_artist_freq[_akey] = (_aname, _prev + 1)
 
-                    # enrich_artists() expects {artist_id: (name, count)} but Blend
-                    # tracks have no Spotify artist IDs — use name as key instead.
-                    _dz_freq_for_blend = {k: v for k, v in _blend_artist_freq.items()}
                     _dz_blend_result = _dz_blend.enrich_artists(
-                        _dz_freq_for_blend,
+                        _blend_artist_freq,
                         existing_genres={},
                         max_artists=150,
                         progress_fn=None,
                     )
-                    # Result is keyed by the same key we passed in (artist_name_lower)
-                    _blend_artist_genres_by_name = {
+                    # Result is keyed the same way we passed in — ID when we
+                    # had one, lowercase name otherwise. _minimal_profile()
+                    # accepts both key shapes.
+                    _blend_artist_genres_by_key = {
                         k: v for k, v in _dz_blend_result.items() if v
                     }
                 except Exception:
@@ -146,7 +176,7 @@ if st.button("Find Common Ground", type="primary", use_container_width=False):
                 user_profiles = []
                 for label, raw_tracks in user_raw_tracks:
                     profiles_for_user = {
-                        uri: _minimal_profile(t, _blend_artist_genres_by_name)
+                        uri: _minimal_profile(t, _blend_artist_genres_by_key)
                         for uri, t in raw_tracks.items()
                     }
                     user_profiles.append((label, profiles_for_user))

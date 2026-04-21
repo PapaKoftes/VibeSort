@@ -156,8 +156,8 @@ def _load_cache() -> dict:
 
 def _save_cache(cache: dict) -> None:
     try:
-        with open(CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False, separators=(",", ":"))
+        from core.cache_io import atomic_write_json
+        atomic_write_json(CACHE_PATH, cache, separators=(",", ":"))
     except Exception:
         pass
 

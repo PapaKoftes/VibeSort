@@ -87,9 +87,8 @@ def _load_cache() -> dict:
 
 def _save_cache(cache: dict) -> None:
     try:
-        os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
-        with open(CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False)
+        from core.cache_io import atomic_write_json
+        atomic_write_json(CACHE_PATH, cache)
     except Exception:
         pass
 
@@ -708,7 +707,14 @@ def exchange_token(token: str, api_key: str, api_secret: str) -> dict | None:
         if "error" in data:
             return None
         sess = data.get("session", {})
-        return {"key": sess.get("key", ""), "name": sess.get("name", "")} or None
+        key  = sess.get("key", "")
+        name = sess.get("name", "")
+        # A partial response (e.g. missing key/name) is useless to callers;
+        # return None so downstream code falls through its "not authed" path
+        # instead of carrying empty strings that look like a successful login.
+        if not key or not name:
+            return None
+        return {"key": key, "name": name}
     except Exception:
         return None
 
@@ -716,9 +722,8 @@ def exchange_token(token: str, api_key: str, api_secret: str) -> dict | None:
 def save_session(session: dict) -> None:
     """Persist the session key + username to disk."""
     try:
-        os.makedirs(os.path.dirname(SESSION_PATH), exist_ok=True)
-        with open(SESSION_PATH, "w", encoding="utf-8") as f:
-            json.dump(session, f)
+        from core.cache_io import atomic_write_json
+        atomic_write_json(SESSION_PATH, session)
     except Exception:
         pass
 

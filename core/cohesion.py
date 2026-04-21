@@ -41,9 +41,9 @@ def filter_outliers(
     min_tracks: int = 10,
 ) -> tuple[list[str], float]:
     """
-    Remove tracks whose audio vector is too far from the group centroid.
-    Keeps iterating until all remaining tracks meet the threshold or
-    we'd drop below min_tracks.
+    Iteratively remove the single worst-fitting track per pass until either
+    every remaining track meets ``threshold`` or removing another would drop
+    us below ``min_tracks``.
 
     Returns (filtered_uris, final_cohesion_score).
     """
@@ -51,25 +51,23 @@ def filter_outliers(
     if len(current) <= min_tracks:
         return current, cohesion_score(current, profiles)
 
-    for _ in range(20):  # max 20 passes
+    # Bound the number of passes so we can't loop more times than tracks.
+    max_passes = len(current) - min_tracks
+    for _ in range(max_passes):
         vectors = [profiles[u]["audio_vector"] for u in current]
-        c = _centroid(vectors)
-        sims = [(u, cosine_similarity(profiles[u]["audio_vector"], c)) for u in current]
-        worst_sim = min(s for _, s in sims)
+        centroid = _centroid(vectors)
+        sims = [
+            (u, cosine_similarity(profiles[u]["audio_vector"], centroid))
+            for u in current
+        ]
+        worst_uri, worst_sim = min(sims, key=lambda x: x[1])
 
+        # Stop once the worst track already meets the bar, or removing
+        # another would put us under the minimum size.
         if worst_sim >= threshold or len(current) <= min_tracks:
             break
 
-        # Remove the single worst outlier per pass
-        current = [u for u, s in sims if s > worst_sim or u == sims[0][0]]
-        # Tie-break: keep all above worst, ensure we keep enough
-        current = sorted(current, key=lambda u: -cosine_similarity(profiles[u]["audio_vector"], c))
-        if len(current) > min_tracks:
-            current = [u for u, s in sims if s >= threshold]
-            if len(current) < min_tracks:
-                # Fall back: just remove the single worst
-                worst_uri = min(sims, key=lambda x: x[1])[0]
-                current = [u for u in [x[0] for x in sims] if u != worst_uri]
+        current = [u for u in current if u != worst_uri]
 
     score = cohesion_score(current, profiles)
     return current, score
