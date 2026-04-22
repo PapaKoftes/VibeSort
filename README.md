@@ -2,10 +2,6 @@
 
 > *Your music library, finally sorted by feeling.*
 
-<p align="center">
-  <img src="docs/vibesort_demo.gif" alt="Vibesort demo — mood playlists, signal badges, emotional fingerprint" width="900"/>
-</p>
-
 You know that feeling when a song hits exactly right for the moment? Vibesort is built around that. It reads your Spotify library and sorts everything into **110 mood playlists** — not by BPM or energy level, but by what the music actually *feels* like. Hollow for 3am existential spirals. Villain Arc for when you need to feel unstoppable. Late Night Drive for exactly what it sounds like.
 
 ---
