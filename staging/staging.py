@@ -168,8 +168,12 @@ def load_all() -> list[dict]:
         except json.JSONDecodeError:
             # Quarantine corrupt JSON so it's visible on disk instead of
             # silently vanishing from the staging shelf.
+            # os.replace() is used instead of os.rename() because on Windows
+            # os.rename() raises FileExistsError when the destination already
+            # exists, causing the rename to fail silently every subsequent
+            # load_all() call until the .corrupt file is manually removed.
             try:
-                os.rename(fpath, f"{fpath}.corrupt")
+                os.replace(fpath, f"{fpath}.corrupt")
             except OSError:
                 pass
             continue
