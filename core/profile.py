@@ -131,7 +131,7 @@ def build(
     macro_seen: set[str] = set()
     macro_genres: list[str] = []
     for artist in track.get("artists", []):
-        for genre in artist_genres_map.get(artist["id"], []):
+        for genre in artist_genres_map.get(artist.get("id"), []):
             if genre not in raw_genres:
                 raw_genres.append(genre)
             macro = to_macro(genre)

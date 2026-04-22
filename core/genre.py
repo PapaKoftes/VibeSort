@@ -127,7 +127,7 @@ def track_macro_genres(track: dict, artist_genres: dict[str, list[str]]) -> list
     seen: set[str] = set()
     result: list[str] = []
     for artist in track.get("artists", []):
-        for genre in artist_genres.get(artist["id"], []):
+        for genre in artist_genres.get(artist.get("id"), []):
             macro = to_macro(genre)
             if macro not in seen:
                 seen.add(macro)

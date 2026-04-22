@@ -204,6 +204,15 @@ if st.session_state.get("spotify_token"):
                     os.remove(f)
             except OSError:
                 pass
+        # Clear module-level recommendation caches so a second user logging
+        # in on the same process doesn't inherit the previous user's market
+        # code or cached Spotify search results.
+        try:
+            from core import recommend as _rec_mod
+            _rec_mod.reset_market_cache()
+            _rec_mod._search_cache.clear()
+        except Exception:
+            pass
         st.rerun()
     # NOTE: do NOT st.stop() here — page continues to render service connections below
 

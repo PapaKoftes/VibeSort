@@ -214,12 +214,16 @@ def execute_library_scan(
             # rescans instant (only uncached tracks incur API calls).
             _lf_cap = len(all_tracks)   # no cap; was max(300, min(1000, N))
             _n_tracks = len(all_tracks)
-            _est_first = max(1, _n_tracks - len(
-                [t for t in all_tracks
-                 if _lf_mod._load_cache().get("tracks", {}).get(
-                     f"{('_'.join((t.get('artists') or [{}])[0].get('name','').lower().split()))}|||"
-                     f"{'_'.join(t.get('name','').lower().split())}"
-                 )]
+            # Load cache once (not once per track) and use `in` for presence
+            # check — .get() returns {} (falsy) for cached no-tag tracks,
+            # which would mis-count them as uncached.
+            _lf_track_cache = _lf_mod._load_cache().get("tracks", {})
+            _est_first = max(1, _n_tracks - sum(
+                1 for t in all_tracks
+                if (
+                    f"{'_'.join((t.get('artists') or [{}])[0].get('name','').lower().split())}|||"
+                    f"{'_'.join(t.get('name','').lower().split())}"
+                ) in _lf_track_cache
             ))
             if _est_first > 0:
                 _est_min = max(1, (_est_first * 21) // 60)
